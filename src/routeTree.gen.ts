@@ -13,6 +13,7 @@ import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as ShellCustomersIndexRouteImport } from './routes/_shell.customers.index'
+import { Route as ShellCustomersCustomerIdRouteImport } from './routes/_shell.customers.$customerId'
 
 const ShellRoute = ShellRouteImport.update({
   id: '/_shell',
@@ -33,15 +34,23 @@ const ShellCustomersIndexRoute = ShellCustomersIndexRouteImport.update({
   path: '/customers/',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellCustomersCustomerIdRoute =
+  ShellCustomersCustomerIdRouteImport.update({
+    id: '/customers/$customerId',
+    path: '/customers/$customerId',
+    getParentRoute: () => ShellRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/login': typeof LoginRoute
+  '/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/customers/': typeof ShellCustomersIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof ShellIndexRoute
+  '/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/customers': typeof ShellCustomersIndexRoute
 }
 export interface FileRoutesById {
@@ -49,14 +58,21 @@ export interface FileRoutesById {
   '/_shell': typeof ShellRouteWithChildren
   '/login': typeof LoginRoute
   '/_shell/': typeof ShellIndexRoute
+  '/_shell/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/_shell/customers/': typeof ShellCustomersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/customers/'
+  fullPaths: '/' | '/login' | '/customers/$customerId' | '/customers/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/customers'
-  id: '__root__' | '/_shell' | '/login' | '/_shell/' | '/_shell/customers/'
+  to: '/login' | '/' | '/customers/$customerId' | '/customers'
+  id:
+    | '__root__'
+    | '/_shell'
+    | '/login'
+    | '/_shell/'
+    | '/_shell/customers/$customerId'
+    | '/_shell/customers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,16 +110,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellCustomersIndexRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/customers/$customerId': {
+      id: '/_shell/customers/$customerId'
+      path: '/customers/$customerId'
+      fullPath: '/customers/$customerId'
+      preLoaderRoute: typeof ShellCustomersCustomerIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
   }
 }
 
 interface ShellRouteChildren {
   ShellIndexRoute: typeof ShellIndexRoute
+  ShellCustomersCustomerIdRoute: typeof ShellCustomersCustomerIdRoute
   ShellCustomersIndexRoute: typeof ShellCustomersIndexRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
   ShellIndexRoute: ShellIndexRoute,
+  ShellCustomersCustomerIdRoute: ShellCustomersCustomerIdRoute,
   ShellCustomersIndexRoute: ShellCustomersIndexRoute,
 }
 
