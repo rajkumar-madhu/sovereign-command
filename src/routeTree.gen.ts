@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellAgentsIndexRouteImport } from './routes/_shell.agents.index'
 import { Route as ShellCustomersIndexRouteImport } from './routes/_shell.customers.index'
 import { Route as ShellCustomersCustomerIdRouteImport } from './routes/_shell.customers.$customerId'
 
@@ -27,6 +28,11 @@ const LoginRoute = LoginRouteImport.update({
 const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellAgentsIndexRoute = ShellAgentsIndexRouteImport.update({
+  id: '/agents/',
+  path: '/agents/',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellCustomersIndexRoute = ShellCustomersIndexRouteImport.update({
@@ -45,12 +51,14 @@ export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/login': typeof LoginRoute
   '/customers/$customerId': typeof ShellCustomersCustomerIdRoute
+  '/agents/': typeof ShellAgentsIndexRoute
   '/customers/': typeof ShellCustomersIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof ShellIndexRoute
   '/customers/$customerId': typeof ShellCustomersCustomerIdRoute
+  '/agents': typeof ShellAgentsIndexRoute
   '/customers': typeof ShellCustomersIndexRoute
 }
 export interface FileRoutesById {
@@ -59,19 +67,22 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_shell/': typeof ShellIndexRoute
   '/_shell/customers/$customerId': typeof ShellCustomersCustomerIdRoute
+  '/_shell/agents/': typeof ShellAgentsIndexRoute
   '/_shell/customers/': typeof ShellCustomersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/customers/$customerId' | '/customers/'
+  fullPaths:
+    '/' | '/login' | '/customers/$customerId' | '/agents/' | '/customers/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/customers/$customerId' | '/customers'
+  to: '/login' | '/' | '/customers/$customerId' | '/agents' | '/customers'
   id:
     | '__root__'
     | '/_shell'
     | '/login'
     | '/_shell/'
     | '/_shell/customers/$customerId'
+    | '/_shell/agents/'
     | '/_shell/customers/'
   fileRoutesById: FileRoutesById
 }
@@ -103,6 +114,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellIndexRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/agents/': {
+      id: '/_shell/agents/'
+      path: '/agents'
+      fullPath: '/agents/'
+      preLoaderRoute: typeof ShellAgentsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/customers/': {
       id: '/_shell/customers/'
       path: '/customers'
@@ -123,12 +141,14 @@ declare module '@tanstack/react-router' {
 interface ShellRouteChildren {
   ShellIndexRoute: typeof ShellIndexRoute
   ShellCustomersCustomerIdRoute: typeof ShellCustomersCustomerIdRoute
+  ShellAgentsIndexRoute: typeof ShellAgentsIndexRoute
   ShellCustomersIndexRoute: typeof ShellCustomersIndexRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
   ShellIndexRoute: ShellIndexRoute,
   ShellCustomersCustomerIdRoute: ShellCustomersCustomerIdRoute,
+  ShellAgentsIndexRoute: ShellAgentsIndexRoute,
   ShellCustomersIndexRoute: ShellCustomersIndexRoute,
 }
 
