@@ -129,7 +129,7 @@ function AgentDetail() {
                 <div>
                   <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Allowed tools</p>
                   <ul className="flex flex-wrap gap-1.5">
-                    {passport.allowedTools.map((t) => (
+                    {passport.allowedTools.map((t: string) => (
                       <li key={t}><StatusPill tone="success">{t}</StatusPill></li>
                     ))}
                   </ul>
@@ -137,7 +137,7 @@ function AgentDetail() {
                 <div>
                   <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Blocked actions</p>
                   <ul className="flex flex-wrap gap-1.5">
-                    {passport.blockedActions.map((t) => (
+                    {passport.blockedActions.map((t: string) => (
                       <li key={t}><StatusPill tone="danger">{t}</StatusPill></li>
                     ))}
                   </ul>
