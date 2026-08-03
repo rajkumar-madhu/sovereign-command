@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_shell/models")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: ModelGateway;
+  component: ModelGateway,
 });
 
 const costTone = { low: "success", medium: "info", high: "warning" } as const;
