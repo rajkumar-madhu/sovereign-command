@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as ShellEvidenceRouteImport } from './routes/_shell.evidence'
 import { Route as ShellInvestigationsRouteImport } from './routes/_shell.investigations'
+import { Route as ShellModelsRouteImport } from './routes/_shell.models'
 import { Route as ShellRcaRouteImport } from './routes/_shell.rca'
 import { Route as ShellSocRouteImport } from './routes/_shell.soc'
 import { Route as ShellAgentsIndexRouteImport } from './routes/_shell.agents.index'
@@ -44,6 +45,11 @@ const ShellEvidenceRoute = ShellEvidenceRouteImport.update({
 const ShellInvestigationsRoute = ShellInvestigationsRouteImport.update({
   id: '/investigations',
   path: '/investigations',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellModelsRoute = ShellModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellRcaRoute = ShellRcaRouteImport.update({
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
+  '/models': typeof ShellModelsRoute
   '/rca': typeof ShellRcaRoute
   '/soc': typeof ShellSocRoute
   '/agents/$agentId': typeof ShellAgentsAgentIdRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
+  '/models': typeof ShellModelsRoute
   '/rca': typeof ShellRcaRoute
   '/soc': typeof ShellSocRoute
   '/': typeof ShellIndexRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_shell/evidence': typeof ShellEvidenceRoute
   '/_shell/investigations': typeof ShellInvestigationsRoute
+  '/_shell/models': typeof ShellModelsRoute
   '/_shell/rca': typeof ShellRcaRoute
   '/_shell/soc': typeof ShellSocRoute
   '/_shell/': typeof ShellIndexRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/evidence'
     | '/investigations'
+    | '/models'
     | '/rca'
     | '/soc'
     | '/agents/$agentId'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/evidence'
     | '/investigations'
+    | '/models'
     | '/rca'
     | '/soc'
     | '/'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_shell/evidence'
     | '/_shell/investigations'
+    | '/_shell/models'
     | '/_shell/rca'
     | '/_shell/soc'
     | '/_shell/'
@@ -208,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/investigations'
       fullPath: '/investigations'
       preLoaderRoute: typeof ShellInvestigationsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/models': {
+      id: '/_shell/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof ShellModelsRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/rca': {
@@ -265,6 +284,7 @@ declare module '@tanstack/react-router' {
 interface ShellRouteChildren {
   ShellEvidenceRoute: typeof ShellEvidenceRoute
   ShellInvestigationsRoute: typeof ShellInvestigationsRoute
+  ShellModelsRoute: typeof ShellModelsRoute
   ShellRcaRoute: typeof ShellRcaRoute
   ShellSocRoute: typeof ShellSocRoute
   ShellIndexRoute: typeof ShellIndexRoute
@@ -278,6 +298,7 @@ interface ShellRouteChildren {
 const ShellRouteChildren: ShellRouteChildren = {
   ShellEvidenceRoute: ShellEvidenceRoute,
   ShellInvestigationsRoute: ShellInvestigationsRoute,
+  ShellModelsRoute: ShellModelsRoute,
   ShellRcaRoute: ShellRcaRoute,
   ShellSocRoute: ShellSocRoute,
   ShellIndexRoute: ShellIndexRoute,
@@ -297,13 +318,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
