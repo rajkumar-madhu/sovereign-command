@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ops/page-header";
 import { MetricCard } from "@/components/ops/metric-card";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForStatus } from "@/components/ops/status-badge";
-import { providers, tenantName, tenants } from "@/data/seed";
+import { agentName, gatewayDecisions, providers, tenantName, tenants } from "@/data/seed";
 
 export const Route = createFileRoute("/_shell/models")({
   head: () => ({
@@ -36,10 +36,14 @@ export const Route = createFileRoute("/_shell/models")({
 
 const costTone = { low: "success", medium: "info", high: "warning" } as const;
 
+const decisionTone = { routed: "success", fallback: "warning", blocked: "danger" } as const;
+
 function ModelGateway() {
   const [query, setQuery] = useState("");
   const [residency, setResidency] = useState("all");
   const [tenantFilter, setTenantFilter] = useState("all");
+  const [logQuery, setLogQuery] = useState("");
+  const [logDecision, setLogDecision] = useState("all");
 
   const residencies = useMemo(
     () => Array.from(new Set(providers.map((p) => p.residency))),
@@ -61,6 +65,40 @@ function ModelGateway() {
       })
       .sort((a, b) => a.fallbackOrder - b.fallbackOrder);
   }, [query, residency, tenantFilter]);
+
+  const decisionRows = useMemo(() => {
+    const q = logQuery.trim().toLowerCase();
+    return gatewayDecisions
+      .filter((d) => {
+        if (logDecision !== "all" && d.decision !== logDecision) return false;
+        if (!q) return true;
+        return [
+          d.correlationId,
+          tenantName(d.tenantId),
+          agentName(d.agentId),
+          d.requestedModel,
+          d.chosenProvider,
+          d.chosenModel,
+          d.fallbackFrom ?? "",
+          d.residency,
+          d.outcome,
+          d.reason,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+      })
+      .sort((a, b) => b.time.localeCompare(a.time));
+  }, [logQuery, logDecision]);
+
+  const decisionCounts = useMemo(
+    () => ({
+      routed: gatewayDecisions.filter((d) => d.decision === "routed").length,
+      fallback: gatewayDecisions.filter((d) => d.decision === "fallback").length,
+      blocked: gatewayDecisions.filter((d) => d.decision === "blocked").length,
+    }),
+    [],
+  );
 
   const healthy = providers.filter((p) => p.status === "healthy").length;
   const degraded = providers.filter((p) => p.status !== "healthy").length;
@@ -188,6 +226,101 @@ function ModelGateway() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Routing decision audit log</CardTitle>
+          <CardDescription>
+            Every gateway decision is recorded with correlation ID, tenant, chosen provider, fallback event and outcome. Entries are immutable and read-only.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Input
+              value={logQuery}
+              onChange={(e) => setLogQuery(e.target.value)}
+              placeholder="Search correlation ID, tenant, agent, provider or outcome"
+              aria-label="Search routing decision log"
+              className="sm:col-span-2"
+            />
+            <Select value={logDecision} onValueChange={setLogDecision}>
+              <SelectTrigger aria-label="Filter by decision">
+                <SelectValue placeholder="Decision" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All decisions</SelectItem>
+                <SelectItem value="routed">Routed</SelectItem>
+                <SelectItem value="fallback">Fallback</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <span>{decisionCounts.routed} routed</span>
+            <span>{decisionCounts.fallback} fallback events</span>
+            <span>{decisionCounts.blocked} blocked at gateway</span>
+          </div>
+
+          {decisionRows.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+              No routing decisions match this search within the retention window.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Correlation ID</TableHead>
+                    <TableHead>Time (UTC)</TableHead>
+                    <TableHead>Tenant</TableHead>
+                    <TableHead>Agent</TableHead>
+                    <TableHead>Requested</TableHead>
+                    <TableHead>Chosen provider</TableHead>
+                    <TableHead>Decision</TableHead>
+                    <TableHead>Fallback from</TableHead>
+                    <TableHead>Residency</TableHead>
+                    <TableHead className="text-right">Latency</TableHead>
+                    <TableHead className="text-right">Tokens</TableHead>
+                    <TableHead>Outcome</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {decisionRows.map((d) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">{d.correlationId}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap tabular-nums">{d.time.replace("T", " ").replace("Z", "")}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{tenantName(d.tenantId)}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{agentName(d.agentId)}</TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">{d.requestedModel}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {d.chosenProvider}
+                        {d.chosenModel !== "—" && (
+                          <span className="block font-mono text-xs text-muted-foreground">{d.chosenModel}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <StatusPill tone={decisionTone[d.decision]}>{d.decision}</StatusPill>
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {d.fallbackFrom ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{d.residency}</TableCell>
+                      <TableCell className="text-right tabular-nums">{d.latencyMs ? `${d.latencyMs} ms` : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{d.tokens ? d.tokens.toLocaleString() : "—"}</TableCell>
+                      <TableCell className="max-w-56 text-xs">
+                        {d.outcome}
+                        <span className="block text-muted-foreground">{d.reason}</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

@@ -4,6 +4,7 @@ import type {
   Approval,
   AuditEntry,
   Customer,
+  GatewayDecision,
   Incident,
   McpTool,
   ModelProvider,
