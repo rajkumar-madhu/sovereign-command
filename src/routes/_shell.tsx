@@ -27,3 +27,9 @@ function ShellLayout() {
     </OpsProvider>
   );
 }
+
+/** Mounted inside OpsProvider so approval SLA thresholds page approvers in real time. */
+function ApprovalSlaWatcher() {
+  useApprovalSlaAlerts();
+  return null;
+}
