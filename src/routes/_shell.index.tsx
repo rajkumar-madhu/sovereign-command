@@ -81,7 +81,9 @@ function CommandCentre() {
               <Link to="/investigations">Investigations</Link>
             </Button>
             <Button asChild>
-              <Link to="/incidents/inc-4821">Open active P1</Link>
+              <Link to="/incidents/$incidentId" params={{ incidentId: "inc-4821" }}>
+                Open active P1
+              </Link>
             </Button>
           </>
         }
