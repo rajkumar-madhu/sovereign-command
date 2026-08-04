@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellCostRouteImport } from './routes/_shell.cost'
 import { Route as ShellEvidenceRouteImport } from './routes/_shell.evidence'
 import { Route as ShellInvestigationsRouteImport } from './routes/_shell.investigations'
 import { Route as ShellModelsRouteImport } from './routes/_shell.models'
@@ -36,6 +37,11 @@ const LoginRoute = LoginRouteImport.update({
 const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellCostRoute = ShellCostRouteImport.update({
+  id: '/cost',
+  path: '/cost',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellEvidenceRoute = ShellEvidenceRouteImport.update({
@@ -99,6 +105,7 @@ const ShellIncidentsIncidentIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/login': typeof LoginRoute
+  '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
   '/models': typeof ShellModelsRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
   '/models': typeof ShellModelsRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
   '/login': typeof LoginRoute
+  '/_shell/cost': typeof ShellCostRoute
   '/_shell/evidence': typeof ShellEvidenceRoute
   '/_shell/investigations': typeof ShellInvestigationsRoute
   '/_shell/models': typeof ShellModelsRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/cost'
     | '/evidence'
     | '/investigations'
     | '/models'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/cost'
     | '/evidence'
     | '/investigations'
     | '/models'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_shell'
     | '/login'
+    | '/_shell/cost'
     | '/_shell/evidence'
     | '/_shell/investigations'
     | '/_shell/models'
@@ -218,6 +230,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/cost': {
+      id: '/_shell/cost'
+      path: '/cost'
+      fullPath: '/cost'
+      preLoaderRoute: typeof ShellCostRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/evidence': {
@@ -301,6 +320,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ShellRouteChildren {
+  ShellCostRoute: typeof ShellCostRoute
   ShellEvidenceRoute: typeof ShellEvidenceRoute
   ShellInvestigationsRoute: typeof ShellInvestigationsRoute
   ShellModelsRoute: typeof ShellModelsRoute
@@ -316,6 +336,7 @@ interface ShellRouteChildren {
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
+  ShellCostRoute: ShellCostRoute,
   ShellEvidenceRoute: ShellEvidenceRoute,
   ShellInvestigationsRoute: ShellInvestigationsRoute,
   ShellModelsRoute: ShellModelsRoute,
