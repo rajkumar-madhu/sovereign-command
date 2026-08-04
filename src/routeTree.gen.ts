@@ -19,6 +19,7 @@ import { Route as ShellInvestigationsRouteImport } from './routes/_shell.investi
 import { Route as ShellModelsRouteImport } from './routes/_shell.models'
 import { Route as ShellPoliciesRouteImport } from './routes/_shell.policies'
 import { Route as ShellRcaRouteImport } from './routes/_shell.rca'
+import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellSocRouteImport } from './routes/_shell.soc'
 import { Route as ShellToolsRouteImport } from './routes/_shell.tools'
 import { Route as ShellAgentsIndexRouteImport } from './routes/_shell.agents.index'
@@ -76,6 +77,11 @@ const ShellRcaRoute = ShellRcaRouteImport.update({
   path: '/rca',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellSettingsRoute = ShellSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellSocRoute = ShellSocRouteImport.update({
   id: '/soc',
   path: '/soc',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/models': typeof ShellModelsRoute
   '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
+  '/settings': typeof ShellSettingsRoute
   '/soc': typeof ShellSocRoute
   '/tools': typeof ShellToolsRoute
   '/agents/$agentId': typeof ShellAgentsAgentIdRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/models': typeof ShellModelsRoute
   '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
+  '/settings': typeof ShellSettingsRoute
   '/soc': typeof ShellSocRoute
   '/tools': typeof ShellToolsRoute
   '/': typeof ShellIndexRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/_shell/models': typeof ShellModelsRoute
   '/_shell/policies': typeof ShellPoliciesRoute
   '/_shell/rca': typeof ShellRcaRoute
+  '/_shell/settings': typeof ShellSettingsRoute
   '/_shell/soc': typeof ShellSocRoute
   '/_shell/tools': typeof ShellToolsRoute
   '/_shell/': typeof ShellIndexRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/models'
     | '/policies'
     | '/rca'
+    | '/settings'
     | '/soc'
     | '/tools'
     | '/agents/$agentId'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/models'
     | '/policies'
     | '/rca'
+    | '/settings'
     | '/soc'
     | '/tools'
     | '/'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/_shell/models'
     | '/_shell/policies'
     | '/_shell/rca'
+    | '/_shell/settings'
     | '/_shell/soc'
     | '/_shell/tools'
     | '/_shell/'
@@ -305,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellRcaRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/settings': {
+      id: '/_shell/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof ShellSettingsRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/soc': {
       id: '/_shell/soc'
       path: '/soc'
@@ -365,6 +384,7 @@ interface ShellRouteChildren {
   ShellModelsRoute: typeof ShellModelsRoute
   ShellPoliciesRoute: typeof ShellPoliciesRoute
   ShellRcaRoute: typeof ShellRcaRoute
+  ShellSettingsRoute: typeof ShellSettingsRoute
   ShellSocRoute: typeof ShellSocRoute
   ShellToolsRoute: typeof ShellToolsRoute
   ShellIndexRoute: typeof ShellIndexRoute
@@ -383,6 +403,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellModelsRoute: ShellModelsRoute,
   ShellPoliciesRoute: ShellPoliciesRoute,
   ShellRcaRoute: ShellRcaRoute,
+  ShellSettingsRoute: ShellSettingsRoute,
   ShellSocRoute: ShellSocRoute,
   ShellToolsRoute: ShellToolsRoute,
   ShellIndexRoute: ShellIndexRoute,
@@ -402,3 +423,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
