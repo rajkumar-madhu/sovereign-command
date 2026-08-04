@@ -216,6 +216,7 @@ function PolicyManagement() {
                 </SelectContent>
               </Select>
             </div>
+            <SafetyBanner compact />
             <div className="rounded-lg border border-border bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium">Gateway decision</span>
@@ -237,6 +238,7 @@ function PolicyManagement() {
             <CardDescription>Dual-control decisions raised by policy gates.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
+            <SafetyBanner compact />
             {pending.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
                 No approvals pending — every gated intent has been decided.
@@ -292,6 +294,7 @@ function PolicyManagement() {
           </DialogHeader>
           {draft && (
             <div className="space-y-4">
+              <SafetyBanner compact />
               <div className="space-y-2">
                 <Label htmlFor="p-name">Rule name</Label>
                 <Input id="p-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
