@@ -176,3 +176,20 @@ export interface Approval {
   requestedAt: string;
   status: "pending" | "approved" | "rejected";
 }
+export interface GatewayDecision {
+  id: string;
+  correlationId: string;
+  time: string;
+  tenantId: string;
+  agentId: string;
+  requestedModel: string;
+  chosenProvider: string;
+  chosenModel: string;
+  decision: "routed" | "fallback" | "blocked";
+  fallbackFrom?: string;
+  reason: string;
+  residency: string;
+  latencyMs: number;
+  tokens: number;
+  outcome: string;
+}
