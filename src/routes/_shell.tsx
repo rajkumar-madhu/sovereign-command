@@ -3,6 +3,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ops/app-sidebar";
 import { TopBar } from "@/components/ops/top-bar";
 import { OpsProvider } from "@/lib/ops-context";
+import { useApprovalSlaAlerts } from "@/lib/use-approval-sla";
 
 export const Route = createFileRoute("/_shell")({
   component: ShellLayout,
@@ -12,6 +13,7 @@ function ShellLayout() {
   return (
     <OpsProvider>
       <SidebarProvider>
+        <ApprovalSlaWatcher />
         <div className="flex min-h-screen w-full bg-surface">
           <AppSidebar />
           <SidebarInset className="min-w-0 bg-surface">
