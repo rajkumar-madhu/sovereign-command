@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellApprovalsRouteImport } from './routes/_shell.approvals'
 import { Route as ShellAuditRouteImport } from './routes/_shell.audit'
 import { Route as ShellCostRouteImport } from './routes/_shell.cost'
 import { Route as ShellEvidenceRouteImport } from './routes/_shell.evidence'
@@ -40,6 +41,11 @@ const LoginRoute = LoginRouteImport.update({
 const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellApprovalsRoute = ShellApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellAuditRoute = ShellAuditRouteImport.update({
@@ -123,6 +129,7 @@ const ShellIncidentsIncidentIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/login': typeof LoginRoute
+  '/approvals': typeof ShellApprovalsRoute
   '/audit': typeof ShellAuditRoute
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/approvals': typeof ShellApprovalsRoute
   '/audit': typeof ShellAuditRoute
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
   '/login': typeof LoginRoute
+  '/_shell/approvals': typeof ShellApprovalsRoute
   '/_shell/audit': typeof ShellAuditRoute
   '/_shell/cost': typeof ShellCostRoute
   '/_shell/evidence': typeof ShellEvidenceRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/approvals'
     | '/audit'
     | '/cost'
     | '/evidence'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/approvals'
     | '/audit'
     | '/cost'
     | '/evidence'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_shell'
     | '/login'
+    | '/_shell/approvals'
     | '/_shell/audit'
     | '/_shell/cost'
     | '/_shell/evidence'
@@ -266,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/approvals': {
+      id: '/_shell/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof ShellApprovalsRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/audit': {
@@ -377,6 +396,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ShellRouteChildren {
+  ShellApprovalsRoute: typeof ShellApprovalsRoute
   ShellAuditRoute: typeof ShellAuditRoute
   ShellCostRoute: typeof ShellCostRoute
   ShellEvidenceRoute: typeof ShellEvidenceRoute
@@ -396,6 +416,7 @@ interface ShellRouteChildren {
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
+  ShellApprovalsRoute: ShellApprovalsRoute,
   ShellAuditRoute: ShellAuditRoute,
   ShellCostRoute: ShellCostRoute,
   ShellEvidenceRoute: ShellEvidenceRoute,

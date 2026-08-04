@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
   BadgeCheck,
+  BellRing,
   Bot,
   Building2,
   Coins,
@@ -54,6 +55,7 @@ const groups: Array<{ label: string; items: Array<{ title: string; url: string; 
       { title: "Model Gateway", url: "/models", icon: Cpu },
       { title: "Tool & MCP Registry", url: "/tools", icon: Wrench },
       { title: "Policy Management", url: "/policies", icon: BadgeCheck },
+      { title: "Approval Queue", url: "/approvals", icon: BellRing },
       { title: "Audit & Compliance", url: "/audit", icon: Activity },
       { title: "Settings", url: "/settings", icon: Settings },
     ],

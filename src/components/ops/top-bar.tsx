@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bell, LogOut, Search, UserRound } from "lucide-react";
+import { AlarmClock, Bell, LogOut, Search, UserRound } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/popover";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
 import { useOps, tenantCustomers } from "@/lib/ops-context";
+import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
+import { formatCountdown, slaLabel, slaTone } from "@/lib/approval-sla";
 import { agents, incidents, securityEvents, tenants } from "@/data/seed";
 import type { EnvName } from "@/data/types";
 import { toast } from "sonner";
@@ -46,6 +48,9 @@ export function TopBar() {
   const custs = useMemo(() => tenantCustomers(ops.tenantId), [ops.tenantId]);
   const notifications = securityEvents.slice(0, 5);
   const pending = ops.approvals.filter((a) => a.status === "pending").length;
+  const sla = useApprovalSlaFeed();
+  const alertItems = [...sla.breached, ...sla.atRisk];
+  const unread = notifications.length + sla.alertCount;
 
   return (
     <header className="sticky top-0 z-30 flex flex-col gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur md:flex-row md:items-center md:gap-3 md:px-4">
@@ -107,18 +112,50 @@ export function TopBar() {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="relative h-9 w-9" aria-label="Notifications">
+            <Button
+              variant="outline"
+              size="icon"
+              className="relative h-9 w-9"
+              aria-label={`Notifications, ${unread} unread including ${sla.alertCount} approval SLA alerts`}
+            >
               <Bell className="size-4" aria-hidden="true" />
               <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-semibold text-destructive-foreground">
-                {notifications.length}
+                {unread}
               </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0">
             <div className="border-b border-border px-3 py-2">
               <p className="text-sm font-medium">Notifications</p>
-              <p className="text-xs text-muted-foreground">{pending} approvals pending</p>
+              <p className="text-xs text-muted-foreground">
+                {pending} approvals pending · {sla.alertCount} approaching or past SLA
+              </p>
             </div>
+            {alertItems.length > 0 && (
+              <div className="border-b border-border bg-destructive/5" role="status" aria-live="polite">
+                <p className="flex items-center gap-1.5 px-3 pt-2 text-xs font-medium text-destructive">
+                  <AlarmClock className="size-3.5" aria-hidden="true" /> Approval SLA alerts
+                </p>
+                <ul className="divide-y divide-border/60">
+                  {alertItems.slice(0, 4).map((item) => (
+                    <li key={item.approval.id} className="px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <StatusPill tone={slaTone(item.state)}>{slaLabel(item.state)}</StatusPill>
+                        <span className="text-[11px] tabular-nums text-muted-foreground">
+                          {formatCountdown(item.remainingMinutes)}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.approval.request}</p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="p-2">
+                  <Button asChild variant="outline" size="sm" className="w-full">
+                    <Link to="/approvals">Open approval queue</Link>
+                  </Button>
+                </div>
+              </div>
+            )}
             <ul className="max-h-80 divide-y divide-border overflow-y-auto">
               {notifications.map((n) => (
                 <li key={n.id} className="px-3 py-2">
