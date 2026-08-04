@@ -16,6 +16,7 @@ import { Route as ShellCostRouteImport } from './routes/_shell.cost'
 import { Route as ShellEvidenceRouteImport } from './routes/_shell.evidence'
 import { Route as ShellInvestigationsRouteImport } from './routes/_shell.investigations'
 import { Route as ShellModelsRouteImport } from './routes/_shell.models'
+import { Route as ShellPoliciesRouteImport } from './routes/_shell.policies'
 import { Route as ShellRcaRouteImport } from './routes/_shell.rca'
 import { Route as ShellSocRouteImport } from './routes/_shell.soc'
 import { Route as ShellToolsRouteImport } from './routes/_shell.tools'
@@ -57,6 +58,11 @@ const ShellInvestigationsRoute = ShellInvestigationsRouteImport.update({
 const ShellModelsRoute = ShellModelsRouteImport.update({
   id: '/models',
   path: '/models',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellPoliciesRoute = ShellPoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellRcaRoute = ShellRcaRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
   '/models': typeof ShellModelsRoute
+  '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
   '/soc': typeof ShellSocRoute
   '/tools': typeof ShellToolsRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
   '/models': typeof ShellModelsRoute
+  '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
   '/soc': typeof ShellSocRoute
   '/tools': typeof ShellToolsRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/_shell/evidence': typeof ShellEvidenceRoute
   '/_shell/investigations': typeof ShellInvestigationsRoute
   '/_shell/models': typeof ShellModelsRoute
+  '/_shell/policies': typeof ShellPoliciesRoute
   '/_shell/rca': typeof ShellRcaRoute
   '/_shell/soc': typeof ShellSocRoute
   '/_shell/tools': typeof ShellToolsRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/evidence'
     | '/investigations'
     | '/models'
+    | '/policies'
     | '/rca'
     | '/soc'
     | '/tools'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/evidence'
     | '/investigations'
     | '/models'
+    | '/policies'
     | '/rca'
     | '/soc'
     | '/tools'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/_shell/evidence'
     | '/_shell/investigations'
     | '/_shell/models'
+    | '/_shell/policies'
     | '/_shell/rca'
     | '/_shell/soc'
     | '/_shell/tools'
@@ -260,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellModelsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/policies': {
+      id: '/_shell/policies'
+      path: '/policies'
+      fullPath: '/policies'
+      preLoaderRoute: typeof ShellPoliciesRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/rca': {
       id: '/_shell/rca'
       path: '/rca'
@@ -324,6 +343,7 @@ interface ShellRouteChildren {
   ShellEvidenceRoute: typeof ShellEvidenceRoute
   ShellInvestigationsRoute: typeof ShellInvestigationsRoute
   ShellModelsRoute: typeof ShellModelsRoute
+  ShellPoliciesRoute: typeof ShellPoliciesRoute
   ShellRcaRoute: typeof ShellRcaRoute
   ShellSocRoute: typeof ShellSocRoute
   ShellToolsRoute: typeof ShellToolsRoute
@@ -340,6 +360,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellEvidenceRoute: ShellEvidenceRoute,
   ShellInvestigationsRoute: ShellInvestigationsRoute,
   ShellModelsRoute: ShellModelsRoute,
+  ShellPoliciesRoute: ShellPoliciesRoute,
   ShellRcaRoute: ShellRcaRoute,
   ShellSocRoute: ShellSocRoute,
   ShellToolsRoute: ShellToolsRoute,
@@ -360,3 +381,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
