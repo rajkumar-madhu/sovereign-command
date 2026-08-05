@@ -199,7 +199,7 @@ export function TopBar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                toast.success("Signed out of the read-only session");
+                toast.success("Signed out");
                 void navigate({ to: "/login" });
               }}
             >

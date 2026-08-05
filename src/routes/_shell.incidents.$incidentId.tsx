@@ -100,7 +100,7 @@ function IncidentWorkspace() {
         <Card>
           <CardHeader>
             <CardTitle>Final root cause</CardTitle>
-            <CardDescription>Confidence {rcaReport.confidence}% · risk {rcaReport.risk} · no production write required</CardDescription>
+            <CardDescription>Confidence {rcaReport.confidence}% · risk {rcaReport.risk}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p>{rcaReport.rootCause}</p>

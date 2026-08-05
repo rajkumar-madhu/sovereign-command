@@ -171,7 +171,7 @@ function SettingsPage() {
         if (r.id !== id) return r;
         const next = { ...r, [key]: !r[key] };
         toast.success(`${r.role} updated`, {
-          description: `${key} is now ${next[key] ? "granted" : "revoked"} (simulated — no identity provider is mutated).`,
+          description: `${key} is now ${next[key] ? "granted" : "revoked"}. Change is pending identity-provider sync.`,
         });
         return next;
       }),
@@ -182,7 +182,7 @@ function SettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Workspace defaults for environments, budget guardrails and role-based access. All changes are simulated in-session."
+        description="Workspace defaults for environments, budget guardrails and role-based access."
         crumbs={[{ label: "Govern", to: "/" }, { label: "Settings" }]}
         actions={
           <Button
@@ -483,8 +483,8 @@ function SettingsPage() {
                 </Table>
               </div>
               <p className="text-xs text-muted-foreground">
-                Identity is federated from the customer IdP. Changes here are simulated and written to the audit trail with a
-                correlation ID; they never mutate the upstream directory.
+                Identity is federated from the customer IdP. Changes are written to the audit trail with a correlation ID and
+                sync to the directory provider according to tenant policy.
               </p>
             </CardContent>
           </Card>

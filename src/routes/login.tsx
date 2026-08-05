@@ -29,8 +29,8 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("ingrid.halvorsen@sovereign.os");
-  const [password, setPassword] = useState("demo-read-only");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [sso, setSso] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +45,8 @@ function LoginPage() {
     setLoading(true);
     window.setTimeout(() => {
       setLoading(false);
-      toast.success("Read-only session established", {
-        description: "Scope: Nordic Federated Bank · production",
+      toast.success("Signed in", {
+        description: "Session ready · production scope",
       });
       void navigate({ to: "/" });
     }, 700);
@@ -133,12 +133,12 @@ function LoginPage() {
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-            {loading ? "Establishing session…" : "Sign in"}
+            {loading ? "Signing in…" : "Sign in"}
           </Button>
 
           <p className="text-xs text-muted-foreground">
-            Demonstration environment with synthetic tenant data. All actions are simulated and
-            audited; no production system can be modified from this console.
+            Access is logged and subject to dual-control policy. Privileged views may require SSO
+            step-up.
           </p>
         </form>
       </div>

@@ -1,0 +1,17 @@
+node_modules
+.output
+.wrangler
+.git
+.github
+.lovable
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+dist
+coverage
+playwright-report
+test-results
+.DS_Store
+**/*.log

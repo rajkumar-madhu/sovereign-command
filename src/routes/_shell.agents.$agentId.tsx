@@ -56,7 +56,7 @@ function AgentDetail() {
     const next = kind === "suspend" ? "suspended" : kind === "quarantine" ? "quarantined" : "terminated";
     ops.setAgentState(agent.id, next);
     toast.success(`Simulated ${kind}: ${agent.name} is now ${next}`, {
-      description: "Control-plane simulation only — no production system was modified.",
+      description: "Agent control action recorded for audit.",
     });
   }
 

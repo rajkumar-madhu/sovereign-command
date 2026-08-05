@@ -1,0 +1,23 @@
+# Production CI — build verification on GitLab
+stages:
+  - build
+
+variables:
+  NODE_ENV: production
+  NITRO_PRESET: node-server
+
+build:prod:
+  stage: build
+  image: oven/bun:1.2
+  script:
+    - bun install --frozen-lockfile
+    - bun run build:prod
+    - test -f .output/server/index.mjs
+    - test -d .output/public
+  artifacts:
+    paths:
+      - .output/
+    expire_in: 3 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

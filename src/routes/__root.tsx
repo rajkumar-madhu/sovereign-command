@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Sovereign Agentic Operations OS" },
+      {
+        name: "description",
+        content:
+          "Multi-tenant agent operations console for regulated hybrid infrastructure — read-only by design.",
+      },
+      { name: "author", content: "Sovereign Command" },
+      { property: "og:title", content: "Sovereign Agentic Operations OS" },
+      {
+        property: "og:description",
+        content: "Command centre for agent ops, investigations, policy and compliance.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@sovereignops" },
     ],
     links: [
       {

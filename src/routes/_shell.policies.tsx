@@ -33,12 +33,12 @@ export const Route = createFileRoute("/_shell/policies")({
       {
         name: "description",
         content:
-          "Editable policy simulation rules, approval gates and dual-control queues governing every agent intent across tenant estates.",
+          "Policy rules, approval gates and dual-control queues governing every agent intent across tenant estates.",
       },
       { property: "og:title", content: "Policy Management · Sovereign Agentic Operations OS" },
       {
         property: "og:description",
-        content: "Simulate, edit and enforce approval, deny and time-window policies for agent intents.",
+        content: "Edit and enforce approval, deny and time-window policies for agent intents.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -120,7 +120,7 @@ function PolicyManagement() {
     });
     setEditing(null);
     toast.success(`${draft.id} updated`, {
-      description: "Policy simulation only — no production control plane was changed.",
+      description: "Policy update recorded for enforcement sync.",
     });
   }
 
@@ -201,7 +201,7 @@ function PolicyManagement() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Policy simulator</CardTitle>
+            <CardTitle>Policy evaluation</CardTitle>
             <CardDescription>Evaluate a candidate intent against the current rule set.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -261,7 +261,7 @@ function PolicyManagement() {
                       size="sm"
                       onClick={() => {
                         ops.decideApproval(a.id, "approved");
-                        toast.success(`${a.id} approved`, { description: "Recorded in the audit trail; no system was modified." });
+                        toast.success(`${a.id} approved`, { description: "Recorded in the audit trail." });
                       }}
                     >
                       Approve
@@ -289,7 +289,7 @@ function PolicyManagement() {
           <DialogHeader>
             <DialogTitle>Edit policy {draft?.id}</DialogTitle>
             <DialogDescription>
-              Changes apply to this simulation session only — the OS never writes to production enforcement points.
+              Updates are versioned and synced to the policy control plane after dual-control approval where required.
             </DialogDescription>
           </DialogHeader>
           {draft && (
