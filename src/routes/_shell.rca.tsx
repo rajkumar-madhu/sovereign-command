@@ -22,21 +22,47 @@ export const Route = createFileRoute("/_shell/rca")({
 });
 
 function RcaPage() {
+  const empty = !rcaReport.incidentId;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title={rcaReport.title}
-        description={`Incident ${rcaReport.incidentId} · owner ${rcaReport.owner}`}
+        title={empty ? "RCA Report" : rcaReport.title}
+        description={
+          empty
+            ? "Root cause analyses appear here after an investigation is verified."
+            : `Incident ${rcaReport.incidentId} · owner ${rcaReport.owner}`
+        }
         crumbs={[{ label: "Investigate" }, { label: "RCA Report" }]}
         actions={
-          <>
-            <Button variant="outline" asChild><Link to="/incidents/$incidentId" params={{ incidentId: rcaReport.incidentId }}>Back to workspace</Link></Button>
-            <Button onClick={() => toast.success("RCA published to the incident record")}>Publish RCA</Button>
-          </>
+          empty ? (
+            <Button variant="outline" asChild>
+              <Link to="/investigations">Open investigations</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" asChild>
+                <Link to="/incidents/$incidentId" params={{ incidentId: rcaReport.incidentId }}>
+                  Back to workspace
+                </Link>
+              </Button>
+              <Button onClick={() => toast.success("RCA published to the incident record")}>
+                Publish RCA
+              </Button>
+            </>
+          )
         }
       />
       <SafetyBanner />
 
+      {empty ? (
+        <Card>
+          <CardContent className="py-16 text-center text-sm text-muted-foreground">
+            No published RCA yet. Complete an investigation to generate a root-cause report.
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Confidence" value={`${rcaReport.confidence}%`} tone="success" />
         <MetricCard label="Risk" value={rcaReport.risk} tone="success" />
@@ -79,6 +105,8 @@ function RcaPage() {
         <CardHeader><CardTitle>Recommendation</CardTitle><CardDescription>Requires human execution — the Agent OS never remediates</CardDescription></CardHeader>
         <CardContent className="text-sm">{rcaReport.recommendation}</CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

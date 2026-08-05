@@ -42,7 +42,6 @@ const groups: Array<{ label: string; items: Array<{ title: string; url: string; 
     label: "Investigate",
     items: [
       { title: "Investigations", url: "/investigations", icon: Radar },
-      { title: "Incident Workspace", url: "/incidents/inc-4821", icon: Siren },
       { title: "Evidence Viewer", url: "/evidence", icon: FileSearch },
       { title: "RCA Report", url: "/rca", icon: ScrollText },
     ],

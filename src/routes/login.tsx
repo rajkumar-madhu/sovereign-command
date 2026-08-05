@@ -46,7 +46,7 @@ function LoginPage() {
     window.setTimeout(() => {
       setLoading(false);
       toast.success("Signed in", {
-        description: "Session ready · production scope",
+        description: "Session established",
       });
       void navigate({ to: "/" });
     }, 700);
@@ -71,15 +71,15 @@ function LoginPage() {
           <dl className="grid grid-cols-3 gap-4 pt-4 text-sm">
             <div>
               <dt className="text-primary-foreground/70">Tenants</dt>
-              <dd className="text-xl font-semibold">4</dd>
+              <dd className="text-xl font-semibold">—</dd>
             </div>
             <div>
               <dt className="text-primary-foreground/70">Agents</dt>
-              <dd className="text-xl font-semibold">30</dd>
+              <dd className="text-xl font-semibold">—</dd>
             </div>
             <div>
               <dt className="text-primary-foreground/70">Nodes</dt>
-              <dd className="text-xl font-semibold">940</dd>
+              <dd className="text-xl font-semibold">—</dd>
             </div>
           </dl>
         </div>

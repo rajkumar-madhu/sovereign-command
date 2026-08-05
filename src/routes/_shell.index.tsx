@@ -81,9 +81,7 @@ function CommandCentre() {
               <Link to="/investigations">Investigations</Link>
             </Button>
             <Button asChild>
-              <Link to="/incidents/$incidentId" params={{ incidentId: "inc-4821" }}>
-                Open active P1
-              </Link>
+              <Link to="/agents">Agent registry</Link>
             </Button>
           </>
         }
@@ -91,18 +89,23 @@ function CommandCentre() {
       <SafetyBanner />
 
       <section aria-label="Fleet metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-        <MetricCard label="Tenants" value={tenants.length} hint="All EU/US residency mapped" />
-        <MetricCard label="Customers" value={customers.length} hint="8 under active contract" />
-        <MetricCard label="Clusters" value={clusters} hint="Hybrid: cloud + on-prem" />
-        <MetricCard label="Nodes" value={nodes} hint="Read-only inventory sync" />
-        <MetricCard label="Agents" value={agents.length} hint="30 registered passports" tone="info" />
-        <MetricCard label="High-risk agents" value={highRisk} tone="danger" hint="Trust score below 78" />
-        <MetricCard label="P1 incidents" value={p1} tone="danger" hint="Escalated to command centre" />
-        <MetricCard label="P2 incidents" value={p2} tone="warning" hint="Under investigation" />
-        <MetricCard label="SLA risks" value={slaRisks} tone="warning" hint="Breach forecast < 4h" />
-        <MetricCard label="Prompt injections" value={injections} tone="danger" hint="All blocked at ingress" />
-        <MetricCard label="Pending approvals" value={pending} tone="warning" hint="Human-in-the-loop gates" />
-        <MetricCard label="Monthly tokens / cost" value="46.2M" tone="info" hint="USD 39,650 of 67,000 budget" />
+        <MetricCard label="Tenants" value={tenants.length} hint="Registered tenancy scope" />
+        <MetricCard label="Customers" value={customers.length} hint="Active contracts" />
+        <MetricCard label="Clusters" value={clusters} hint="Inventory sync" />
+        <MetricCard label="Nodes" value={nodes} hint="Read-only inventory" />
+        <MetricCard label="Agents" value={agents.length} hint="Registered passports" tone="info" />
+        <MetricCard label="High-risk agents" value={highRisk} tone="danger" hint="Elevated risk level" />
+        <MetricCard label="P1 incidents" value={p1} tone="danger" hint="Open P1" />
+        <MetricCard label="P2 incidents" value={p2} tone="warning" hint="Open P2" />
+        <MetricCard label="SLA risks" value={slaRisks} tone="warning" hint="At-risk windows" />
+        <MetricCard label="Prompt injections" value={injections} tone="danger" hint="Security signals" />
+        <MetricCard label="Pending approvals" value={pending} tone="warning" hint="Dual-control queue" />
+        <MetricCard
+          label="Monthly tokens / cost"
+          value={agents.length === 0 ? "—" : "—"}
+          tone="info"
+          hint={agents.length === 0 ? "No usage yet" : "Current period"}
+        />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -112,11 +115,16 @@ function CommandCentre() {
             <CardDescription>Composite health by customer and environment</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
+            {heatmap.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">
+                No estate data yet. Connect tenants and customers to populate health scores.
+              </p>
+            ) : (
             <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground uppercase">
                   <th scope="col" className="pb-2 font-medium">Customer</th>
-                  {heatmap[0]!.cells.map((c) => (
+                  {(heatmap[0]?.cells ?? []).map((c) => (
                     <th key={c.env} scope="col" className="pb-2 font-medium">{c.env}</th>
                   ))}
                 </tr>
@@ -138,6 +146,7 @@ function CommandCentre() {
                 ))}
               </tbody>
             </table>
+            )}
           </CardContent>
         </Card>
 

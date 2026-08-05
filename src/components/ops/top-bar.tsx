@@ -181,13 +181,13 @@ export function TopBar() {
               <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <UserRound className="size-3.5" aria-hidden="true" />
               </span>
-              <span className="hidden text-sm sm:inline">I. Halvorsen</span>
+              <span className="hidden text-sm sm:inline">Operator</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
-              <span className="block text-sm">Ingrid Halvorsen</span>
-              <span className="block text-xs text-muted-foreground">Platform SRE · read-only</span>
+              <span className="block text-sm">Operator</span>
+              <span className="block text-xs text-muted-foreground">Platform SRE</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

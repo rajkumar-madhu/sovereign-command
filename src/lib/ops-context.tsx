@@ -23,18 +23,13 @@ interface OpsState {
 const OpsCtx = createContext<OpsState | null>(null);
 
 export function OpsProvider({ children }: { children: ReactNode }) {
-  const [tenantId, setTenantId] = useState<string>(tenants[0]!.id);
+  const [tenantId, setTenantId] = useState<string>(tenants[0]?.id ?? "all");
   const [customerId, setCustomerId] = useState<string>("all");
   const [environment, setEnvironment] = useState<EnvName>("production");
   const [approvals, setApprovals] = useState<Approval[]>(initialApprovals);
   const [policies, setPolicies] = useState<Policy[]>(initialPolicies);
   const [agentStates, setAgentStates] = useState<OpsState["agentStates"]>({});
-  const [budgets, setBudgets] = useState<Record<string, number>>({
-    "tn-nordic": 24000,
-    "tn-helios": 18000,
-    "tn-meridian": 16000,
-    "tn-atlas": 9000,
-  });
+  const [budgets, setBudgets] = useState<Record<string, number>>({});
 
   const value = useMemo<OpsState>(
     () => ({
