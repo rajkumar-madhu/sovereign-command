@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { AlarmClock, Bell, LogOut, Search, UserRound } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { AlarmClock, Bell, LogOut, Maximize2, Minimize2, Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -32,16 +31,52 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
+import {
+  DualSidebarExpandTrigger,
+  DualSidebarMobileTrigger,
+} from "@/components/ops/dual-sidebar";
+import { InspectorToggle } from "@/components/ops/right-inspector";
 import { useOps, tenantCustomers } from "@/lib/ops-context";
+import { useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
 import { formatCountdown, slaLabel, slaTone } from "@/lib/approval-sla";
 import { agents, incidents, securityEvents, tenants } from "@/data/seed";
 import type { EnvName } from "@/data/types";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const ENVS: EnvName[] = ["production", "staging", "dev", "dr"];
 
-export function TopBar() {
+function FocusModeToggle() {
+  const { focusMode, toggleFocusMode } = useShellChrome();
+  return (
+    <Button
+      type="button"
+      variant={focusMode ? "default" : "outline"}
+      size="sm"
+      className={cn(
+        "h-9 gap-1.5 px-2.5",
+        focusMode && "bg-brand-coral text-white hover:bg-brand-coral/90",
+      )}
+      onClick={toggleFocusMode}
+      aria-pressed={focusMode}
+      title="Focus mode (⌘\\) — collapse sidebars for full-width details"
+    >
+      {focusMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+      <span className="hidden sm:inline">{focusMode ? "Exit focus" : "Focus"}</span>
+    </Button>
+  );
+}
+
+export function TopBar({
+  secondaryOpen,
+  onToggleSecondary,
+  onOpenMobileNav,
+}: {
+  secondaryOpen: boolean;
+  onToggleSecondary: () => void;
+  onOpenMobileNav: () => void;
+}) {
   const navigate = useNavigate();
   const ops = useOps();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -53,9 +88,11 @@ export function TopBar() {
   const unread = notifications.length + sla.alertCount;
 
   return (
-    <header className="sticky top-0 z-30 flex flex-col gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur md:flex-row md:items-center md:gap-3 md:px-4">
+    <header className="sticky top-0 z-30 flex flex-col gap-2 border-b border-border/80 bg-background/80 px-3 py-2 backdrop-blur-md md:flex-row md:items-center md:gap-3 md:px-4">
       <div className="flex items-center gap-2">
-        <SidebarTrigger aria-label="Toggle navigation" />
+        <DualSidebarMobileTrigger onOpen={onOpenMobileNav} />
+        <DualSidebarExpandTrigger secondaryOpen={secondaryOpen} onToggle={onToggleSecondary} />
+        <FocusModeToggle />
         <div className="flex flex-wrap items-center gap-2">
           <Select value={ops.tenantId} onValueChange={ops.setTenantId}>
             <SelectTrigger className="h-9 w-[190px]" aria-label="Select tenant">
@@ -109,6 +146,8 @@ export function TopBar() {
           <Search className="size-4" aria-hidden="true" />
           <span className="truncate">Search agents, incidents…</span>
         </Button>
+
+        <InspectorToggle />
 
         <Popover>
           <PopoverTrigger asChild>
@@ -181,13 +220,13 @@ export function TopBar() {
               <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <UserRound className="size-3.5" aria-hidden="true" />
               </span>
-              <span className="hidden text-sm sm:inline">Operator</span>
+              <span className="hidden text-sm sm:inline">I. Halvorsen</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
-              <span className="block text-sm">Operator</span>
-              <span className="block text-xs text-muted-foreground">Platform SRE</span>
+              <span className="block text-sm">Ingrid Halvorsen</span>
+              <span className="block text-xs text-muted-foreground">Platform SRE · read-only</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -199,7 +238,7 @@ export function TopBar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                toast.success("Signed out");
+                toast.success("Signed out of the read-only session");
                 void navigate({ to: "/login" });
               }}
             >

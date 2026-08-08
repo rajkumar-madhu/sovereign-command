@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldAlert,
   Siren,
+  Timer,
   Wrench,
 } from "lucide-react";
 import {
@@ -33,7 +34,7 @@ const groups: Array<{ label: string; items: Array<{ title: string; url: string; 
   {
     label: "Operate",
     items: [
-      { title: "Command Centre", url: "/", icon: Gauge },
+      { title: "Command Centre", url: "/command", icon: Gauge },
       { title: "Customers", url: "/customers", icon: Building2 },
       { title: "Agent Registry", url: "/agents", icon: Bot },
     ],
@@ -42,6 +43,7 @@ const groups: Array<{ label: string; items: Array<{ title: string; url: string; 
     label: "Investigate",
     items: [
       { title: "Investigations", url: "/investigations", icon: Radar },
+      { title: "Incident Workspace", url: "/incidents/inc-4821", icon: Siren },
       { title: "Evidence Viewer", url: "/evidence", icon: FileSearch },
       { title: "RCA Report", url: "/rca", icon: ScrollText },
     ],
@@ -55,6 +57,7 @@ const groups: Array<{ label: string; items: Array<{ title: string; url: string; 
       { title: "Tool & MCP Registry", url: "/tools", icon: Wrench },
       { title: "Policy Management", url: "/policies", icon: BadgeCheck },
       { title: "Approval Queue", url: "/approvals", icon: BellRing },
+      { title: "SLA Administration", url: "/sla-admin", icon: Timer },
       { title: "Audit & Compliance", url: "/audit", icon: Activity },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
@@ -65,18 +68,22 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const isActive = (url: string) =>
-    url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`);
+    url === "/command" ? pathname === "/command" : pathname === url || pathname.startsWith(`${url}/`);
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-1 py-1.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <ShieldAlert className="size-4" aria-hidden="true" />
+          <span className="silicon-die-glow flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Cpu className="size-4" aria-hidden="true" />
           </span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="block truncate text-sm font-semibold">Sovereign Agentic</span>
-            <span className="block truncate text-xs text-muted-foreground">Operations OS</span>
+            <span className="font-display block truncate text-sm font-semibold tracking-tight">
+              Sovereign
+            </span>
+            <span className="block truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Agentic Ops OS
+            </span>
           </span>
         </div>
       </SidebarHeader>

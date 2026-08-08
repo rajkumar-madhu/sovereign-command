@@ -12,6 +12,26 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+/** Remove Lovable's injected "Edit with Lovable" publish badge if present. */
+function useHideLovableBadge() {
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const remove = () => {
+      document
+        .querySelectorAll('#lovable-badge, aside[aria-label="Edit with Lovable"]')
+        .forEach((el) => el.remove());
+    };
+
+    remove();
+    const observer = new MutationObserver(() => {
+      if (document.getElementById("lovable-badge")) remove();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+}
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -78,27 +98,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Sovereign Agentic Operations OS" },
-      {
-        name: "description",
-        content:
-          "Multi-tenant agent operations console for regulated hybrid infrastructure — read-only by design.",
-      },
-      { name: "author", content: "Sovereign Command" },
+      { name: "description", content: "Read-only multi-tenant Agent OS for regulated hybrid infrastructure." },
+      { name: "author", content: "Sovereign" },
       { property: "og:title", content: "Sovereign Agentic Operations OS" },
-      {
-        property: "og:description",
-        content: "Command centre for agent ops, investigations, policy and compliance.",
-      },
+      { property: "og:description", content: "Vendor-neutral agent operations command centre." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@sovereignops" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "icon", href: "/favicon.ico", sizes: "any" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -113,7 +133,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="min-h-screen antialiased">
         {children}
         <Scripts />
       </body>
@@ -123,6 +143,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useHideLovableBadge();
 
   return (
     <QueryClientProvider client={queryClient}>

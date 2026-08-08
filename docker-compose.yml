@@ -1,0 +1,18 @@
+# Local / self-hosted Sovereign Command
+# Prerequisites (this Mac): colima start && docker context use colima
+#
+#   docker compose up --build
+#   open http://127.0.0.1:3080/login
+#
+# Without Docker:
+#   bun install && bun run build:selfhost && PORT=3080 bun run start
+#   # → http://127.0.0.1:3080
+services:
+  app:
+    build: .
+    ports:
+      - "3080:3000"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3000"
+    restart: unless-stopped

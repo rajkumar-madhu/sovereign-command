@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -13,15 +13,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Coins, Flame, PiggyBank, Repeat } from "lucide-react";
+import { Coins, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
-import { MetricCard } from "@/components/ops/metric-card";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
 import {
@@ -33,6 +31,7 @@ import {
   tenants,
 } from "@/data/seed";
 import { useOps } from "@/lib/ops-context";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/cost")({
   head: () => ({
@@ -62,6 +61,19 @@ const DIMENSIONS = [
   { key: "incident", label: "By incident", data: costByIncident },
 ] as const;
 
+function useLiveBurn(baseUsdPerMin: number) {
+  const [burn, setBurn] = useState(baseUsdPerMin);
+  const [tpm, setTpm] = useState(Math.round(baseUsdPerMin * 420));
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setBurn((v) => Math.max(0.4, Math.min(8.5, +(v + (Math.random() - 0.46) * 0.35).toFixed(2))));
+      setTpm((v) => Math.max(80, Math.min(4200, Math.round(v + (Math.random() - 0.45) * 120))));
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, []);
+  return { burn, tpm };
+}
+
 function TokenAndCost() {
   const ops = useOps();
   const [metric, setMetric] = useState<"cost" | "tokens">("cost");
@@ -77,72 +89,130 @@ function TokenAndCost() {
     [ops.budgets],
   );
   const remaining = totalBudget - monthlyCost;
+  const { burn, tpm } = useLiveBurn(2.4);
 
   const fmt = (v: number) => (metric === "cost" ? `$${v.toLocaleString()}` : `${v.toFixed(1)}M`);
 
   return (
     <div className="space-y-6">
+      <section
+        aria-label="Token and cost pulse"
+        className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
+      >
+        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
+          <div className="max-w-xl space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
+              Govern · FinOps
+            </p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
+              Token & Cost
+            </h1>
+            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
+              Token accounting, spend attribution and budget governance across every tenant estate.
+              Thresholds alert FinOps — the OS never throttles production.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
+                onClick={() =>
+                  toast.success("Cost report queued", {
+                    description:
+                      "A signed 30-day token and spend statement will appear in Audit & Compliance.",
+                  })
+                }
+              >
+                <Coins className="size-4" aria-hidden="true" />
+                Export statement
+              </Button>
+              <StatusPill tone={remaining > 0 ? "success" : "danger"}>
+                {remaining > 0 ? "within budget" : "over budget"}
+              </StatusPill>
+            </div>
+          </div>
+          <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
+            {[
+              {
+                label: "Burn",
+                value: `$${burn}`,
+                hint: "/min live",
+                live: true,
+              },
+              {
+                label: "Tokens/min",
+                value: tpm.toLocaleString(),
+                hint: "live",
+                live: true,
+              },
+              {
+                label: "Spend 30d",
+                value: `$${(monthlyCost / 1000).toFixed(1)}k`,
+                hint: "estate",
+              },
+              {
+                label: "Tokens 30d",
+                value: `${monthlyTokens.toFixed(1)}M`,
+                hint: "all tenants",
+              },
+              {
+                label: "Retry waste",
+                value: `$${waste}`,
+                hint: `${wastePct}%`,
+                hot: true,
+              },
+              {
+                label: "Remaining",
+                value: `$${Math.round(remaining / 1000)}k`,
+                hint: "budget",
+                hot: remaining <= 0,
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur"
+              >
+                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                  {s.label}
+                </p>
+                <p
+                  className={cn(
+                    "font-display mt-1 text-xl font-semibold tabular-nums sm:text-2xl",
+                    s.hot ? "text-warning" : "text-sidebar-accent-foreground",
+                  )}
+                >
+                  {s.live && (
+                    <span className="mr-1.5 inline-flex size-1.5 animate-pulse rounded-full bg-brand-coral align-middle" />
+                  )}
+                  {s.value}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <PageHeader
-        title="Token & Cost"
-        description="Token accounting, spend attribution and budget governance across every tenant estate."
-        crumbs={[{ label: "Govern", to: "/" }, { label: "Token & Cost" }]}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              onClick={() =>
-                toast.success("Cost report queued", {
-                  description: "A signed 30-day token and spend statement will appear in Audit & Compliance.",
-                })
-              }
-            >
-              Export statement
-            </Button>
-            <StatusPill tone={remaining > 0 ? "success" : "danger"}>
-              {remaining > 0 ? "within budget" : "over budget"}
-            </StatusPill>
-          </>
-        }
+        title="Attribution & budgets"
+        description="Switch dimension and metric; adjust monthly allocation per tenant."
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "Token & Cost" }]}
       />
       <SafetyBanner compact />
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          label="Tokens (30d)"
-          value={`${monthlyTokens.toFixed(1)}M`}
-          hint="Across all tenants and providers"
-          icon={<Coins className="size-4" aria-hidden="true" />}
-        />
-        <MetricCard
-          label="Spend (30d)"
-          value={`$${monthlyCost.toLocaleString()}`}
-          tone="info"
-          hint="Inference plus gateway overhead"
-          icon={<Flame className="size-4" aria-hidden="true" />}
-        />
-        <MetricCard
-          label="Retry waste"
-          value={`$${waste.toLocaleString()}`}
-          tone="warning"
-          hint={`${wastePct}% of 7-day spend from retries and loops`}
-          icon={<Repeat className="size-4" aria-hidden="true" />}
-        />
-        <MetricCard
-          label="Budget remaining"
-          value={`$${remaining.toLocaleString()}`}
-          tone={remaining <= 0 ? "danger" : "success"}
-          hint={`Of $${totalBudget.toLocaleString()} allocated`}
-          icon={<PiggyBank className="size-4" aria-hidden="true" />}
-        />
-      </section>
-
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Attribution</CardTitle>
-            <CardDescription>
-              Switch dimension and metric to attribute {metric === "cost" ? "spend" : "tokens"}.
-            </CardDescription>
+      <section className="ops-panel overflow-hidden rounded-2xl">
+        <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Flame className="size-4 text-brand-coral" aria-hidden="true" />
+            <div>
+              <h2 className="font-display text-sm font-semibold">Attribution</h2>
+              <p className="text-xs text-muted-foreground">
+                Attribute {metric === "cost" ? "spend" : "tokens"} by dimension
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -160,10 +230,10 @@ function TokenAndCost() {
               Tokens
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-4">
           <Tabs defaultValue="tenant">
-            <TabsList className="flex-wrap">
+            <TabsList className="flex h-auto flex-wrap gap-1 bg-surface">
               {DIMENSIONS.map((d) => (
                 <TabsTrigger key={d.key} value={d.key}>
                   {d.label}
@@ -192,9 +262,9 @@ function TokenAndCost() {
                         />
                         <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
                         <Tooltip formatter={(v: number) => fmt(v)} />
-                        <Bar dataKey={metric} radius={[4, 4, 0, 0]}>
+                        <Bar dataKey={metric} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                           {d.data.map((row) => (
-                            <Cell key={row.name} fill="var(--primary)" />
+                            <Cell key={row.name} fill="var(--chart-1)" />
                           ))}
                         </Bar>
                       </BarChart>
@@ -204,47 +274,52 @@ function TokenAndCost() {
               </TabsContent>
             ))}
           </Tabs>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Spend vs retry waste</CardTitle>
-            <CardDescription>Daily inference spend and the portion wasted on retries.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={spendTrend} margin={{ left: 4, right: 8, top: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                  <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-                  <Line type="monotone" dataKey="cost" stroke="var(--primary)" strokeWidth={2} dot={false} name="Spend" />
-                  <Line
-                    type="monotone"
-                    dataKey="waste"
-                    stroke="var(--destructive)"
-                    strokeWidth={2}
-                    strokeDasharray="4 3"
-                    dot={false}
-                    name="Retry waste"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <section className="ops-panel rounded-2xl p-5">
+          <h2 className="font-display text-sm font-semibold">Spend vs retry waste</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Daily inference spend and the portion wasted on retries
+          </p>
+          <div className="mt-4 h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={spendTrend} margin={{ left: 4, right: 8, top: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                <Line
+                  type="monotone"
+                  dataKey="cost"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Spend"
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="waste"
+                  stroke="var(--chart-3)"
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                  dot={false}
+                  name="Retry waste"
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Threshold controls</CardTitle>
-            <CardDescription>
-              Alerting thresholds only — the OS never throttles or writes to production systems.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <section className="ops-panel rounded-2xl p-5">
+          <h2 className="font-display text-sm font-semibold">Threshold controls</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Alerting only — the OS never throttles or writes to production systems
+          </p>
+          <div className="mt-6 space-y-6">
             <Threshold
               label="Warn at"
               value={warnAt}
@@ -265,16 +340,18 @@ function TokenAndCost() {
             >
               Save thresholds
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tenant budgets</CardTitle>
-          <CardDescription>Adjust monthly allocation per tenant; consumption is read-only telemetry.</CardDescription>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
+      <section className="ops-panel overflow-hidden rounded-2xl">
+        <div className="border-b border-border/70 px-4 py-3">
+          <h2 className="font-display text-sm font-semibold">Tenant budgets</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Adjust monthly allocation; consumption is read-only telemetry
+          </p>
+        </div>
+        <div className="overflow-x-auto p-4">
           <Table>
             <TableHeader>
               <TableRow>
@@ -337,8 +414,8 @@ function TokenAndCost() {
               })}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

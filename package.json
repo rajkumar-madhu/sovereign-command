@@ -1,20 +1,19 @@
 {
-  "name": "sovereign-command",
+  "name": "tanstack_start_ts",
   "private": true,
   "sideEffects": false,
   "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:prod": "NODE_ENV=production NITRO_PRESET=node-server vite build",
-    "build:cloudflare": "NODE_ENV=production NITRO_PRESET=cloudflare-module vite build",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "build:selfhost": "NITRO_PRESET=node-server vite build",
+    "preview": "npm run preview:selfhost",
+    "preview:selfhost": "node .output/server/index.mjs",
     "start": "node .output/server/index.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
-
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -71,7 +70,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "^2.8.5",
+    "@lovable.dev/vite-tanstack-config": "2.9.0",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

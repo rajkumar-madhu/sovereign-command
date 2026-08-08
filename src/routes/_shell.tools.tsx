@@ -1,20 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AlertTriangle, Globe, ShieldCheck, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
-import { MetricCard } from "@/components/ops/metric-card";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForScore, toneForStatus } from "@/components/ops/status-badge";
 import { mcpTools } from "@/data/seed";
 import type { McpTool } from "@/data/types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/tools")({
   head: () => ({
@@ -39,6 +38,28 @@ export const Route = createFileRoute("/_shell/tools")({
 
 function errorRate(t: McpTool) {
   return t.calls30d === 0 ? 0 : (t.errors30d / t.calls30d) * 100;
+}
+
+function useLiveCallsPerMin(base: number) {
+  const [n, setN] = useState(base);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setN((v) => Math.max(8, Math.min(420, Math.round(v + (Math.random() - 0.45) * 14))));
+    }, 1800);
+    return () => window.clearInterval(id);
+  }, []);
+  return n;
+}
+
+function useLiveErrPct(base: number) {
+  const [n, setN] = useState(base);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setN((v) => Math.max(0.05, Math.min(4.5, +(v + (Math.random() - 0.5) * 0.12).toFixed(2))));
+    }, 2200);
+    return () => window.clearInterval(id);
+  }, []);
+  return n;
 }
 
 function ToolRegistry() {
@@ -66,50 +87,143 @@ function ToolRegistry() {
   const warning = mcpTools.filter((t) => t.scan === "warning").length;
   const external = mcpTools.filter((t) => t.externalAccess).length;
   const calls = mcpTools.reduce((s, t) => s + t.calls30d, 0);
+  const avgErr =
+    calls === 0
+      ? 0
+      : (mcpTools.reduce((s, t) => s + t.errors30d, 0) / calls) * 100;
+  const avgTrust = Math.round(
+    mcpTools.reduce((s, t) => s + t.trustScore, 0) / mcpTools.length,
+  );
+
+  const liveCpm = useLiveCallsPerMin(48);
+  const liveErr = useLiveErrPct(+avgErr.toFixed(2));
 
   return (
     <div className="space-y-6">
+      <section
+        aria-label="Tool registry pulse"
+        className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
+      >
+        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-primary/30 blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
+          <div className="max-w-xl space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
+              Govern · supply chain
+            </p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
+              Tool & MCP Registry
+            </h1>
+            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
+              Every MCP tool the fleet can reach — scan status, permissions, egress posture and
+              trust scoring. Registry mutations are simulated only.
+            </p>
+            <Button
+              className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
+              onClick={() =>
+                toast.success("Registry re-scan queued", {
+                  description: `${mcpTools.length} tool manifests queued for read-only supply-chain scanning.`,
+                })
+              }
+            >
+              <ShieldCheck className="size-4" aria-hidden="true" />
+              Re-scan registry
+            </Button>
+          </div>
+          <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
+            {[
+              { label: "Registered", value: mcpTools.length, hint: "MCP tools" },
+              {
+                label: "Failed scans",
+                value: failed,
+                hint: `${warning} warn`,
+                hot: failed > 0,
+              },
+              { label: "External", value: external, hint: "egress" },
+              {
+                label: "Calls / min",
+                value: liveCpm,
+                hint: "live",
+                live: true,
+              },
+              {
+                label: "Error rate",
+                value: liveErr.toFixed(2),
+                unit: "%",
+                hint: "live",
+                live: true,
+              },
+              {
+                label: "Avg trust",
+                value: avgTrust,
+                hint: "fleet",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur"
+              >
+                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                  {s.label}
+                </p>
+                <p
+                  className={cn(
+                    "font-display mt-1 text-2xl font-semibold tabular-nums",
+                    s.hot ? "text-destructive" : "text-sidebar-accent-foreground",
+                  )}
+                >
+                  {s.live && (
+                    <span className="mr-1.5 inline-flex size-1.5 animate-pulse rounded-full bg-brand-coral align-middle" />
+                  )}
+                  {s.value}
+                  {s.unit ? (
+                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
+                  ) : null}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <PageHeader
-        title="Tool & MCP Registry"
-        description="Every MCP tool the fleet can reach, with supply-chain scan status, permissions and trust scoring."
+        title="Inventory & trust"
+        description="Supply-chain scans, permissions and call telemetry for every registered MCP tool."
         crumbs={[{ label: "Govern" }, { label: "Tool & MCP Registry" }]}
-        actions={
-          <Button
-            variant="outline"
-            onClick={() =>
-              toast.success("Registry re-scan queued", {
-                description: `${mcpTools.length} tool manifests queued for read-only supply-chain scanning.`,
-              })
-            }
-          >
-            Re-scan registry
-          </Button>
-        }
       />
       <SafetyBanner compact />
 
-      <section aria-label="Registry metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Registered tools" value={mcpTools.length} hint="MCP stdio and HTTP transports" icon={<Wrench className="size-4" aria-hidden="true" />} />
-        <MetricCard label="Failed scans" value={failed} tone="danger" hint={`${warning} with warnings`} icon={<AlertTriangle className="size-4" aria-hidden="true" />} />
-        <MetricCard label="External access" value={external} tone="warning" hint="Egress allowlist enforced" icon={<Globe className="size-4" aria-hidden="true" />} />
-        <MetricCard label="Calls (30d)" value={`${(calls / 1000).toFixed(1)}k`} tone="info" hint="Read verbs only" icon={<ShieldCheck className="size-4" aria-hidden="true" />} />
-      </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Tool inventory</CardTitle>
-          <CardDescription>Open a tool to inspect calls, errors, external access and registry notes.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <section className="ops-panel overflow-hidden rounded-2xl" aria-label="Tool inventory">
+        <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
+          <Wrench className="size-4 text-brand-coral" aria-hidden="true" />
+          <div>
+            <h2 className="font-display text-sm font-semibold">Tool inventory</h2>
+            <p className="text-xs text-muted-foreground">
+              {(calls / 1000).toFixed(1)}k calls · 30d · open a row for trust detail
+            </p>
+          </div>
+          {failed > 0 && (
+            <StatusPill tone="danger" className="ml-auto">
+              <AlertTriangle className="mr-1 size-3" aria-hidden="true" />
+              {failed} quarantined
+            </StatusPill>
+          )}
+        </div>
+        <div className="space-y-4 p-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tool, owner or permission"
               aria-label="Search tools"
+              className="bg-surface"
             />
             <Select value={scan} onValueChange={setScan}>
-              <SelectTrigger aria-label="Filter by scan status">
+              <SelectTrigger className="bg-surface" aria-label="Filter by scan status">
                 <SelectValue placeholder="Scan status" />
               </SelectTrigger>
               <SelectContent>
@@ -120,7 +234,7 @@ function ToolRegistry() {
               </SelectContent>
             </Select>
             <Select value={access} onValueChange={setAccess}>
-              <SelectTrigger aria-label="Filter by external access">
+              <SelectTrigger className="bg-surface" aria-label="Filter by external access">
                 <SelectValue placeholder="Access" />
               </SelectTrigger>
               <SelectContent>
@@ -132,7 +246,7 @@ function ToolRegistry() {
           </div>
 
           {rows.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+            <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
               No tool matches these filters. Clear the search or reset the scan filter.
             </p>
           ) : (
@@ -149,19 +263,24 @@ function ToolRegistry() {
                     <TableHead className="text-right">Errors 30d</TableHead>
                     <TableHead>External</TableHead>
                     <TableHead className="text-right">Trust</TableHead>
-                    <TableHead><span className="sr-only">Actions</span></TableHead>
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((t) => (
-                    <TableRow key={t.id}>
+                    <TableRow key={t.id} className={t.scan === "failed" ? "bg-destructive/5" : undefined}>
                       <TableCell className="font-medium whitespace-nowrap">{t.name}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap">{t.owner}</TableCell>
                       <TableCell className="tabular-nums">{t.version}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {t.permissions.map((p) => (
-                            <span key={p} className="rounded-md border border-border bg-surface-strong px-1.5 py-0.5 text-xs">
+                            <span
+                              key={p}
+                              className="rounded-md border border-border bg-surface-strong px-1.5 py-0.5 text-xs"
+                            >
                               {p}
                             </span>
                           ))}
@@ -170,11 +289,22 @@ function ToolRegistry() {
                       <TableCell>
                         <StatusPill tone={toneForStatus(t.scan)}>{t.scan}</StatusPill>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{t.calls30d.toLocaleString()}</TableCell>
-                      <TableCell className="text-right tabular-nums">{t.errors30d.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {t.calls30d.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {t.errors30d.toLocaleString()}
+                      </TableCell>
                       <TableCell>
                         <StatusPill tone={t.externalAccess ? "warning" : "neutral"}>
-                          {t.externalAccess ? "external" : "internal"}
+                          {t.externalAccess ? (
+                            <>
+                              <Globe className="mr-1 inline size-3" aria-hidden="true" />
+                              external
+                            </>
+                          ) : (
+                            "internal"
+                          )}
                         </StatusPill>
                       </TableCell>
                       <TableCell className="text-right">
@@ -191,15 +321,15 @@ function ToolRegistry() {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <Sheet open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           {selected && (
             <>
               <SheetHeader>
-                <SheetTitle>{selected.name}</SheetTitle>
+                <SheetTitle className="font-display">{selected.name}</SheetTitle>
                 <SheetDescription>
                   {selected.owner} · v{selected.version} · {selected.transport}
                 </SheetDescription>
@@ -207,25 +337,37 @@ function ToolRegistry() {
               <div className="space-y-5 px-4 pb-6">
                 <div className="flex flex-wrap gap-2">
                   <StatusPill tone={toneForStatus(selected.scan)}>scan: {selected.scan}</StatusPill>
-                  <StatusPill tone={toneForScore(selected.trustScore)}>trust {selected.trustScore}</StatusPill>
+                  <StatusPill tone={toneForScore(selected.trustScore)}>
+                    trust {selected.trustScore}
+                  </StatusPill>
                   <StatusPill tone={selected.externalAccess ? "warning" : "neutral"}>
                     {selected.externalAccess ? "external access" : "internal only"}
                   </StatusPill>
                 </div>
 
                 <div>
-                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Trust score</p>
-                  <Progress value={selected.trustScore} className="mt-2" aria-label={`Trust score ${selected.trustScore} of 100`} />
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Trust score
+                  </p>
+                  <Progress
+                    value={selected.trustScore}
+                    className="mt-2"
+                    aria-label={`Trust score ${selected.trustScore} of 100`}
+                  />
                 </div>
 
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <dt className="text-xs text-muted-foreground uppercase">Calls (30d)</dt>
-                    <dd className="font-medium tabular-nums">{selected.calls30d.toLocaleString()}</dd>
+                    <dd className="font-medium tabular-nums">
+                      {selected.calls30d.toLocaleString()}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-xs text-muted-foreground uppercase">Errors (30d)</dt>
-                    <dd className="font-medium tabular-nums">{selected.errors30d.toLocaleString()}</dd>
+                    <dd className="font-medium tabular-nums">
+                      {selected.errors30d.toLocaleString()}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-xs text-muted-foreground uppercase">Error rate</dt>
@@ -238,10 +380,15 @@ function ToolRegistry() {
                 </dl>
 
                 <div>
-                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Permissions</p>
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Permissions
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {selected.permissions.map((p) => (
-                      <span key={p} className="rounded-md border border-border bg-surface-strong px-2 py-0.5 text-xs">
+                      <span
+                        key={p}
+                        className="rounded-md border border-border bg-surface-strong px-2 py-0.5 text-xs"
+                      >
                         {p}
                       </span>
                     ))}
@@ -249,7 +396,9 @@ function ToolRegistry() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Registry notes</p>
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Registry notes
+                  </p>
                   <p className="mt-1 text-sm text-muted-foreground">{selected.notes}</p>
                 </div>
 

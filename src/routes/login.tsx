@@ -1,39 +1,42 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import {
+  AuthBackLink,
+  AuthDemoButton,
+  AuthField,
+  AuthShell,
+  AuthSpinner,
+  AuthSubmit,
+} from "@/components/auth/auth-shell";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in · Sovereign Agentic Operations OS" },
+      { title: "Sign in · Sovereign Ops" },
       {
         name: "description",
         content:
-          "Sign in to the Sovereign Agentic Operations OS — a read-only, multi-tenant Agent OS for regulated hybrid infrastructure.",
-      },
-      { property: "og:title", content: "Sign in · Sovereign Agentic Operations OS" },
-      {
-        property: "og:description",
-        content: "Read-only agent operations console for regulated hybrid infrastructure.",
+          "Sign in to Sovereign Agentic Operations OS — read-only multi-tenant agent operations for regulated hybrid infrastructure.",
       },
     ],
   }),
-  component: LoginPage,
+  component: SignInPage,
 });
 
-function LoginPage() {
+function SignInPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [sso, setSso] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function enterDemo() {
+    toast.success("Demo session established", {
+      description: "Scope: Nordic Federated Bank · production (read-only)",
+    });
+    void navigate({ to: "/command" });
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,106 +45,96 @@ function LoginPage() {
       setError("Enter a valid work email and a password of at least 6 characters.");
       return;
     }
-    setLoading(true);
+    setBusy(true);
     window.setTimeout(() => {
-      setLoading(false);
-      toast.success("Signed in", {
-        description: "Session established",
+      setBusy(false);
+      toast.success("Read-only session established", {
+        description: "Scope: Nordic Federated Bank · production",
       });
-      void navigate({ to: "/" });
+      void navigate({ to: "/command" });
     }, 700);
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="size-5" aria-hidden="true" />
-          <span className="font-semibold">Sovereign Agentic Operations OS</span>
-        </div>
-        <div className="space-y-4">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Vendor-neutral agent operations for regulated hybrid estates
+    <AuthShell
+      title={
+        <>
+          Welcome back
+          <br />
+          to the <em className="text-brand-coral italic">console.</em>
+        </>
+      }
+      panel={
+        <form onSubmit={submit} noValidate>
+          <AuthBackLink />
+          <h2 className="font-display mb-1.5 text-4xl font-normal tracking-tight text-[#1c1c1c]">
+            Sign in
           </h2>
-          <p className="max-w-md text-sm text-primary-foreground/80">
-            Multi-tenant observability, agent passports, policy enforcement and evidence-backed root
-            cause analysis — strictly read-only. No shell, no cluster-admin, no secret reads, no
-            database writes, no firewall changes, no autonomous remediation.
+          <p className="mb-7 text-[14.5px] font-light text-[#5c5a56]">
+            New here?{" "}
+            <Link to="/signup" className="font-medium text-brand-coral hover:underline">
+              Create account →
+            </Link>
           </p>
-          <dl className="grid grid-cols-3 gap-4 pt-4 text-sm">
-            <div>
-              <dt className="text-primary-foreground/70">Tenants</dt>
-              <dd className="text-xl font-semibold">—</dd>
-            </div>
-            <div>
-              <dt className="text-primary-foreground/70">Agents</dt>
-              <dd className="text-xl font-semibold">—</dd>
-            </div>
-            <div>
-              <dt className="text-primary-foreground/70">Nodes</dt>
-              <dd className="text-xl font-semibold">—</dd>
-            </div>
-          </dl>
-        </div>
-        <p className="text-xs text-primary-foreground/70">
-          ISO 27001 · SOC 2 Type II · EU data residency options
-        </p>
-      </div>
 
-      <div className="flex items-center justify-center bg-background px-4 py-12">
-        <form onSubmit={submit} className="w-full max-w-sm space-y-5" noValidate>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-            <p className="text-sm text-muted-foreground">
-              Use your corporate identity to open a read-only operations session.
-            </p>
-          </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertTitle>Sign in failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Work email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="sso" checked={sso} onCheckedChange={(v) => setSso(v === true)} />
-            <Label htmlFor="sso" className="text-sm font-normal">
-              Enforce SSO step-up for privileged views
-            </Label>
-          </div>
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-
-          <p className="text-xs text-muted-foreground">
-            Access is logged and subject to dual-control policy. Privileged views may require SSO
-            step-up.
+          <AuthField
+            label="Work email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="you@wecrew.in"
+            autoComplete="email"
+            required
+          />
+          <AuthField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            placeholder="Your password"
+            autoComplete="current-password"
+            required
+          />
+          {error && <p className="my-2.5 text-xs text-red-600">{error}</p>}
+          <AuthSubmit disabled={busy || !email || !password}>
+            {busy ? <AuthSpinner /> : "Sign in →"}
+          </AuthSubmit>
+          <AuthDemoButton onClick={enterDemo} />
+          <p className="mt-4 text-center font-mono text-[10.5px] tracking-wide text-[#8a8680]">
+            Protected internal console · Sovereign Agentic Operations OS
           </p>
         </form>
+      }
+    >
+      <p className="max-w-[360px] text-sm leading-relaxed font-light text-[#6f6a62]">
+        Sign in to open the command centre, inspect agent passports, and follow
+        evidence-backed RCA — strictly read-only.
+      </p>
+      <div className="mt-2 overflow-hidden rounded-[14px] border border-white/10 bg-white/[0.03]">
+        <div className="flex gap-1.5 border-b border-white/10 bg-black/25 px-3.5 py-2.5">
+          <i className="block size-2 rounded-full bg-brand-coral" />
+          <i className="block size-2 rounded-full bg-[#2b4cff]" />
+          <i className="block size-2 rounded-full bg-[#0f7a55]" />
+        </div>
+        <div className="flex gap-2 p-4">
+          {[
+            ["Open incidents", "7", "−12%"],
+            ["Active agents", "30", "fleet"],
+            ["Evidence packs", "94%", "cited"],
+          ].map(([l, v, t]) => (
+            <div
+              key={l}
+              className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5"
+            >
+              <div className="mb-0.5 font-mono text-[9px] tracking-wide text-[#6f6a62] uppercase">
+                {l}
+              </div>
+              <div className="text-lg tracking-tight text-[#faf7f0]">{v}</div>
+              <div className="mt-0.5 font-mono text-[9px] text-[#0f7a55]">{t}</div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

@@ -1,44 +1,25 @@
-# ── Sovereign Command — production image ─────────────────────────────────────
-# Multi-stage: install → build → lean Node runtime
-# Build:  docker build -t sovereign-command:prod .
-# Run:    docker run --rm -p 3000:3000 sovereign-command:prod
-
-# ── deps ─────────────────────────────────────────────────────────────────────
-FROM oven/bun:1.2-alpine AS deps
+# Self-host Sovereign Command (TanStack Start + Nitro node-server)
+# Build: docker compose build
+# Run:   docker compose up
+FROM oven/bun:1.3-alpine AS deps
 WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
 RUN bun install --frozen-lockfile
 
-# ── build ────────────────────────────────────────────────────────────────────
-FROM oven/bun:1.2-alpine AS build
+FROM deps AS build
 WORKDIR /app
-ENV NODE_ENV=production
-ENV NITRO_PRESET=node-server
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN bun run build
+ENV NITRO_PRESET=node-server
+RUN bun run build:selfhost
 
-# ── runtime ──────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS runtime
+FROM node:22-alpine AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
-ENV NITRO_HOST=0.0.0.0
-ENV NITRO_PORT=3000
-
-# Non-root
-RUN addgroup -g 1001 -S app && adduser -u 1001 -S app -G app
-
-COPY --from=build --chown=app:app /app/.output ./.output
-COPY --from=build --chown=app:app /app/package.json ./package.json
-
-USER app
+# Official node image user is uid/gid 1000 — matches kind deploy securityContext
+COPY --from=build --chown=node:node /app/.output ./.output
+USER node
 EXPOSE 3000
-
-# Nitro node-server listens on PORT
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/ || exit 1
-
+# Nitro node-server entry
 CMD ["node", ".output/server/index.mjs"]

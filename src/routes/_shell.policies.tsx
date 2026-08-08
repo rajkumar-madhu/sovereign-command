@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BadgeCheck, CircleSlash, Clock, ShieldQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,12 +18,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
-import { MetricCard } from "@/components/ops/metric-card";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
 import { agentName, tenantName } from "@/data/seed";
 import type { Policy } from "@/data/types";
 import { useOps } from "@/lib/ops-context";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/policies")({
   head: () => ({
@@ -33,12 +32,12 @@ export const Route = createFileRoute("/_shell/policies")({
       {
         name: "description",
         content:
-          "Policy rules, approval gates and dual-control queues governing every agent intent across tenant estates.",
+          "Editable policy simulation rules, approval gates and dual-control queues governing every agent intent across tenant estates.",
       },
       { property: "og:title", content: "Policy Management · Sovereign Agentic Operations OS" },
       {
         property: "og:description",
-        content: "Edit and enforce approval, deny and time-window policies for agent intents.",
+        content: "Simulate, edit and enforce approval, deny and time-window policies for agent intents.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -64,6 +63,28 @@ const INTENTS = [
   { id: "config.write", label: "Write gateway config (trading hours)", policyId: "POL-005" },
 ];
 
+function useLiveEvalRate(base: number) {
+  const [n, setN] = useState(base);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setN((v) => Math.max(40, Math.min(980, Math.round(v + (Math.random() - 0.45) * 28))));
+    }, 1900);
+    return () => window.clearInterval(id);
+  }, []);
+  return n;
+}
+
+function useLiveQueueAge(baseSec: number) {
+  const [sec, setSec] = useState(baseSec);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setSec((v) => Math.max(12, Math.min(900, Math.round(v + (Math.random() - 0.35) * 18))));
+    }, 2100);
+    return () => window.clearInterval(id);
+  }, []);
+  return sec;
+}
+
 function PolicyManagement() {
   const ops = useOps();
   const [editing, setEditing] = useState<Policy | null>(null);
@@ -74,6 +95,8 @@ function PolicyManagement() {
   const denyRules = ops.policies.filter((p) => p.effect === "deny" && p.enabled).length;
   const gated = ops.policies.filter((p) => p.effect === "require-approval" && p.enabled).length;
   const pending = ops.approvals.filter((a) => a.status === "pending");
+  const liveEvals = useLiveEvalRate(186);
+  const liveQueueAge = useLiveQueueAge(142);
 
   const simulation = useMemo(() => {
     const selected = INTENTS.find((i) => i.id === intent)!;
@@ -120,33 +143,120 @@ function PolicyManagement() {
     });
     setEditing(null);
     toast.success(`${draft.id} updated`, {
-      description: "Policy update recorded for enforcement sync.",
+      description: "Policy simulation only — no production control plane was changed.",
     });
   }
 
+  const queueAgeLabel =
+    liveQueueAge >= 60 ? `${Math.floor(liveQueueAge / 60)}m ${liveQueueAge % 60}s` : `${liveQueueAge}s`;
+
   return (
     <div className="space-y-6">
+      <section
+        aria-label="Policy management pulse"
+        className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
+      >
+        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
+          <div className="max-w-xl space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
+              Govern · guardrails
+            </p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
+              Policy Management
+            </h1>
+            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
+              Guardrails that decide whether an agent intent is allowed, gated behind dual control,
+              or denied. Edits apply to this simulation session only.
+            </p>
+            <StatusPill tone="success" className="w-fit bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground">
+              <BadgeCheck className="mr-1 size-3.5" aria-hidden="true" />
+              {active} of {ops.policies.length} rules active
+            </StatusPill>
+          </div>
+          <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
+            {[
+              { label: "Active", value: active, hint: "enforced" },
+              {
+                label: "Hard deny",
+                value: denyRules,
+                hint: "block",
+                hot: denyRules > 0,
+                icon: true,
+              },
+              { label: "Approval gates", value: gated, hint: "dual-ctrl" },
+              {
+                label: "Pending",
+                value: pending.length,
+                hint: "queue",
+                hot: pending.length > 0,
+              },
+              {
+                label: "Evals / min",
+                value: liveEvals,
+                hint: "live",
+                live: true,
+              },
+              {
+                label: "Queue age",
+                value: queueAgeLabel,
+                hint: "live p50",
+                live: true,
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur"
+              >
+                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                  {s.label}
+                </p>
+                <p
+                  className={cn(
+                    "font-display mt-1 text-2xl font-semibold tabular-nums",
+                    s.hot ? "text-destructive" : "text-sidebar-accent-foreground",
+                  )}
+                >
+                  {s.live && (
+                    <span className="mr-1.5 inline-flex size-1.5 animate-pulse rounded-full bg-brand-coral align-middle" />
+                  )}
+                  {s.value}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <PageHeader
-        title="Policy Management"
-        description="Editable guardrails that decide whether an agent intent is allowed, gated behind approval, or denied outright."
-        crumbs={[{ label: "Govern", to: "/" }, { label: "Policy Management" }]}
-        actions={<StatusPill tone="success">{active} of {ops.policies.length} rules active</StatusPill>}
+        title="Rules & simulation"
+        description="Toggle enforcement, edit effects, and dry-run candidate intents against the rule set."
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "Policy Management" }]}
       />
       <SafetyBanner />
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Active policies" value={active} icon={<BadgeCheck className="size-4" aria-hidden="true" />} />
-        <MetricCard label="Hard deny rules" value={denyRules} tone="danger" icon={<CircleSlash className="size-4" aria-hidden="true" />} />
-        <MetricCard label="Approval gates" value={gated} tone="warning" icon={<ShieldQuestion className="size-4" aria-hidden="true" />} />
-        <MetricCard label="Pending approvals" value={pending.length} tone="info" icon={<Clock className="size-4" aria-hidden="true" />} />
-      </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Policy rules</CardTitle>
-          <CardDescription>Toggle enforcement or edit effect, scope and approvers.</CardDescription>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
+      <section className="ops-panel overflow-hidden rounded-2xl" aria-label="Policy rules">
+        <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
+          <ShieldQuestion className="size-4 text-brand-coral" aria-hidden="true" />
+          <div>
+            <h2 className="font-display text-sm font-semibold">Policy rules</h2>
+            <p className="text-xs text-muted-foreground">
+              Toggle enforcement or edit effect, scope and approvers
+            </p>
+          </div>
+          {denyRules > 0 && (
+            <StatusPill tone="danger" className="ml-auto">
+              <CircleSlash className="mr-1 size-3" aria-hidden="true" />
+              {denyRules} hard deny
+            </StatusPill>
+          )}
+        </div>
+        <div className="overflow-x-auto p-4">
           <Table>
             <TableHeader>
               <TableRow>
@@ -168,10 +278,16 @@ function PolicyManagement() {
                     <p className="text-sm font-medium">{p.name}</p>
                     <p className="text-xs text-muted-foreground">{p.description}</p>
                   </TableCell>
-                  <TableCell><StatusPill tone={effectTone[p.effect]}>{p.effect}</StatusPill></TableCell>
+                  <TableCell>
+                    <StatusPill tone={effectTone[p.effect]}>{p.effect}</StatusPill>
+                  </TableCell>
                   <TableCell className="text-xs">{p.scope}</TableCell>
                   <TableCell className="text-xs">
-                    {p.approvers.length > 0 ? p.approvers.join(", ") : <span className="text-muted-foreground">none</span>}
+                    {p.approvers.length > 0 ? (
+                      p.approvers.join(", ")
+                    ) : (
+                      <span className="text-muted-foreground">none</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs tabular-nums">{p.lastEdited}</TableCell>
                   <TableCell>
@@ -195,29 +311,38 @@ function PolicyManagement() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Policy evaluation</CardTitle>
-            <CardDescription>Evaluate a candidate intent against the current rule set.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <section className="ops-panel rounded-2xl p-5" aria-label="Policy simulator">
+          <div className="mb-4 flex items-center gap-2">
+            <BadgeCheck className="size-4 text-brand-coral" aria-hidden="true" />
+            <div>
+              <h2 className="font-display text-sm font-semibold">Policy simulator</h2>
+              <p className="text-xs text-muted-foreground">
+                Evaluate a candidate intent against the current rule set
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="intent">Candidate intent</Label>
               <Select value={intent} onValueChange={setIntent}>
-                <SelectTrigger id="intent"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="intent" className="bg-surface">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {INTENTS.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>{i.label}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <SafetyBanner compact />
-            <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <div className="rounded-xl border border-border bg-surface/60 p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium">Gateway decision</span>
                 <StatusPill tone={simulation.tone}>{simulation.decision}</StatusPill>
@@ -229,30 +354,41 @@ function PolicyManagement() {
                 </p>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Approval queue</CardTitle>
-            <CardDescription>Dual-control decisions raised by policy gates.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <SafetyBanner compact />
+        <section className="ops-panel rounded-2xl p-5" aria-label="Approval queue">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock className="size-4 text-brand-coral" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-sm font-semibold">Approval queue</h2>
+              <p className="text-xs text-muted-foreground">
+                Dual-control decisions raised by policy gates · live age {queueAgeLabel}
+              </p>
+            </div>
+            {pending.length > 0 && (
+              <StatusPill tone="warning">{pending.length} pending</StatusPill>
+            )}
+          </div>
+          <SafetyBanner compact />
+          <div className="mt-3 space-y-2">
             {pending.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
+              <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
                 No approvals pending — every gated intent has been decided.
               </p>
             ) : (
               pending.map((a) => (
-                <div key={a.id} className="rounded-lg border border-border p-3">
+                <div key={a.id} className="rounded-xl border border-border bg-surface/40 p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{a.request}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {tenantName(a.tenantId)} · {agentName(a.agentId)} · requested by {a.requestedBy}
+                        {tenantName(a.tenantId)} · {agentName(a.agentId)} · requested by{" "}
+                        {a.requestedBy}
                       </p>
-                      <p className="text-xs text-muted-foreground">Requires: {a.requiredRoles.join(" + ")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Requires: {a.requiredRoles.join(" + ")}
+                      </p>
                     </div>
                     <StatusPill tone={toneForSeverity(a.risk)}>{a.risk}</StatusPill>
                   </div>
@@ -261,7 +397,9 @@ function PolicyManagement() {
                       size="sm"
                       onClick={() => {
                         ops.decideApproval(a.id, "approved");
-                        toast.success(`${a.id} approved`, { description: "Recorded in the audit trail." });
+                        toast.success(`${a.id} approved`, {
+                          description: "Recorded in the audit trail; no system was modified.",
+                        });
                       }}
                     >
                       Approve
@@ -271,7 +409,9 @@ function PolicyManagement() {
                       variant="outline"
                       onClick={() => {
                         ops.decideApproval(a.id, "rejected");
-                        toast.success(`${a.id} rejected`, { description: "Intent returned to the planner as denied." });
+                        toast.success(`${a.id} rejected`, {
+                          description: "Intent returned to the planner as denied.",
+                        });
                       }}
                     >
                       Reject
@@ -280,16 +420,17 @@ function PolicyManagement() {
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
       <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit policy {draft?.id}</DialogTitle>
+            <DialogTitle className="font-display">Edit policy {draft?.id}</DialogTitle>
             <DialogDescription>
-              Updates are versioned and synced to the policy control plane after dual-control approval where required.
+              Changes apply to this simulation session only — the OS never writes to production
+              enforcement points.
             </DialogDescription>
           </DialogHeader>
           {draft && (
@@ -297,11 +438,19 @@ function PolicyManagement() {
               <SafetyBanner compact />
               <div className="space-y-2">
                 <Label htmlFor="p-name">Rule name</Label>
-                <Input id="p-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                <Input
+                  id="p-name"
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="p-desc">Description</Label>
-                <Textarea id="p-desc" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+                <Textarea
+                  id="p-desc"
+                  value={draft.description}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -310,17 +459,25 @@ function PolicyManagement() {
                     value={draft.effect}
                     onValueChange={(v) => setDraft({ ...draft, effect: v as Policy["effect"] })}
                   >
-                    <SelectTrigger id="p-effect"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="p-effect">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {EFFECTS.map((e) => (
-                        <SelectItem key={e} value={e}>{e}</SelectItem>
+                        <SelectItem key={e} value={e}>
+                          {e}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="p-scope">Scope</Label>
-                  <Input id="p-scope" value={draft.scope} onChange={(e) => setDraft({ ...draft, scope: e.target.value })} />
+                  <Input
+                    id="p-scope"
+                    value={draft.scope}
+                    onChange={(e) => setDraft({ ...draft, scope: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -331,7 +488,10 @@ function PolicyManagement() {
                   onChange={(e) =>
                     setDraft({
                       ...draft,
-                      approvers: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                      approvers: e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
                     })
                   }
                 />
@@ -339,8 +499,12 @@ function PolicyManagement() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={saveDraft} disabled={!draft?.name.trim()}>Save policy</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button onClick={saveDraft} disabled={!draft?.name.trim()}>
+              Save policy
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
