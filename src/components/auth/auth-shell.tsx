@@ -3,24 +3,56 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export function AuthBrand() {
+export function AuthBrand({
+  tone = "dark",
+  className,
+}: {
+  tone?: "dark" | "light";
+  className?: string;
+}) {
+  const light = tone === "light";
   return (
-    <div className="relative z-10 flex items-center gap-2.5">
+    <div className={cn("relative z-10 flex items-center gap-2.5", className)}>
       <span
-        className="relative grid size-[38px] place-items-center rounded-[11px] shadow-[0_6px_18px_rgba(255,91,46,0.3)]"
+        className={cn(
+          "relative grid place-items-center rounded-[11px]",
+          light ? "size-9 shadow-[0_4px_12px_rgba(255,91,46,0.22)]" : "size-[38px] shadow-[0_6px_18px_rgba(255,91,46,0.3)]",
+        )}
         style={{
           background:
             "conic-gradient(from 210deg,#ff5b2e,#2b4cff,#0f7a55,#c9a227,#ff5b2e)",
         }}
       >
-        <span className="absolute inset-[2px] rounded-[9px] bg-[#0e1116]" />
-        <span className="font-display relative z-[1] text-xl italic text-[#f7f7f4]">W</span>
+        <span
+          className={cn(
+            "absolute rounded-[9px]",
+            light ? "inset-[2px] bg-white" : "inset-[2px] bg-[#0e1116]",
+          )}
+        />
+        <span
+          className={cn(
+            "font-display relative z-[1] italic",
+            light ? "text-lg text-[#1c1c1c]" : "text-xl text-[#f7f7f4]",
+          )}
+        >
+          W
+        </span>
       </span>
       <div className="leading-tight">
-        <div className="font-display text-[22px] tracking-wide text-[#f7f7f4]">
+        <div
+          className={cn(
+            "font-display tracking-wide",
+            light ? "text-[17px] text-[#1c1c1c]" : "text-[22px] text-[#f7f7f4]",
+          )}
+        >
           Wecrew <em className="not-italic text-brand-coral">Ops</em>
         </div>
-        <div className="mt-0.5 font-mono text-[10px] tracking-[0.14em] text-[#6f6a62] uppercase">
+        <div
+          className={cn(
+            "mt-0.5 font-mono tracking-[0.14em] uppercase",
+            light ? "text-[10px] text-[#8a8680]" : "text-[10px] text-[#6f6a62]",
+          )}
+        >
           sovereign.ops · agent operations
         </div>
       </div>
@@ -86,13 +118,25 @@ export function AuthShell({
       </aside>
 
       <section
-        className="flex flex-1 items-start justify-center overflow-y-auto px-4 py-10 sm:px-7 sm:py-14"
+        className="flex flex-1 items-start justify-center overflow-y-auto px-4 py-8 sm:px-7 sm:py-14"
         style={{
           backgroundImage:
             "radial-gradient(ellipse 70% 50% at 50% -10%, rgba(255,91,46,.06), transparent 60%)",
         }}
       >
         <div className="w-full max-w-[440px] animate-in fade-in slide-in-from-bottom-3 duration-400 pb-10">
+          {/* Compact brand when the dark product panel is hidden (< lg) */}
+          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
+            <Link to="/" className="min-w-0">
+              <AuthBrand tone="light" />
+            </Link>
+            <Link
+              to="/docs"
+              className="shrink-0 font-mono text-[11px] tracking-[0.08em] text-[#5c5a56] uppercase hover:text-brand-coral"
+            >
+              Docs
+            </Link>
+          </div>
           {panel}
         </div>
       </section>
