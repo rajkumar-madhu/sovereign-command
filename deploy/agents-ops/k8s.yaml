@@ -1,0 +1,145 @@
+# Sovereign Command — agents.ops.wecrew.in + sovereign.ops.wecrew.in
+# (distinct from agentos.wecrew.in)
+# Apply on kind cluster wecrew (host: wecrew-anypoint):
+#   kind load docker-image sovereign-command:agents-ops --name wecrew
+#   kubectl apply -f deploy/agents-ops/k8s.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sovereign-command
+  labels:
+    app.kubernetes.io/name: sovereign-command
+    app.kubernetes.io/part-of: wecrew-agents-ops
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sovereign-command
+  namespace: sovereign-command
+  labels:
+    app.kubernetes.io/name: sovereign-command
+    app.kubernetes.io/part-of: wecrew-agents-ops
+    wecrew.io/host: agents.ops.wecrew.in
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sovereign-command
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sovereign-command
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: sovereign-command:agents-ops
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "3000"
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            # kind node is request-saturated (~99% CPU); keep requests tiny —
+            # actual usage is low (~15% CPU). Do not raise without freeing capacity.
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: "500m"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sovereign-command
+  namespace: sovereign-command
+  labels:
+    app.kubernetes.io/name: sovereign-command
+spec:
+  selector:
+    app.kubernetes.io/name: sovereign-command
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sovereign-command-agents-ops
+  namespace: sovereign-command
+  labels:
+    app.kubernetes.io/name: sovereign-command
+    wecrew.io/alias: agents.ops.wecrew.in
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: 8m
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: agents.ops.wecrew.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sovereign-command
+                port:
+                  number: 80
+    - host: sovereign.ops.wecrew.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sovereign-command
+                port:
+                  number: 80

@@ -1,0 +1,348 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system — Wecrew AgentOS colour fidelity
+ * Sourced from https://agentos.wecrew.in/login (:root CSS variables).
+ * Hex kept for exact match to live brand tokens.
+ */
+
+@theme inline {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", "IBM Plex Sans", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand-coral: var(--brand-coral);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-paper: var(--brand-paper);
+}
+
+:root {
+  --radius: 0.375rem;
+
+  /* Brand (live AgentOS) */
+  --brand-ink: #0e1116;
+  --brand-coral: #ff5b2e;
+  --brand-blue: #2b4cff;
+  --brand-green: #0f7a55;
+  --brand-paper: #f4f1ea;
+  --brand-paper-2: #ebe6dc;
+
+  --background: var(--brand-paper);
+  --foreground: var(--brand-ink);
+  --surface: #fffcf7;
+  --surface-strong: var(--brand-paper-2);
+  --card: #fffcf7;
+  --card-foreground: var(--brand-ink);
+  --popover: #fffcf7;
+  --popover-foreground: var(--brand-ink);
+  --primary: var(--brand-blue);
+  --primary-foreground: #ffffff;
+  --secondary: var(--brand-paper-2);
+  --secondary-foreground: var(--brand-ink);
+  --muted: #e8e3d9;
+  --muted-foreground: #5c5a56;
+  --accent: #fde8e0;
+  --accent-foreground: #9a3412;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: var(--brand-green);
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: var(--brand-ink);
+  --info: var(--brand-blue);
+  --border: #ddd6c8;
+  --input: #d4cdc0;
+  --ring: var(--brand-blue);
+  --shadow-panel: 0 1px 2px rgb(14 17 22 / 6%), 0 12px 32px -18px rgb(14 17 22 / 16%);
+
+  --chart-1: var(--brand-blue);
+  --chart-2: var(--brand-green);
+  --chart-3: var(--brand-coral);
+  --chart-4: #dc2626;
+  --chart-5: #7c3aed;
+
+  /* AgentOS keeps sidebar on brand-ink even in light mode */
+  --sidebar: var(--brand-ink);
+  --sidebar-foreground: #c8c4bc;
+  --sidebar-primary: var(--brand-coral);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1f28;
+  --sidebar-accent-foreground: #f4f1ea;
+  --sidebar-border: #252b36;
+  --sidebar-ring: var(--brand-coral);
+}
+
+.dark {
+  --background: var(--brand-ink);
+  --foreground: #f4f1ea;
+  --surface: #141820;
+  --surface-strong: #1a1f28;
+  --card: #1a1f28;
+  --card-foreground: #f4f1ea;
+  --popover: #1a1f28;
+  --popover-foreground: #f4f1ea;
+  --primary: #6b85ff;
+  --primary-foreground: #0e1116;
+  --secondary: #1a1f28;
+  --secondary-foreground: #f4f1ea;
+  --muted: #1a1f28;
+  --muted-foreground: #a8a49c;
+  --accent: #3a2218;
+  --accent-foreground: #ffc4b0;
+  --destructive: #f87171;
+  --destructive-foreground: #0e1116;
+  --success: #34d399;
+  --success-foreground: #0e1116;
+  --warning: #fbbf24;
+  --warning-foreground: #0e1116;
+  --info: #6b85ff;
+  --border: #252b36;
+  --input: #2a3140;
+  --ring: var(--brand-coral);
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 35%), 0 16px 40px -24px rgb(255 91 46 / 25%);
+
+  --chart-1: #6b85ff;
+  --chart-2: #34d399;
+  --chart-3: #ff5b2e;
+  --chart-4: #f87171;
+  --chart-5: #a78bfa;
+
+  --sidebar: #0a0c10;
+  --sidebar-foreground: #c8c4bc;
+  --sidebar-primary: var(--brand-coral);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1f28;
+  --sidebar-accent-foreground: #f4f1ea;
+  --sidebar-border: #252b36;
+  --sidebar-ring: var(--brand-coral);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-background);
+    background-image: none;
+    color: var(--color-foreground);
+    font-feature-settings: "ss01" on, "kern" on;
+  }
+
+  h1,
+  h2,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Login / command hero — AgentOS ink panel with coral + blue glows */
+@layer utilities {
+  .silicon-circuit {
+    background-color: var(--brand-ink);
+    background-image:
+      linear-gradient(rgb(200 196 188 / 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(200 196 188 / 0.07) 1px, transparent 1px),
+      radial-gradient(circle at 18% 22%, rgb(255 91 46 / 0.35), transparent 42%),
+      radial-gradient(circle at 82% 78%, rgb(43 76 255 / 0.32), transparent 48%),
+      linear-gradient(145deg, #141820, var(--brand-ink));
+    background-size:
+      28px 28px,
+      28px 28px,
+      100% 100%,
+      100% 100%,
+      100% 100%;
+  }
+
+  .silicon-die-glow {
+    box-shadow:
+      0 0 0 1px rgb(255 91 46 / 0.45),
+      0 0 28px rgb(255 91 46 / 0.28),
+      inset 0 1px 0 rgb(255 255 255 / 10%);
+  }
+
+  .ops-panel {
+    background: linear-gradient(165deg, rgb(255 252 247 / 0.98), rgb(244 241 234 / 0.92));
+    box-shadow: var(--shadow-panel);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+
+  .dark .ops-panel {
+    background: linear-gradient(165deg, rgb(26 31 40 / 0.95), rgb(20 24 32 / 0.9));
+    border-color: var(--border);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .silicon-rail {
+    background-image:
+      linear-gradient(180deg, #141820, var(--brand-ink)),
+      linear-gradient(rgb(255 91 46 / 0.08) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 20px;
+  }
+
+  .dark .silicon-rail {
+    background-image:
+      linear-gradient(180deg, #0a0c10, #050608),
+      linear-gradient(rgb(255 91 46 / 0.1) 1px, transparent 1px);
+  }
+
+  .command-pulse {
+    isolation: isolate;
+  }
+
+  .inspector-panel {
+    background-image:
+      radial-gradient(420px 220px at 100% 0%, rgb(255 91 46 / 0.12), transparent 55%),
+      linear-gradient(180deg, rgb(26 31 40 / 0.55), transparent 30%);
+  }
+
+  .dark .inspector-panel {
+    background-image:
+      radial-gradient(420px 220px at 100% 0%, rgb(255 91 46 / 0.16), transparent 55%),
+      linear-gradient(180deg, rgb(20 24 32 / 0.65), transparent 30%);
+  }
+
+  .animate-circuit-pulse {
+    animation: circuit-pulse 4.5s ease-in-out infinite;
+  }
+
+  .animate-die-breathe {
+    animation: die-breathe 3.2s ease-in-out infinite;
+  }
+
+  .animate-rise-in {
+    animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-rail-glow {
+    animation: die-breathe 4s ease-in-out infinite;
+  }
+}
+
+@keyframes circuit-pulse {
+  0%,
+  100% {
+    background-position:
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+    filter: brightness(1);
+  }
+  50% {
+    background-position:
+      14px 14px,
+      14px 14px,
+      0 0,
+      0 0,
+      0 0;
+    filter: brightness(1.06);
+  }
+}
+
+@keyframes die-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgb(255 91 46 / 0.35),
+      0 0 20px rgb(255 91 46 / 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgb(255 91 46 / 0.6),
+      0 0 40px rgb(255 91 46 / 0.35);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-circuit-pulse,
+  .animate-die-breathe,
+  .animate-rise-in {
+    animation: none;
+  }
+}
+
+/*
+ * Hide Lovable publish chrome ("Edit with Lovable" badge).
+ * Injected by Lovable hosting on *.lovable.app — not part of app source.
+ */
+#lovable-badge,
+#lovable-badge-cta,
+#lovable-badge-close,
+aside[aria-label="Edit with Lovable"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
