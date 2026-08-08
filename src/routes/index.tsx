@@ -580,6 +580,18 @@ function LandingPage() {
                 <a href="mailto:support@wecrew.in?subject=Sovereign%20Ops%20enquiry">Talk to our team</a>
               </Button>
             </div>
+            <div className="space-y-1 text-sm text-white/65">
+              <p className="font-medium text-[#f7f7f4]">Rajkumar Madhu</p>
+              <p>
+                <a className="hover:text-white" href="mailto:support@wecrew.in">
+                  support@wecrew.in
+                </a>
+                <span className="mx-2 text-white/30">·</span>
+                <a className="hover:text-white" href="tel:+919176772077">
+                  +91 91767 72077
+                </a>
+              </p>
+            </div>
             <p className="text-xs text-white/45">
               Runs on your infrastructure · Read-only by design · Evidence cites its sources
             </p>
@@ -602,13 +614,21 @@ function LandingPage() {
               A secure enterprise agent operations OS: command centre, passports, policy, and
               evidence-backed RCA — deployed on your own infrastructure.
             </p>
-            <p className="text-sm text-[#5c5a56]">
-              <a className="hover:text-[#1c1c1c]" href="mailto:support@wecrew.in">
-                support@wecrew.in
-              </a>
-              <span className="mx-2 text-[#d4cdc0]">·</span>
-              <span className="font-mono text-xs">sovereign.ops.wecrew.in</span>
-            </p>
+            <div className="space-y-1 text-sm text-[#5c5a56]">
+              <p className="font-medium text-[#1c1c1c]">Rajkumar Madhu</p>
+              <p>
+                <a className="hover:text-[#1c1c1c]" href="mailto:support@wecrew.in">
+                  support@wecrew.in
+                </a>
+              </p>
+              <p>
+                <a className="hover:text-[#1c1c1c]" href="tel:+919176772077">
+                  +91 91767 72077
+                </a>
+                <span className="mx-2 text-[#d4cdc0]">·</span>
+                <span className="font-mono text-xs">sovereign.ops.wecrew.in</span>
+              </p>
+            </div>
           </div>
           <nav className="grid grid-cols-2 gap-8 sm:grid-cols-4" aria-label="Footer">
             {[
