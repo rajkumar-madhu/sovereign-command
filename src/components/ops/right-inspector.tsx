@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StatusPill, toneForScore, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
+import { ResourceIdentityChips } from "@/components/ops/resource-identity-panel";
 import { useInspector } from "@/lib/inspector-context";
 import { useOps } from "@/lib/ops-context";
 import { useShellChrome } from "@/lib/shell-chrome";
@@ -20,9 +21,12 @@ import { cn } from "@/lib/utils";
 import {
   agents,
   customerName,
+  customers,
   evidenceArtifacts,
   incidents,
   passports,
+  tenantName,
+  tenants,
 } from "@/data/seed";
 
 function useWideDesktop() {
@@ -215,6 +219,7 @@ function AgentInspector() {
           </div>
           <StatusPill tone={toneForStatus(status!)}>{status}</StatusPill>
         </div>
+        <ResourceIdentityChips resource={agent.runtime} />
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3 py-2">
             <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">Trust</p>
@@ -308,8 +313,8 @@ function EvidenceInspector() {
   return (
     <div className="space-y-4 p-4">
       <p className="text-xs leading-relaxed text-sidebar-foreground/70">
-        Artefacts are hash-verified and read-only. Use the canvas list to pick a file; export when
-        you need an audit bundle.
+        Artefacts are hash-verified and read-only. Capture locus shows hostname and IP for platform
+        triage.
       </p>
       {first && (
         <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3">
@@ -322,6 +327,7 @@ function EvidenceInspector() {
           <p className="mt-1 text-[11px] text-sidebar-foreground/60">
             {first.kind} · {first.collected}
           </p>
+          <ResourceIdentityChips resource={first.resource} className="mt-2" />
         </div>
       )}
       <div className="grid gap-2">
@@ -331,7 +337,9 @@ function EvidenceInspector() {
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
-          <Link to="/rca">Open RCA report</Link>
+          <Link to="/rca" search={{ incident: "inc-4821" }}>
+            Open RCA report
+          </Link>
         </Button>
       </div>
     </div>
@@ -368,12 +376,53 @@ function IncidentInspector() {
           <p className="mt-2 text-xs font-medium text-warning">SLA at risk</p>
         )}
       </div>
+      <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 space-y-2">
+        <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+          Organisation · client
+        </p>
+        <div>
+          <p className="text-[10px] text-sidebar-foreground/50">Tenant / org</p>
+          <p className="text-xs font-medium text-sidebar-accent-foreground">
+            {tenants.find((t) => t.id === incident.tenantId)?.name ?? tenantName(incident.tenantId)}
+          </p>
+          <p className="font-mono text-[10px] text-sidebar-foreground/55">{incident.tenantId}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-sidebar-foreground/50">Client / customer</p>
+          <p className="text-xs font-medium text-sidebar-accent-foreground">
+            {customers.find((c) => c.id === incident.customerId)?.name ??
+              customerName(incident.customerId)}
+          </p>
+          <p className="font-mono text-[10px] text-sidebar-foreground/55">
+            {incident.customerId} · {incident.environment}
+          </p>
+        </div>
+      </div>
       <div className="grid gap-2">
+        <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/30 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+            Application
+          </p>
+          <p className="mt-0.5 font-mono text-xs text-sidebar-accent-foreground">
+            {incident.application ?? "—"}
+          </p>
+        </div>
+        <ResourceIdentityChips resource={incident.resources?.[0]} />
         <Button asChild size="sm" className="justify-start">
           <Link to="/evidence">Open evidence</Link>
         </Button>
         <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
-          <Link to="/rca">RCA report</Link>
+          <Link to="/rca" search={{ incident: incident.id }}>
+            RCA report
+          </Link>
+        </Button>
+        <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Link
+            to="/customers/$customerId"
+            params={{ customerId: incident.customerId }}
+          >
+            Client estate
+          </Link>
         </Button>
         <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
           <Link to="/investigations">Investigations</Link>
@@ -385,13 +434,15 @@ function IncidentInspector() {
 
 function ApprovalsInspector() {
   const ops = useOps();
-  const pending = ops.approvals.filter((a) => a.status === "pending");
+  const pending = ops.approvals.filter(
+    (a) => a.status === "pending" && a.tenantId === ops.tenantId,
+  );
 
   return (
     <div className="space-y-4 p-4">
       <p className="text-xs text-sidebar-foreground/70">
-        {pending.length} pending approval{pending.length === 1 ? "" : "s"} in the current tenant
-        scope. Review on the main queue — this panel lists the hottest items.
+        {pending.length} pending approval{pending.length === 1 ? "" : "s"} for{" "}
+        {tenantName(ops.tenantId)}. Review on the main queue — this panel lists the hottest items.
       </p>
       <ul className="space-y-2">
         {pending.slice(0, 5).map((a) => (

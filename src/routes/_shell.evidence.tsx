@@ -15,9 +15,23 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
-import { evidenceArtifacts } from "@/data/seed";
+import { evidenceArtifacts, incidents, customerName, tenantName } from "@/data/seed";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_INCIDENT_RANGE,
+  TimeRangeControl,
+  filterLogLines,
+  filterSeriesByClock,
+  formatRangeLabel,
+  inTimeRange,
+  type TimeRange,
+} from "@/components/ops/time-range-control";
+import {
+  ResourceIdentityChips,
+  ResourceIdentityPanel,
+} from "@/components/ops/resource-identity-panel";
+import { inOpsScope, useOps } from "@/lib/ops-context";
 
 export const Route = createFileRoute("/_shell/evidence")({
   validateSearch: (search: Record<string, unknown>): { artifact?: string } => {
@@ -67,24 +81,36 @@ function formatCollected(isoOrTime: string) {
   };
 }
 
-function LoadGraphPanel({ body }: { body: string }) {
+function LoadGraphPanel({
+  body,
+  range,
+}: {
+  body: string;
+  range: TimeRange;
+}) {
   const series = useMemo(() => {
     try {
       const parsed = JSON.parse(body) as {
         series?: Array<{ t: string; cpu: number; mem: number; disk: number; pullErrors: number }>;
       };
-      return parsed.series ?? [];
+      return filterSeriesByClock(parsed.series ?? [], range);
     } catch {
       return [];
     }
-  }, [body]);
+  }, [body, range]);
 
-  if (!series.length) return null;
+  if (!series.length) {
+    return (
+      <div className="mb-4 rounded-xl border border-dashed border-border bg-surface/40 p-4 text-sm text-muted-foreground">
+        No load-graph samples in the selected time window.
+      </div>
+    );
+  }
 
   return (
     <div className="mb-4 rounded-xl border border-border bg-surface/60 p-3">
       <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Load graph · host utilisation vs PullImage errors
+        Load graph · host utilisation vs PullImage errors · {formatRangeLabel(range)}
       </p>
       <div className="h-52 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -137,21 +163,56 @@ function LoadGraphPanel({ body }: { body: string }) {
 
 function EvidenceViewer() {
   const { artifact: artifactParam } = Route.useSearch();
+  const ops = useOps();
+  const [range, setRange] = useState<TimeRange>(DEFAULT_INCIDENT_RANGE);
+  const [presetId, setPresetId] = useState("incident");
+  const filteredArtifacts = useMemo(
+    () =>
+      evidenceArtifacts.filter((a) => {
+        const d = new Date(a.collected);
+        if (Number.isNaN(d.getTime()) || !inTimeRange(d, range)) return false;
+        if (!a.incidentId) return true;
+        const inc = incidents.find((i) => i.id === a.incidentId);
+        if (!inc) return true;
+        return inOpsScope(inc, {
+          tenantId: ops.tenantId,
+          customerId: ops.customerId,
+          environment: ops.environment,
+        });
+      }),
+    [range, ops.tenantId, ops.customerId, ops.environment],
+  );
   const initial =
-    evidenceArtifacts.find((a) => a.id === artifactParam)?.id ?? evidenceArtifacts[0]!.id;
+    filteredArtifacts.find((a) => a.id === artifactParam)?.id ??
+    filteredArtifacts[0]?.id ??
+    evidenceArtifacts[0]!.id;
   const [selected, setSelected] = useState(initial);
-  const artifact = evidenceArtifacts.find((a) => a.id === selected)!;
+  const artifact =
+    filteredArtifacts.find((a) => a.id === selected) ??
+    evidenceArtifacts.find((a) => a.id === selected) ??
+    evidenceArtifacts[0]!;
+  const linkedIncident = artifact.incidentId
+    ? incidents.find((i) => i.id === artifact.incidentId)
+    : undefined;
   const { focusMode, setFocusMode } = useShellChrome();
   const liveVerify = useLiveVerifyRate(6);
-  const kinds = new Set(evidenceArtifacts.map((a) => a.kind)).size;
+  const kinds = new Set(filteredArtifacts.map((a) => a.kind)).size;
   const collected = formatCollected(artifact.collected);
   const isLoadGraph = artifact.name === "load-graph.json" || artifact.kind.includes("load graph");
+  const filteredBody = useMemo(() => {
+    if (isLoadGraph) return artifact.body;
+    return filterLogLines(artifact.body, range);
+  }, [artifact.body, isLoadGraph, range]);
 
   useEffect(() => {
-    if (artifactParam && evidenceArtifacts.some((a) => a.id === artifactParam)) {
+    if (artifactParam && filteredArtifacts.some((a) => a.id === artifactParam)) {
       setSelected(artifactParam);
+      return;
     }
-  }, [artifactParam]);
+    if (filteredArtifacts.length && !filteredArtifacts.some((a) => a.id === selected)) {
+      setSelected(filteredArtifacts[0]!.id);
+    }
+  }, [artifactParam, filteredArtifacts, selected]);
 
   return (
     <div className="space-y-6">
@@ -173,8 +234,8 @@ function EvidenceViewer() {
               Evidence Viewer
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Immutable artefacts for incident inc-4821 — each with a content hash and full capture
-              timestamp. Focus mode hides sidebars for full-width reading.
+              Immutable artefacts for incident inc-4821 — pick a custom date/time window to review
+              previous history, logs, and graphs.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               {!focusMode && (
@@ -195,7 +256,7 @@ function EvidenceViewer() {
                 )}
                 onClick={() =>
                   toast.success("Evidence bundle exported", {
-                    description: "Signed archive prepared for audit hand-off.",
+                    description: `Window ${formatRangeLabel(range)}`,
                   })
                 }
               >
@@ -210,7 +271,7 @@ function EvidenceViewer() {
                     : "",
                 )}
               >
-                <Link to="/rca">
+                <Link to="/rca" search={{ incident: linkedIncident?.id ?? "inc-4821" }}>
                   <ScrollText className="size-4" aria-hidden="true" />
                   Open RCA
                 </Link>
@@ -219,7 +280,7 @@ function EvidenceViewer() {
           </div>
           <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
             {[
-              { label: "Artefacts", value: evidenceArtifacts.length, hint: "inc-4821" },
+              { label: "In window", value: filteredArtifacts.length, hint: "artefacts" },
               { label: "Kinds", value: kinds, hint: "classes" },
               {
                 label: "Integrity",
@@ -269,10 +330,19 @@ function EvidenceViewer() {
 
       <PageHeader
         title="Hash-verified stream"
-        description="Select an artefact to inspect body content. Focus (⌘\\) maximizes the reading canvas."
+        description="Select a time window, then an artefact. Focus (⌘\\) maximizes the reading canvas."
         crumbs={[{ label: "Investigate" }, { label: "Evidence Viewer" }]}
       />
       <SafetyBanner compact />
+
+      <TimeRangeControl
+        value={range}
+        presetId={presetId}
+        onChange={(next, id) => {
+          setRange(next);
+          setPresetId(id);
+        }}
+      />
 
       <div
         className={cn(
@@ -285,62 +355,106 @@ function EvidenceViewer() {
             <FileSearch className="size-4 text-brand-coral" aria-hidden="true" />
             <div>
               <h2 className="font-display text-sm font-semibold">Artefacts</h2>
-              <p className="text-xs text-muted-foreground">{evidenceArtifacts.length} captured</p>
+              <p className="text-xs text-muted-foreground">
+                {filteredArtifacts.length} in selected window
+              </p>
             </div>
           </div>
           <div className="space-y-2 p-3">
-            {evidenceArtifacts.map((a) => {
-              const when = formatCollected(a.collected);
-              return (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setSelected(a.id)}
-                  aria-pressed={a.id === selected}
-                  className={cn(
-                    "w-full rounded-xl border p-3 text-left transition-colors",
-                    a.id === selected
-                      ? "border-brand-coral/50 bg-brand-coral/10"
-                      : "border-border bg-surface/40 hover:bg-accent/50",
-                  )}
-                >
-                  <p className="truncate font-mono text-xs font-medium">{a.name}</p>
-                  <p className="text-xs text-muted-foreground">{a.kind}</p>
-                  <p className="mt-1 font-mono text-[10px] text-muted-foreground/80">{when.label}</p>
-                </button>
-              );
-            })}
+            {filteredArtifacts.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                No artefacts captured in this date range. Try Incident window or Full day 2 Aug.
+              </p>
+            ) : (
+              filteredArtifacts.map((a) => {
+                const when = formatCollected(a.collected);
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setSelected(a.id)}
+                    aria-pressed={a.id === selected}
+                    className={cn(
+                      "w-full rounded-xl border p-3 text-left transition-colors",
+                      a.id === selected
+                        ? "border-brand-coral/50 bg-brand-coral/10"
+                        : "border-border bg-surface/40 hover:bg-accent/50",
+                    )}
+                  >
+                    <p className="truncate font-mono text-xs font-medium">{a.name}</p>
+                    <p className="text-xs text-muted-foreground">{a.kind}</p>
+                    <p className="mt-1 font-mono text-[10px] text-muted-foreground/80">{when.label}</p>
+                    <ResourceIdentityChips resource={a.resource} className="mt-2" />
+                  </button>
+                );
+              })
+            )}
           </div>
         </section>
 
         <section className="ops-panel min-w-0 overflow-hidden rounded-2xl" aria-label="Artefact detail">
-          <div className="flex flex-wrap items-start gap-2 border-b border-border/70 px-4 py-3">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-coral" aria-hidden="true" />
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display font-mono text-sm font-semibold">{artifact.name}</h2>
-              <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <StatusPill tone="success">integrity verified</StatusPill>
-                <span className="break-all font-mono">{artifact.hash}</span>
-              </p>
-              <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
-                Captured <span className="text-foreground/80">{collected.label}</span>
-                <span className="mx-1.5 text-border">·</span>
-                <span className="opacity-70">{collected.iso}</span>
-              </p>
+          {filteredArtifacts.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Select a wider history window to inspect logs and graphs.
             </div>
-            <StatusPill tone="neutral">{artifact.kind}</StatusPill>
-          </div>
-          <div className="p-4">
-            {isLoadGraph && <LoadGraphPanel body={artifact.body} />}
-            <pre
-              className={cn(
-                "overflow-auto rounded-xl border border-border bg-surface p-4 font-mono text-xs leading-relaxed whitespace-pre",
-                focusMode ? "max-h-[min(72vh,780px)]" : "max-h-[520px]",
-              )}
-            >
-              {artifact.body}
-            </pre>
-          </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-start gap-2 border-b border-border/70 px-4 py-3">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-coral" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-display font-mono text-sm font-semibold">{artifact.name}</h2>
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <StatusPill tone="success">integrity verified</StatusPill>
+                    <span className="break-all font-mono">{artifact.hash}</span>
+                  </p>
+                  <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
+                    Captured <span className="text-foreground/80">{collected.label}</span>
+                    <span className="mx-1.5 text-border">·</span>
+                    <span className="opacity-70">{collected.iso}</span>
+                  </p>
+                  {linkedIncident && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      Incident{" "}
+                      <Link
+                        to="/incidents/$incidentId"
+                        params={{ incidentId: linkedIncident.id }}
+                        className="font-mono text-primary hover:underline"
+                      >
+                        {linkedIncident.id}
+                      </Link>
+                      <span className="mx-1.5 text-border">·</span>
+                      {tenantName(linkedIncident.tenantId)} · {customerName(linkedIncident.customerId)} ·{" "}
+                      {linkedIncident.environment}
+                    </p>
+                  )}
+                </div>
+                <StatusPill tone="neutral">{artifact.kind}</StatusPill>
+              </div>
+              <div className="p-4">
+                {artifact.resource ? (
+                  <ResourceIdentityPanel
+                    resources={[artifact.resource]}
+                    title="Capture locus"
+                    description="Hostname, IP, and application identity for this artefact"
+                    className="mb-4"
+                    compact
+                  />
+                ) : null}
+                {isLoadGraph && <LoadGraphPanel body={artifact.body} range={range} />}
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  {isLoadGraph ? "Raw series JSON" : "Logs · filtered by time"}
+                </p>
+                <pre
+                  className={cn(
+                    "overflow-auto rounded-xl border border-border bg-surface p-4 font-mono text-xs leading-relaxed whitespace-pre",
+                    focusMode ? "max-h-[min(72vh,780px)]" : "max-h-[520px]",
+                  )}
+                >
+                  {filteredBody || "No log lines in the selected time window."}
+                </pre>
+              </div>
+            </>
+          )}
         </section>
       </div>
     </div>

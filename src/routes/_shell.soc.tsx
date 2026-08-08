@@ -10,7 +10,9 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
 import { agentName, securityEvents, tenantName } from "@/data/seed";
+import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
+import { ResourceIdentityChips } from "@/components/ops/resource-identity-panel";
 
 export const Route = createFileRoute("/_shell/soc")({
   head: () => ({
@@ -66,27 +68,33 @@ function useLiveBlockRate(base: number) {
 }
 
 function SocPage() {
+  const ops = useOps();
   const [query, setQuery] = useState("");
   const [severity, setSeverity] = useState("all");
   const [category, setCategory] = useState("all");
 
+  const scopedEvents = useMemo(
+    () => securityEvents.filter((e) => e.tenantId === ops.tenantId),
+    [ops.tenantId],
+  );
+
   const rows = useMemo(
     () =>
-      securityEvents.filter(
+      scopedEvents.filter(
         (e) =>
           (severity === "all" || e.severity === severity) &&
           (category === "all" || e.category === category) &&
-          `${e.detail} ${e.agentId} ${agentName(e.agentId)} ${tenantName(e.tenantId)}`
+          `${e.detail} ${e.agentId} ${agentName(e.agentId)} ${tenantName(e.tenantId)} ${e.resource?.hostname ?? ""} ${e.resource?.ipAddress ?? ""}`
             .toLowerCase()
             .includes(query.toLowerCase()),
       ),
-    [query, severity, category],
+    [scopedEvents, query, severity, category],
   );
 
-  const count = (c: string) => securityEvents.filter((e) => e.category === c).length;
-  const p1 = securityEvents.filter((e) => e.severity === "P1").length;
-  const blocked = securityEvents.filter((e) => e.action === "blocked" || e.action === "quarantined").length;
-  const blockPctBase = Math.round((blocked / securityEvents.length) * 100);
+  const count = (c: string) => scopedEvents.filter((e) => e.category === c).length;
+  const p1 = scopedEvents.filter((e) => e.severity === "P1").length;
+  const blocked = scopedEvents.filter((e) => e.action === "blocked" || e.action === "quarantined").length;
+  const blockPctBase = Math.round((blocked / Math.max(1, scopedEvents.length)) * 100);
   const liveIngress = useLiveIngress(7);
   const liveBlock = useLiveBlockRate(blockPctBase);
 
@@ -239,7 +247,7 @@ function SocPage() {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-sm font-semibold">Security event stream</h2>
             <p className="text-xs text-muted-foreground">
-              {rows.length} of {securityEvents.length} events · correlated by agent & tenant
+              {rows.length} of {scopedEvents.length} events · tenant {tenantName(ops.tenantId)} · host / IP attached
             </p>
           </div>
           {p1 > 0 && (
@@ -253,7 +261,7 @@ function SocPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search detail, agent or tenant"
+              placeholder="Search detail, agent, host or IP"
               aria-label="Search security events"
               className="bg-surface sm:max-w-xs"
             />
@@ -309,6 +317,7 @@ function SocPage() {
                     <TableHead>Category</TableHead>
                     <TableHead>Severity</TableHead>
                     <TableHead>Agent</TableHead>
+                    <TableHead>Host / IP</TableHead>
                     <TableHead>Tenant</TableHead>
                     <TableHead>Detail</TableHead>
                     <TableHead>Action</TableHead>
@@ -329,6 +338,12 @@ function SocPage() {
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         {agentName(e.agentId)}
+                      </TableCell>
+                      <TableCell className="min-w-[10rem]">
+                        <ResourceIdentityChips resource={e.resource} />
+                        {!e.resource && (
+                          <span className="font-mono text-[10px] text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         {tenantName(e.tenantId)}

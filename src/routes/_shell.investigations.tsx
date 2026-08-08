@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
 import { customerName, incidents, tenantName } from "@/data/seed";
+import { inOpsScope, useOps } from "@/lib/ops-context";
 
 export const Route = createFileRoute("/_shell/investigations")({
   head: () => ({
@@ -31,18 +32,45 @@ export const Route = createFileRoute("/_shell/investigations")({
 
 function Investigations() {
   const navigate = useNavigate();
+  const ops = useOps();
   const [query, setQuery] = useState("");
   const [starting, setStarting] = useState(false);
 
-  const rows = useMemo(
+  const scoped = useMemo(
     () =>
       incidents.filter((i) =>
-        `${i.id} ${i.title}`.toLowerCase().includes(query.toLowerCase()),
+        inOpsScope(i, {
+          tenantId: ops.tenantId,
+          customerId: ops.customerId,
+          environment: ops.environment,
+        }),
       ),
-    [query],
+    [ops.tenantId, ops.customerId, ops.environment],
   );
 
-  const open = incidents.filter((i) => i.status !== "closed");
+  const rows = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return scoped;
+    return scoped.filter((i) => {
+      const hay = [
+        i.id,
+        i.title,
+        i.application,
+        i.summary,
+        tenantName(i.tenantId),
+        customerName(i.customerId),
+        i.resources?.[0]?.hostname,
+        i.resources?.[0]?.ipAddress,
+        i.resources?.[0]?.cluster,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [scoped, query]);
+
+  const open = scoped.filter((i) => i.status !== "closed");
   const p1 = open.filter((i) => i.severity === "P1").length;
   const slaRisk = open.filter((i) => i.slaRisk).length;
 
@@ -67,13 +95,14 @@ function Investigations() {
         <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
           <div className="max-w-xl space-y-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
-              Investigate
+              Investigate · queue
             </p>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
               Investigations
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Bounded, auditable investigations planned and executed by specialist agents.
+              Open incidents for the selected tenant / client / environment in the top bar. Search
+              by host, IP, application, or ID.
             </p>
             <Button
               onClick={start}
@@ -141,6 +170,7 @@ function Investigations() {
                     <TableHead>Incident</TableHead>
                     <TableHead>Severity</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Application / host</TableHead>
                     <TableHead>Tenant</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>SLA</TableHead>
@@ -165,6 +195,15 @@ function Investigations() {
                       </TableCell>
                       <TableCell>
                         <StatusPill tone={toneForStatus(i.status)}>{i.status}</StatusPill>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <p className="text-foreground/90">{i.application ?? "—"}</p>
+                        <p className="text-muted-foreground">
+                          {i.resources?.[0]?.hostname ?? "—"}
+                          {i.resources?.[0]?.ipAddress
+                            ? ` · ${i.resources[0].ipAddress}`
+                            : ""}
+                        </p>
                       </TableCell>
                       <TableCell className="text-sm">{tenantName(i.tenantId)}</TableCell>
                       <TableCell className="text-sm">{customerName(i.customerId)}</TableCell>

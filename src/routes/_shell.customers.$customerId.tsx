@@ -8,6 +8,7 @@ import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForScore, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
 import { agents, customers, incidents, tenantName } from "@/data/seed";
 import { cn } from "@/lib/utils";
+import { ResourceIdentityChips } from "@/components/ops/resource-identity-panel";
 
 export const Route = createFileRoute("/_shell/customers/$customerId")({
   loader: ({ params }) => {
@@ -268,17 +269,21 @@ function CustomerDetail() {
                 key={i.id}
                 to="/incidents/$incidentId"
                 params={{ incidentId: i.id }}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/40 p-3 transition-colors hover:bg-accent/50"
+                className="block rounded-xl border border-border bg-surface/40 p-3 transition-colors hover:bg-accent/50"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{i.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {i.id} · opened {new Date(i.opened).toLocaleString()}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <StatusPill tone={toneForSeverity(i.severity)}>{i.severity}</StatusPill>
-                  <StatusPill tone={toneForStatus(i.status)}>{i.status}</StatusPill>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{i.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {i.id} · {i.application ?? "app n/a"} · {i.environment} · opened{" "}
+                      {new Date(i.opened).toLocaleString()}
+                    </p>
+                    <ResourceIdentityChips resource={i.resources?.[0]} className="mt-2" />
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <StatusPill tone={toneForSeverity(i.severity)}>{i.severity}</StatusPill>
+                    <StatusPill tone={toneForStatus(i.status)}>{i.status}</StatusPill>
+                  </div>
                 </div>
               </Link>
             ))

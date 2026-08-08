@@ -11,7 +11,7 @@ import { StatusPill, toneForScore, toneForStatus } from "@/components/ops/status
 import { agents, customerName, tenantName } from "@/data/seed";
 import { useFleetPulse } from "@/hooks/use-fleet-pulse";
 import { useInspector } from "@/lib/inspector-context";
-import { useOps } from "@/lib/ops-context";
+import { useOps, inOpsScope } from "@/lib/ops-context";
 import type { Agent } from "@/data/types";
 import { cn } from "@/lib/utils";
 
@@ -52,11 +52,18 @@ function AgentRegistry() {
     const effective = (a: Agent) => ops.agentStates[a.id] ?? a.status;
     const filtered = agents.filter(
       (a) =>
+        inOpsScope(a, {
+          tenantId: ops.tenantId,
+          customerId: ops.customerId,
+          environment: ops.environment,
+        }) &&
         (status === "all" || effective(a) === status) &&
         (kind === "all" || a.kind === kind) &&
         (a.name.toLowerCase().includes(query.toLowerCase()) ||
           a.owner.toLowerCase().includes(query.toLowerCase()) ||
-          a.model.toLowerCase().includes(query.toLowerCase())),
+          a.model.toLowerCase().includes(query.toLowerCase()) ||
+          (a.runtime?.hostname ?? "").toLowerCase().includes(query.toLowerCase()) ||
+          (a.runtime?.ipAddress ?? "").includes(query)),
     );
     return [...filtered].sort((a, b) => {
       const av = a[sort];
@@ -67,7 +74,7 @@ function AgentRegistry() {
           : String(av).localeCompare(String(bv));
       return asc ? cmp : -cmp;
     });
-  }, [query, status, kind, sort, asc, ops.agentStates]);
+  }, [query, status, kind, sort, asc, ops.agentStates, ops.tenantId, ops.customerId, ops.environment]);
 
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const current = Math.min(page, pages);
@@ -263,6 +270,7 @@ function AgentRegistry() {
                     <TableHead>Autonomy</TableHead>
                     <TableHead>Model</TableHead>
                     <TableHead>Tenant</TableHead>
+                    <TableHead>Host / IP</TableHead>
                     <TableHead>Environment</TableHead>
                     <TableHead>Owner</TableHead>
                     <TableHead>
@@ -318,6 +326,10 @@ function AgentRegistry() {
                         <TableCell className="text-sm capitalize">{a.autonomy}</TableCell>
                         <TableCell className="font-mono text-xs">{a.model}</TableCell>
                         <TableCell className="text-sm">{tenantName(a.tenantId)}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          <p className="text-foreground/90">{a.runtime?.hostname ?? "—"}</p>
+                          <p className="text-muted-foreground">{a.runtime?.ipAddress ?? ""}</p>
+                        </TableCell>
                         <TableCell className="text-sm">{a.environment}</TableCell>
                         <TableCell className="text-sm">{a.owner}</TableCell>
                         <TableCell className="text-xs tabular-nums text-muted-foreground">

@@ -210,3 +210,16 @@ export function useOps(): OpsState {
 export function tenantCustomers(tenantId: string) {
   return customers.filter((c) => c.tenantId === tenantId);
 }
+
+/** Filter rows by top-bar tenant / customer / environment scope. */
+export function inOpsScope(
+  row: { tenantId: string; customerId?: string; environment?: string },
+  scope: { tenantId: string; customerId: string; environment: string },
+): boolean {
+  if (row.tenantId !== scope.tenantId) return false;
+  if (scope.customerId !== "all" && row.customerId && row.customerId !== scope.customerId) {
+    return false;
+  }
+  if (row.environment && row.environment !== scope.environment) return false;
+  return true;
+}

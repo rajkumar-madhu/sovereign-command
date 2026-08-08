@@ -19,6 +19,7 @@ import {
   securityEvents,
   tenantName,
 } from "@/data/seed";
+import { ResourceIdentityPanel } from "@/components/ops/resource-identity-panel";
 import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
 
@@ -183,6 +184,13 @@ function AgentDetail() {
               tone={agent.riskLevel === "low" ? "success" : "danger"}
             />
           </section>
+          {agent.runtime ? (
+            <ResourceIdentityPanel
+              resources={[agent.runtime]}
+              title="Runtime placement"
+              description="Hostname, IP, cluster, and application identity for this agent runner"
+            />
+          ) : null}
           <section className="ops-panel rounded-2xl p-5">
             <div className="mb-3 flex items-center gap-2">
               <Bot className="size-4 text-brand-coral" aria-hidden="true" />
@@ -195,6 +203,8 @@ function AgentDetail() {
               <Row label="Owner" value={agent.owner} />
               <Row label="Autonomy" value={agent.autonomy} />
               <Row label="Model" value={agent.model} />
+              <Row label="Hostname" value={agent.runtime?.hostname ?? "—"} />
+              <Row label="IP address" value={agent.runtime?.ipAddress ?? "—"} />
             </div>
           </section>
         </TabsContent>
