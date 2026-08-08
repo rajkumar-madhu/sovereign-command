@@ -119,21 +119,301 @@ export const incidents: Incident[] = [
   { id: "inc-4788", title: "Grid telemetry ingestion backlog", severity: "P2", status: "closed", tenantId: "tn-helios", customerId: "cu-grid", environment: "production", opened: "2026-07-30T08:14:00Z", slaRisk: false, assignedAgent: "ag-application-01", summary: "Kafka consumer group rebalance storm created a 12-minute backlog.", recurrence: 1 },
 ];
 
+const nodeLoadSeries = [
+  { t: "06:32", cpu: 18, mem: 46, disk: 38, pullErrors: 0 },
+  { t: "06:34", cpu: 19, mem: 47, disk: 38, pullErrors: 1 },
+  { t: "06:36", cpu: 20, mem: 47, disk: 39, pullErrors: 2 },
+  { t: "06:38", cpu: 21, mem: 48, disk: 39, pullErrors: 4 },
+  { t: "06:40", cpu: 21, mem: 48, disk: 39, pullErrors: 7 },
+  { t: "06:42", cpu: 22, mem: 49, disk: 39, pullErrors: 9 },
+  { t: "06:44", cpu: 21, mem: 48, disk: 39, pullErrors: 9 },
+];
+
+const pullTransferSeries = [
+  { t: "06:38:09", bytesMb: 0, rst: 0 },
+  { t: "06:38:11", bytesMb: 2.1, rst: 0 },
+  { t: "06:38:14", bytesMb: 5.2, rst: 1 },
+  { t: "06:39:01", bytesMb: 4.9, rst: 2 },
+  { t: "06:39:57", bytesMb: 5.1, rst: 3 },
+  { t: "06:40:03", bytesMb: 5.0, rst: 3 },
+];
+
+const egressSeries = [
+  { t: "06:15", rst: 0, bytesMb: 12 },
+  { t: "06:25", rst: 0, bytesMb: 11 },
+  { t: "06:32", rst: 1, bytesMb: 6 },
+  { t: "06:38", rst: 3, bytesMb: 5.2 },
+  { t: "06:42", rst: 5, bytesMb: 5.0 },
+  { t: "06:45", rst: 6, bytesMb: 5.1 },
+];
+
 export const incidentTimeline: TimelineStep[] = [
-  { id: "s1", label: "Tenant and scope validation", phase: "Guardrails", status: "verified", time: "06:41:12", detail: "Passport verified for ag-kubernetes-01. Scope limited to tenant tn-nordic / customer cu-fsprod. Read-only mode confirmed.", evidence: ["passport signature valid", "tenant boundary check passed"] },
-  { id: "s2", label: "Node status query", phase: "Kubernetes", status: "anomaly", time: "06:41:38", detail: "fs-prod-cs-tool2 reports Ready=False, kubelet heartbeat stale for 4m12s.", evidence: ["kubectl get node fs-prod-cs-tool2 -> NotReady", "kubelet last heartbeat 06:37:26"] },
-  { id: "s3", label: "Node conditions", phase: "Kubernetes", status: "anomaly", time: "06:42:02", detail: "MemoryPressure=False, DiskPressure=False, PIDPressure=False, NetworkUnavailable=False, Ready=False (KubeletNotReady: container runtime network not ready).", evidence: ["conditions snapshot captured"] },
-  { id: "s4", label: "Kubernetes events", phase: "Kubernetes", status: "anomaly", time: "06:42:31", detail: "17 FailedCreatePodSandBox events and 9 Failed ErrImagePull events on the node within 10 minutes.", evidence: ["event stream 06:32-06:42"] },
-  { id: "s5", label: "Kubelet logs", phase: "Linux", status: "anomaly", time: "06:43:04", detail: "kubelet: failed to pull image registry.corp.internal/cni/calico-node:v3.27.2 — connection reset by peer during layer fetch.", evidence: ["journalctl -u kubelet (read-only)"] },
-  { id: "s6", label: "Containerd logs", phase: "Linux", status: "anomaly", time: "06:43:29", detail: "containerd: 3 resets mid-transfer at ~5MB layer boundary; TLS handshake succeeds, stream terminates.", evidence: ["journalctl -u containerd (read-only)"] },
-  { id: "s7", label: "Prometheus metrics", phase: "Observability", status: "info", time: "06:44:10", detail: "node CPU 21%, memory 48%, disk 39%, no saturation. container_runtime_operations_errors_total rising for PullImage only.", evidence: ["PromQL snapshot"] },
-  { id: "s8", label: "Image pull error correlation", phase: "Evidence", status: "anomaly", time: "06:44:51", detail: "All failures target the external registry path; internal mirror pulls on the same node succeed.", evidence: ["9/9 failures external registry"] },
-  { id: "s9", label: "Network evidence", phase: "Network", status: "anomaly", time: "06:45:33", detail: "Outbound TCP 443 to registry egress IP resets after 5-8 seconds. Egress path traverses an SSL-inspection appliance added in change CHG-20482.", evidence: ["egress probe (read-only)", "CHG-20482 change window matches onset"] },
-  { id: "s10", label: "Hypothesis: node resource exhaustion", phase: "Reasoning", status: "rejected", time: "06:46:02", detail: "Rejected — no pressure conditions, utilisation well under thresholds." },
-  { id: "s11", label: "Hypothesis: kubelet certificate expiry", phase: "Reasoning", status: "rejected", time: "06:46:20", detail: "Rejected — client certificate valid until 2026-12-03, API server auth succeeding." },
-  { id: "s12", label: "Hypothesis: CNI configuration drift", phase: "Reasoning", status: "rejected", time: "06:46:44", detail: "Rejected — CNI config identical to healthy peer nodes; failure is at image fetch, not config parse." },
-  { id: "s13", label: "Hypothesis: registry egress / SSL inspection reset", phase: "Reasoning", status: "verified", time: "06:47:15", detail: "Supported by all four evidence classes. Confidence 88%." },
-  { id: "s14", label: "Final RCA compiled", phase: "RCA", status: "verified", time: "06:48:02", detail: "Read-only RCA issued with recommendation. No production write performed.", evidence: ["rca-inc-4821"] },
+  {
+    id: "s1",
+    label: "Tenant and scope validation",
+    phase: "Guardrails",
+    status: "verified",
+    time: "06:41:12",
+    at: "2026-08-02T06:41:12Z",
+    detail:
+      "Passport verified for ag-kubernetes-01. Scope limited to tenant tn-nordic / customer cu-fsprod. Read-only mode confirmed.",
+    formation:
+      "Session opened 2026-08-02 06:41:12 UTC under operator role Platform SRE. Passport ag-kubernetes-01 signature chain verified against trust store rev-2026-07. Tenant boundary tn-nordic and customer cu-fsprod bound to the investigation; production write verbs remain stripped. Guardrail POL-001 (tenant isolation) and POL-004 (no secret read) evaluated → allow-read.",
+    evidence: [
+      "passport signature valid · 2026-08-02T06:41:12.048Z",
+      "tenant boundary check passed · tn-nordic / cu-fsprod",
+      "read-only mode confirmed · write verbs=0",
+    ],
+    logs: `[2026-08-02T06:41:12.012Z] guardrails: begin session incident=inc-4821 agent=ag-kubernetes-01
+[2026-08-02T06:41:12.048Z] passport: signature OK kid=nordic-k8s-01 exp=2026-12-03T00:00:00Z
+[2026-08-02T06:41:12.061Z] scope: tenant=tn-nordic customer=cu-fsprod env=production
+[2026-08-02T06:41:12.088Z] policy: POL-001 allow · POL-004 allow-read · POL-009 deny-write
+[2026-08-02T06:41:12.101Z] guardrails: session VERIFIED · append-only evidence channel open`,
+  },
+  {
+    id: "s2",
+    label: "Node status query",
+    phase: "Kubernetes",
+    status: "anomaly",
+    time: "06:41:38",
+    at: "2026-08-02T06:41:38Z",
+    detail: "fs-prod-cs-tool2 reports Ready=False, kubelet heartbeat stale for 4m12s.",
+    formation:
+      "API read via k8s-read MCP (get/list only). Compared against peer workers fs-prod-cs-tool1 and fs-prod-cs-tool3 which remain Ready=True with heartbeats <30s old. Onset correlates with first ErrImagePull at 06:38:11 UTC.",
+    evidence: [
+      "kubectl get node fs-prod-cs-tool2 → NotReady",
+      "kubelet last heartbeat 2026-08-02T06:37:26Z",
+      "peer nodes Ready=True",
+    ],
+    logs: `NAME                STATUS     ROLES    AGE    VERSION          INTERNAL-IP   HEARTBEAT
+fs-prod-cs-tool1    Ready      <none>   214d   v1.29.4          10.42.6.11    06:41:31Z
+fs-prod-cs-tool2    NotReady   <none>   214d   v1.29.4          10.42.6.21    06:37:26Z  ← stale 4m12s
+fs-prod-cs-tool3    Ready      <none>   214d   v1.29.4          10.42.6.31    06:41:29Z`,
+  },
+  {
+    id: "s3",
+    label: "Node conditions",
+    phase: "Kubernetes",
+    status: "anomaly",
+    time: "06:42:02",
+    at: "2026-08-02T06:42:02Z",
+    detail:
+      "MemoryPressure=False, DiskPressure=False, PIDPressure=False, NetworkUnavailable=False, Ready=False (KubeletNotReady: container runtime network not ready).",
+    formation:
+      "Condition snapshot hashed as ev-1 (sha256:9f21c0…). Ready=False reason is exclusively KubeletNotReady / NetworkReady=false — not resource pressure. This rules out host saturation before deeper log analysis.",
+    evidence: ["conditions snapshot · ev-1 · 2026-08-02T06:42:02Z"],
+    logs: `{
+  "capturedAt": "2026-08-02T06:42:02.114Z",
+  "node": "fs-prod-cs-tool2",
+  "conditions": [
+    { "type": "MemoryPressure", "status": "False" },
+    { "type": "DiskPressure", "status": "False" },
+    { "type": "PIDPressure", "status": "False" },
+    { "type": "NetworkUnavailable", "status": "False" },
+    { "type": "Ready", "status": "False",
+      "reason": "KubeletNotReady",
+      "message": "container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:docker: network plugin is not ready: cni config uninitialized" }
+  ]
+}`,
+  },
+  {
+    id: "s4",
+    label: "Kubernetes events",
+    phase: "Kubernetes",
+    status: "anomaly",
+    time: "06:42:31",
+    at: "2026-08-02T06:42:31Z",
+    detail:
+      "17 FailedCreatePodSandBox events and 9 Failed ErrImagePull events on the node within 10 minutes.",
+    formation:
+      "Event window 2026-08-02 06:32–06:42 UTC scoped to involvedObject.kind=Pod and nodeName=fs-prod-cs-tool2. Calico node DaemonSet pods dominate Failures. First ErrImagePull at 06:38:11; FailedCreatePodSandBox repeats ~every 35s thereafter.",
+    evidence: ["event stream 2026-08-02T06:32Z–06:42Z", "17 sandbox / 9 image-pull failures"],
+    series: nodeLoadSeries,
+    seriesLabel: "Pull errors vs host load (node fs-prod-cs-tool2)",
+    logs: `2026-08-02T06:38:11Z  Warning  Failed          kubelet  Failed to pull image "registry.corp.internal/cni/calico-node:v3.27.2": connection reset by peer
+2026-08-02T06:38:46Z  Warning  Failed          kubelet  Error: ErrImagePull
+2026-08-02T06:38:46Z  Normal   BackOff         kubelet  Back-off pulling image "registry.corp.internal/cni/calico-node:v3.27.2"
+2026-08-02T06:39:21Z  Warning  FailedCreatePodSandBox  kubelet  Failed to create pod sandbox: rpc error: code = Unknown desc = failed to setup network for sandbox
+… (14 additional FailedCreatePodSandBox through 06:42:18Z)`,
+  },
+  {
+    id: "s5",
+    label: "Kubelet logs",
+    phase: "Linux",
+    status: "anomaly",
+    time: "06:43:04",
+    at: "2026-08-02T06:43:04Z",
+    detail:
+      "kubelet: failed to pull image registry.corp.internal/cni/calico-node:v3.27.2 — connection reset by peer during layer fetch.",
+    formation:
+      "Read-only journalctl -u kubelet --since '2026-08-02 06:35:00' --until '2026-08-02 06:43:00'. Artefact ev-2. No permission elevation; secrets redacted by POL-004 sanitiser.",
+    evidence: ["journalctl -u kubelet (read-only) · ev-2", "hash sha256:41ba7d…c012"],
+    logs: `2026-08-02T06:38:11.204Z kubelet[1184]: E0814 06:38:11.204112   1184 kuberuntime_manager.go:901] createPodSandbox for pod "calico-node-7xk2m_kube-system" failed: rpc error: code = Unknown desc = failed to pull image "registry.corp.internal/cni/calico-node:v3.27.2": failed to pull and unpack image: read tcp 10.42.6.21:52344->198.51.100.44:443: read: connection reset by peer
+2026-08-02T06:38:11.204Z kubelet[1184]: E0814 06:38:11.204401   1184 pod_workers.go:1300] Error syncing pod 8f2a… (calico-node-7xk2m), skipping: failed to "CreatePodSandbox" for "calico-node-7xk2m_kube-system" with CreatePodSandboxError: "CreatePodSandboxError"
+2026-08-02T06:38:46.118Z kubelet[1184]: W0814 06:38:46.118002   1184 image_pull.go:112] Back-off pulling image "registry.corp.internal/cni/calico-node:v3.27.2"
+2026-08-02T06:39:22.551Z kubelet[1184]: E0814 06:39:22.551440   1184 remote_image.go:238] PullImage "registry.corp.internal/cni/calico-node:v3.27.2" from image service failed: rpc error: code = Unknown desc = connection reset by peer
+2026-08-02T06:41:04.902Z kubelet[1184]: E0814 06:41:04.902771   1184 kubelet_node_status.go:694] Error updating node status, will retry: timed out waiting for lastHeartbeat (last=2026-08-02T06:37:26Z)`,
+  },
+  {
+    id: "s6",
+    label: "Containerd logs",
+    phase: "Linux",
+    status: "anomaly",
+    time: "06:43:29",
+    at: "2026-08-02T06:43:29Z",
+    detail:
+      "containerd: 3 resets mid-transfer at ~5MB layer boundary; TLS handshake succeeds, stream terminates.",
+    formation:
+      "Artefact ev-3. Layer sha256:6b2f… is 38.4MB; every attempt aborts near 5MB after a successful TLS 1.3 handshake — pattern consistent with mid-stream RST on an inspection appliance, not auth or DNS failure.",
+    evidence: ["journalctl -u containerd (read-only) · ev-3", "3 RSTs @ ~5MB boundary"],
+    series: pullTransferSeries,
+    seriesLabel: "Layer transfer progress (MB) and RST count",
+    logs: `2026-08-02T06:38:09.441Z containerd: pulling registry.corp.internal/cni/calico-node:v3.27.2@sha256:a91e…
+2026-08-02T06:38:09.512Z containerd: resolving host=registry.corp.internal → 198.51.100.44
+2026-08-02T06:38:09.630Z containerd: TLS handshake OK (TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, 118ms)
+2026-08-02T06:38:09.701Z containerd: fetch layer sha256:6b2f… size=38.4MB started
+2026-08-02T06:38:14.228Z containerd: transfer aborted at 5.2MB/38.4MB — connection reset by peer (errno=104)
+2026-08-02T06:39:01.884Z containerd: retry 2 · aborted at 4.9MB/38.4MB — connection reset by peer
+2026-08-02T06:39:57.103Z containerd: retry 3 · aborted at 5.1MB/38.4MB — connection reset by peer
+2026-08-02T06:40:03.440Z containerd: TLS handshake OK, stream terminated by remote before Content-Length complete
+2026-08-02T06:40:03.441Z containerd: note: pull of registry.corp.internal/base/pause:3.9 via internal mirror SUCCEEDED (12.1MB in 1.4s)`,
+  },
+  {
+    id: "s7",
+    label: "Prometheus metrics",
+    phase: "Observability",
+    status: "info",
+    time: "06:44:10",
+    at: "2026-08-02T06:44:10Z",
+    detail:
+      "node CPU 21%, memory 48%, disk 39%, no saturation. container_runtime_operations_errors_total rising for PullImage only.",
+    formation:
+      "PromQL window 2026-08-02 06:30–06:44 UTC. Host utilisation flat; only pull_image error counter climbs. Confirms resource-exhaustion hypothesis is unsupported before formal rejection at s10.",
+    evidence: ["PromQL snapshot · ev-5", "pull_image errors=9 · create_container errors=0"],
+    series: nodeLoadSeries,
+    seriesLabel: "Host load % and PullImage errors",
+    logs: `# capturedAt: 2026-08-02T06:44:10.220Z  node=fs-prod-cs-tool2
+node_cpu_utilisation{node="fs-prod-cs-tool2"}                     0.21
+node_memory_utilisation{node="fs-prod-cs-tool2"}                  0.48
+node_filesystem_used_ratio{node="fs-prod-cs-tool2"}               0.39
+container_runtime_operations_errors_total{operation="pull_image"} 9
+container_runtime_operations_errors_total{operation="create_container"} 0
+rate(container_runtime_operations_errors_total{operation="pull_image"}[10m]) 0.015/s`,
+  },
+  {
+    id: "s8",
+    label: "Image pull error correlation",
+    phase: "Evidence",
+    status: "anomaly",
+    time: "06:44:51",
+    at: "2026-08-02T06:44:51Z",
+    detail:
+      "All failures target the external registry path; internal mirror pulls on the same node succeed.",
+    formation:
+      "Cross-check of 9 failed pulls vs 4 successful internal-mirror pulls on fs-prod-cs-tool2 in the same window. Failures are path-specific (registry.corp.internal → 198.51.100.44), not node-wide registry client failure.",
+    evidence: ["9/9 failures external registry", "4/4 successes internal mirror"],
+    logs: `external  registry.corp.internal/cni/calico-node:v3.27.2   FAIL ×9  RST@~5MB
+external  registry.corp.internal/cni/calico-cni:v3.27.2    FAIL ×2  RST@~5MB
+internal  mirror.corp.internal/base/pause:3.9              OK   ×2  12.1MB / 1.4s
+internal  mirror.corp.internal/base/coredns:1.11.1         OK   ×2  48.2MB / 3.1s`,
+  },
+  {
+    id: "s9",
+    label: "Network evidence",
+    phase: "Network",
+    status: "anomaly",
+    time: "06:45:33",
+    at: "2026-08-02T06:45:33Z",
+    detail:
+      "Outbound TCP 443 to registry egress IP resets after 5-8 seconds. Egress path traverses an SSL-inspection appliance added in change CHG-20482.",
+    formation:
+      "Read-only egress probe from node subnet (artefact ev-4). Path: node-subnet → fw-core-02 → ssl-inspect-appliance-03 → internet-edge. CHG-20482 (SSL inspection policy update) applied 2026-08-02 06:15 CET — 23 minutes before first ErrImagePull.",
+    evidence: [
+      "egress probe (read-only) · ev-4",
+      "CHG-20482 applied 2026-08-02T04:15:00Z (06:15 CET)",
+    ],
+    series: egressSeries,
+    seriesLabel: "Egress RST count and transfer size after CHG-20482",
+    logs: `probe tcp 198.51.100.44:443 from 10.42.6.21  capturedAt=2026-08-02T06:45:33.401Z
+  dns:         registry.corp.internal → 198.51.100.44 (ok, 4ms)
+  handshake:   ok (TLSv1.3, 118ms)
+  stream:      RST after 6.4s, 5.1MB transferred (expected layer 38.4MB)
+egress path:   node-subnet → fw-core-02 → ssl-inspect-appliance-03 → internet-edge
+change:        CHG-20482 SSL inspection policy update · applied 2026-08-02 06:15 CET
+exclusion:     registry.corp.internal NOT present in ssl-inspect bypass list (pre-change it was)`,
+  },
+  {
+    id: "s10",
+    label: "Hypothesis: node resource exhaustion",
+    phase: "Reasoning",
+    status: "rejected",
+    time: "06:46:02",
+    at: "2026-08-02T06:46:02Z",
+    detail: "Rejected — no pressure conditions, utilisation well under thresholds.",
+    formation:
+      "CPU 21%, memory 48%, disk 39%; all *Pressure conditions False. Load graph (s7) shows flat utilisation while pull errors climb — inverse of a resource-exhaustion signature.",
+    series: nodeLoadSeries,
+    seriesLabel: "Load stays flat while pull errors rise",
+  },
+  {
+    id: "s11",
+    label: "Hypothesis: kubelet certificate expiry",
+    phase: "Reasoning",
+    status: "rejected",
+    time: "06:46:20",
+    at: "2026-08-02T06:46:20Z",
+    detail:
+      "Rejected — client certificate valid until 2026-12-03, API server auth succeeding.",
+    formation:
+      "Certificate notAfter=2026-12-03T00:00:00Z. API server continues to accept node auth; only heartbeat freshness degraded because kubelet is blocked on sandbox creation, not because TLS to the API failed.",
+    logs: `kubelet client cert subject=system:node:fs-prod-cs-tool2
+  notBefore=2025-12-03T00:00:00Z
+  notAfter =2026-12-03T00:00:00Z
+  api-server auth: 200 OK on /api/v1/nodes/fs-prod-cs-tool2 patch attempts until heartbeat budget exhausted`,
+  },
+  {
+    id: "s12",
+    label: "Hypothesis: CNI configuration drift",
+    phase: "Reasoning",
+    status: "rejected",
+    time: "06:46:44",
+    at: "2026-08-02T06:46:44Z",
+    detail:
+      "Rejected — CNI config identical to healthy peer nodes; failure is at image fetch, not config parse.",
+    formation:
+      "sha256 of /etc/cni/net.d/10-calico.conflist matches tool1 and tool3. Failure occurs before CNI binary execution — image never lands on disk.",
+    evidence: ["cni conflist hash match · peers tool1/tool3"],
+  },
+  {
+    id: "s13",
+    label: "Hypothesis: registry egress / SSL inspection reset",
+    phase: "Reasoning",
+    status: "verified",
+    time: "06:47:15",
+    at: "2026-08-02T06:47:15Z",
+    detail: "Supported by all four evidence classes. Confidence 88%.",
+    formation:
+      "Converging evidence: (1) kubelet/containerd RST logs, (2) pull-only Prometheus errors, (3) egress probe RST after TLS OK, (4) CHG-20482 timing and missing bypass. Confidence 88% — remaining uncertainty is whether appliance policy or capacity drives the RST.",
+    evidence: ["logs", "metrics", "egress probe", "change correlation"],
+    series: egressSeries,
+    seriesLabel: "RST pattern after SSL-inspection change",
+  },
+  {
+    id: "s14",
+    label: "Final RCA compiled",
+    phase: "RCA",
+    status: "verified",
+    time: "06:48:02",
+    at: "2026-08-02T06:48:02Z",
+    detail: "Read-only RCA issued with recommendation. No production write performed.",
+    formation:
+      "Report rca-inc-4821 sealed 2026-08-02T06:48:02Z. Owner: Network Operations — Nordic Federated Bank. Recommendation is validation-only (confirm SSL-inspection exclusions); console did not execute remediation.",
+    evidence: ["rca-inc-4821", "productionWriteRequired=false"],
+    logs: `[2026-08-02T06:48:02.004Z] rca: compile start incident=inc-4821 confidence=88 risk=low
+[2026-08-02T06:48:02.188Z] rca: evidence pack hashes verified (ev-1…ev-5)
+[2026-08-02T06:48:02.401Z] rca: recommendation = validate SSL-inspection exclusions (read-only)
+[2026-08-02T06:48:02.402Z] rca: productionWriteRequired=false · report sealed`,
+  },
 ];
 
 export const rcaReport = {
@@ -299,69 +579,129 @@ export const evidenceArtifacts = [
     id: "ev-1",
     name: "node-conditions.json",
     kind: "Kubernetes snapshot",
-    collected: "06:42:02",
+    collected: "2026-08-02T06:42:02Z",
     hash: "sha256:9f21c0…8ab4",
     body: `{
+  "capturedAt": "2026-08-02T06:42:02.114Z",
+  "incident": "inc-4821",
   "node": "fs-prod-cs-tool2",
   "conditions": [
-    { "type": "MemoryPressure",    "status": "False" },
-    { "type": "DiskPressure",      "status": "False" },
-    { "type": "PIDPressure",       "status": "False" },
-    { "type": "NetworkUnavailable","status": "False" },
-    { "type": "Ready",             "status": "False",
+    { "type": "MemoryPressure",     "status": "False" },
+    { "type": "DiskPressure",       "status": "False" },
+    { "type": "PIDPressure",        "status": "False" },
+    { "type": "NetworkUnavailable", "status": "False" },
+    { "type": "Ready",              "status": "False",
       "reason": "KubeletNotReady",
-      "message": "container runtime network not ready: NetworkReady=false" }
+      "message": "container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:docker: network plugin is not ready: cni config uninitialized",
+      "lastTransitionTime": "2026-08-02T06:37:26Z" }
   ],
-  "lastHeartbeat": "2026-08-02T06:37:26Z"
+  "lastHeartbeat": "2026-08-02T06:37:26Z",
+  "capacity": { "cpu": "32", "memory": "128Gi", "pods": "110" },
+  "allocatable": { "cpu": "31800m", "memory": "126Gi", "pods": "110" }
 }`,
   },
   {
     id: "ev-2",
     name: "kubelet.log",
     kind: "Linux journal (read-only)",
-    collected: "06:43:04",
+    collected: "2026-08-02T06:43:04Z",
     hash: "sha256:41ba7d…c012",
-    body: `06:38:11 kubelet[1184]: E  Failed to create pod sandbox: rpc error: code = Unknown
-06:38:11 kubelet[1184]: E  failed to pull image "registry.corp.internal/cni/calico-node:v3.27.2"
-06:38:11 kubelet[1184]: E  read tcp 10.42.6.21:52344->198.51.100.44:443: read: connection reset by peer
-06:38:46 kubelet[1184]: W  Back-off pulling image "registry.corp.internal/cni/calico-node:v3.27.2"
-06:39:22 kubelet[1184]: E  ErrImagePull (9 occurrences in 10m)`,
+    body: `# journalctl -u kubelet --since "2026-08-02 06:35:00" --until "2026-08-02 06:43:00"
+# host=fs-prod-cs-tool2  capturedAt=2026-08-02T06:43:04.088Z  mode=read-only
+
+2026-08-02T06:38:11.204Z kubelet[1184]: E  createPodSandbox for pod "calico-node-7xk2m_kube-system" failed
+2026-08-02T06:38:11.204Z kubelet[1184]: E  failed to pull image "registry.corp.internal/cni/calico-node:v3.27.2"
+2026-08-02T06:38:11.204Z kubelet[1184]: E  read tcp 10.42.6.21:52344->198.51.100.44:443: read: connection reset by peer
+2026-08-02T06:38:46.118Z kubelet[1184]: W  Back-off pulling image "registry.corp.internal/cni/calico-node:v3.27.2"
+2026-08-02T06:39:22.551Z kubelet[1184]: E  PullImage failed: connection reset by peer (retry 2)
+2026-08-02T06:40:11.002Z kubelet[1184]: E  PullImage failed: connection reset by peer (retry 3)
+2026-08-02T06:41:04.902Z kubelet[1184]: E  Error updating node status — lastHeartbeat stale since 2026-08-02T06:37:26Z
+2026-08-02T06:42:18.440Z kubelet[1184]: E  ErrImagePull (9 occurrences in 10m window 06:32–06:42)`,
   },
   {
     id: "ev-3",
     name: "containerd.log",
     kind: "Linux journal (read-only)",
-    collected: "06:43:29",
+    collected: "2026-08-02T06:43:29Z",
     hash: "sha256:7cc90e…4d18",
-    body: `06:38:09 containerd: fetch layer sha256:6b2f… started (registry.corp.internal)
-06:38:14 containerd: transfer aborted at 5.2MB/38.4MB — connection reset by peer
-06:39:01 containerd: fetch layer sha256:6b2f… retry 2 aborted at 4.9MB/38.4MB
-06:39:57 containerd: fetch layer sha256:6b2f… retry 3 aborted at 5.1MB/38.4MB
-06:40:03 containerd: TLS handshake OK, stream terminated by remote`,
+    body: `# journalctl -u containerd --since "2026-08-02 06:35:00" --until "2026-08-02 06:43:30"
+# host=fs-prod-cs-tool2  capturedAt=2026-08-02T06:43:29.210Z  mode=read-only
+
+2026-08-02T06:38:09.441Z containerd: pulling registry.corp.internal/cni/calico-node:v3.27.2
+2026-08-02T06:38:09.512Z containerd: resolving host=registry.corp.internal → 198.51.100.44
+2026-08-02T06:38:09.630Z containerd: TLS handshake OK (TLSv1.3, 118ms)
+2026-08-02T06:38:09.701Z containerd: fetch layer sha256:6b2f… size=38.4MB started
+2026-08-02T06:38:14.228Z containerd: transfer aborted at 5.2MB/38.4MB — connection reset by peer
+2026-08-02T06:39:01.884Z containerd: retry 2 · aborted at 4.9MB/38.4MB — connection reset by peer
+2026-08-02T06:39:57.103Z containerd: retry 3 · aborted at 5.1MB/38.4MB — connection reset by peer
+2026-08-02T06:40:03.440Z containerd: TLS handshake OK, stream terminated by remote
+2026-08-02T06:40:03.441Z containerd: internal mirror pull pause:3.9 SUCCEEDED (12.1MB in 1.4s)`,
   },
   {
     id: "ev-4",
     name: "egress-probe.txt",
     kind: "Network evidence (read-only)",
-    collected: "06:45:33",
+    collected: "2026-08-02T06:45:33Z",
     hash: "sha256:b013af…9e77",
-    body: `probe tcp 198.51.100.44:443 from 10.42.6.21
+    body: `# egress probe · capturedAt=2026-08-02T06:45:33.401Z · mode=read-only
+
+probe tcp 198.51.100.44:443 from 10.42.6.21
+  dns:       registry.corp.internal → 198.51.100.44 (ok, 4ms)
   handshake: ok (TLSv1.3, 118ms)
-  stream:    RST after 6.4s, 5.1MB transferred
+  stream:    RST after 6.4s, 5.1MB transferred (layer expected 38.4MB)
+
 egress path: node-subnet -> fw-core-02 -> ssl-inspect-appliance-03 -> internet-edge
-change correlation: CHG-20482 (SSL inspection policy update) applied 2026-08-02 06:15 CET`,
+change correlation: CHG-20482 (SSL inspection policy update)
+  applied:   2026-08-02 06:15 CET (2026-08-02T04:15:00Z)
+  onset gap: 23m before first ErrImagePull (06:38:11Z)
+  bypass:    registry.corp.internal NOT in ssl-inspect exclusion list`,
   },
   {
     id: "ev-5",
     name: "prometheus-snapshot.txt",
     kind: "Observability",
-    collected: "06:44:10",
+    collected: "2026-08-02T06:44:10Z",
     hash: "sha256:2ee4b1…10cf",
-    body: `node_cpu_utilisation{node="fs-prod-cs-tool2"}    0.21
-node_memory_utilisation{node="fs-prod-cs-tool2"} 0.48
-node_filesystem_used_ratio{node="fs-prod-cs-tool2"} 0.39
+    body: `# PromQL snapshot · window=2026-08-02T06:30Z→06:44Z · node=fs-prod-cs-tool2
+# capturedAt=2026-08-02T06:44:10.220Z
+
+node_cpu_utilisation{node="fs-prod-cs-tool2"}                     0.21
+node_memory_utilisation{node="fs-prod-cs-tool2"}                  0.48
+node_filesystem_used_ratio{node="fs-prod-cs-tool2"}               0.39
 container_runtime_operations_errors_total{operation="pull_image"} 9
-container_runtime_operations_errors_total{operation="create_container"} 0`,
+container_runtime_operations_errors_total{operation="create_container"} 0
+
+# series (1m samples)  t,cpu%,mem%,pull_errors
+06:32,18,46,0
+06:34,19,47,1
+06:36,20,47,2
+06:38,21,48,4
+06:40,21,48,7
+06:42,22,49,9
+06:44,21,48,9`,
+  },
+  {
+    id: "ev-6",
+    name: "load-graph.json",
+    kind: "Observability · load graph",
+    collected: "2026-08-02T06:44:10Z",
+    hash: "sha256:c4e91a…77b2",
+    body: `{
+  "incident": "inc-4821",
+  "node": "fs-prod-cs-tool2",
+  "capturedAt": "2026-08-02T06:44:10.220Z",
+  "window": { "from": "2026-08-02T06:30:00Z", "to": "2026-08-02T06:44:00Z" },
+  "series": [
+    { "t": "06:32", "cpu": 18, "mem": 46, "disk": 38, "pullErrors": 0 },
+    { "t": "06:34", "cpu": 19, "mem": 47, "disk": 38, "pullErrors": 1 },
+    { "t": "06:36", "cpu": 20, "mem": 47, "disk": 39, "pullErrors": 2 },
+    { "t": "06:38", "cpu": 21, "mem": 48, "disk": 39, "pullErrors": 4 },
+    { "t": "06:40", "cpu": 21, "mem": 48, "disk": 39, "pullErrors": 7 },
+    { "t": "06:42", "cpu": 22, "mem": 49, "disk": 39, "pullErrors": 9 },
+    { "t": "06:44", "cpu": 21, "mem": 48, "disk": 39, "pullErrors": 9 }
+  ],
+  "interpretation": "Host load flat; pull_image errors climb after 06:38 — not resource exhaustion."
+}`,
   },
 ];
 

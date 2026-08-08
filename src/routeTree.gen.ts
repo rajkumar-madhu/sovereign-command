@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ShellApprovalsRouteImport } from './routes/_shell.approvals'
 import { Route as ShellAuditRouteImport } from './routes/_shell.audit'
+import { Route as ShellCommandRouteImport } from './routes/_shell.command'
 import { Route as ShellCostRouteImport } from './routes/_shell.cost'
 import { Route as ShellEvidenceRouteImport } from './routes/_shell.evidence'
 import { Route as ShellInvestigationsRouteImport } from './routes/_shell.investigations'
@@ -30,6 +32,11 @@ import { Route as ShellCustomersIndexRouteImport } from './routes/_shell.custome
 import { Route as ShellCustomersCustomerIdRouteImport } from './routes/_shell.customers.$customerId'
 import { Route as ShellIncidentsIncidentIdRouteImport } from './routes/_shell.incidents.$incidentId'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShellRoute = ShellRouteImport.update({
   id: '/_shell',
   getParentRoute: () => rootRouteImport,
@@ -39,10 +46,10 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShellIndexRoute = ShellIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ShellRoute,
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ShellApprovalsRoute = ShellApprovalsRouteImport.update({
   id: '/approvals',
@@ -52,6 +59,11 @@ const ShellApprovalsRoute = ShellApprovalsRouteImport.update({
 const ShellAuditRoute = ShellAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellCommandRoute = ShellCommandRouteImport.update({
+  id: '/command',
+  path: '/command',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellCostRoute = ShellCostRouteImport.update({
@@ -133,10 +145,12 @@ const ShellIncidentsIncidentIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof ShellIndexRoute
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/approvals': typeof ShellApprovalsRoute
   '/audit': typeof ShellAuditRoute
+  '/command': typeof ShellCommandRoute
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
@@ -154,9 +168,12 @@ export interface FileRoutesByFullPath {
   '/customers/': typeof ShellCustomersIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/approvals': typeof ShellApprovalsRoute
   '/audit': typeof ShellAuditRoute
+  '/command': typeof ShellCommandRoute
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
@@ -167,7 +184,6 @@ export interface FileRoutesByTo {
   '/sla-admin': typeof ShellSlaAdminRoute
   '/soc': typeof ShellSocRoute
   '/tools': typeof ShellToolsRoute
-  '/': typeof ShellIndexRoute
   '/agents/$agentId': typeof ShellAgentsAgentIdRoute
   '/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/incidents/$incidentId': typeof ShellIncidentsIncidentIdRoute
@@ -176,10 +192,13 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_shell': typeof ShellRouteWithChildren
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/_shell/approvals': typeof ShellApprovalsRoute
   '/_shell/audit': typeof ShellAuditRoute
+  '/_shell/command': typeof ShellCommandRoute
   '/_shell/cost': typeof ShellCostRoute
   '/_shell/evidence': typeof ShellEvidenceRoute
   '/_shell/investigations': typeof ShellInvestigationsRoute
@@ -190,7 +209,6 @@ export interface FileRoutesById {
   '/_shell/sla-admin': typeof ShellSlaAdminRoute
   '/_shell/soc': typeof ShellSocRoute
   '/_shell/tools': typeof ShellToolsRoute
-  '/_shell/': typeof ShellIndexRoute
   '/_shell/agents/$agentId': typeof ShellAgentsAgentIdRoute
   '/_shell/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/_shell/incidents/$incidentId': typeof ShellIncidentsIncidentIdRoute
@@ -202,8 +220,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/signup'
     | '/approvals'
     | '/audit'
+    | '/command'
     | '/cost'
     | '/evidence'
     | '/investigations'
@@ -221,9 +241,12 @@ export interface FileRouteTypes {
     | '/customers/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/login'
+    | '/signup'
     | '/approvals'
     | '/audit'
+    | '/command'
     | '/cost'
     | '/evidence'
     | '/investigations'
@@ -234,7 +257,6 @@ export interface FileRouteTypes {
     | '/sla-admin'
     | '/soc'
     | '/tools'
-    | '/'
     | '/agents/$agentId'
     | '/customers/$customerId'
     | '/incidents/$incidentId'
@@ -242,10 +264,13 @@ export interface FileRouteTypes {
     | '/customers'
   id:
     | '__root__'
+    | '/'
     | '/_shell'
     | '/login'
+    | '/signup'
     | '/_shell/approvals'
     | '/_shell/audit'
+    | '/_shell/command'
     | '/_shell/cost'
     | '/_shell/evidence'
     | '/_shell/investigations'
@@ -256,7 +281,6 @@ export interface FileRouteTypes {
     | '/_shell/sla-admin'
     | '/_shell/soc'
     | '/_shell/tools'
-    | '/_shell/'
     | '/_shell/agents/$agentId'
     | '/_shell/customers/$customerId'
     | '/_shell/incidents/$incidentId'
@@ -265,12 +289,21 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   ShellRoute: typeof ShellRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_shell': {
       id: '/_shell'
       path: ''
@@ -285,12 +318,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_shell/': {
-      id: '/_shell/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof ShellIndexRouteImport
-      parentRoute: typeof ShellRoute
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_shell/approvals': {
       id: '/_shell/approvals'
@@ -304,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof ShellAuditRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/command': {
+      id: '/_shell/command'
+      path: '/command'
+      fullPath: '/command'
+      preLoaderRoute: typeof ShellCommandRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/cost': {
@@ -417,6 +457,7 @@ declare module '@tanstack/react-router' {
 interface ShellRouteChildren {
   ShellApprovalsRoute: typeof ShellApprovalsRoute
   ShellAuditRoute: typeof ShellAuditRoute
+  ShellCommandRoute: typeof ShellCommandRoute
   ShellCostRoute: typeof ShellCostRoute
   ShellEvidenceRoute: typeof ShellEvidenceRoute
   ShellInvestigationsRoute: typeof ShellInvestigationsRoute
@@ -427,7 +468,6 @@ interface ShellRouteChildren {
   ShellSlaAdminRoute: typeof ShellSlaAdminRoute
   ShellSocRoute: typeof ShellSocRoute
   ShellToolsRoute: typeof ShellToolsRoute
-  ShellIndexRoute: typeof ShellIndexRoute
   ShellAgentsAgentIdRoute: typeof ShellAgentsAgentIdRoute
   ShellCustomersCustomerIdRoute: typeof ShellCustomersCustomerIdRoute
   ShellIncidentsIncidentIdRoute: typeof ShellIncidentsIncidentIdRoute
@@ -438,6 +478,7 @@ interface ShellRouteChildren {
 const ShellRouteChildren: ShellRouteChildren = {
   ShellApprovalsRoute: ShellApprovalsRoute,
   ShellAuditRoute: ShellAuditRoute,
+  ShellCommandRoute: ShellCommandRoute,
   ShellCostRoute: ShellCostRoute,
   ShellEvidenceRoute: ShellEvidenceRoute,
   ShellInvestigationsRoute: ShellInvestigationsRoute,
@@ -448,7 +489,6 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellSlaAdminRoute: ShellSlaAdminRoute,
   ShellSocRoute: ShellSocRoute,
   ShellToolsRoute: ShellToolsRoute,
-  ShellIndexRoute: ShellIndexRoute,
   ShellAgentsAgentIdRoute: ShellAgentsAgentIdRoute,
   ShellCustomersCustomerIdRoute: ShellCustomersCustomerIdRoute,
   ShellIncidentsIncidentIdRoute: ShellIncidentsIncidentIdRoute,
@@ -459,8 +499,10 @@ const ShellRouteChildren: ShellRouteChildren = {
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   ShellRoute: ShellRouteWithChildren,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

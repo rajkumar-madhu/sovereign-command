@@ -185,7 +185,7 @@ function CustomersPage() {
       <PageHeader
         title="Estates & health"
         description={`$${totalSpend.toLocaleString()} monthly agent spend across the filtered estate set.`}
-        crumbs={[{ label: "Operate", to: "/" }, { label: "Customers" }]}
+        crumbs={[{ label: "Operate", to: "/command" }, { label: "Customers" }]}
       />
       <SafetyBanner compact />
 

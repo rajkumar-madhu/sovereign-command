@@ -38,7 +38,7 @@ export function DualSidebar({
       )}
     >
       <Link
-        to="/"
+        to="/command"
         className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-coral text-white shadow-md"
         aria-label="Sovereign home"
         onClick={() => onMobileOpenChange(false)}

@@ -169,7 +169,7 @@ function CustomerDetail() {
         title="Estate detail"
         description={`Owner ${customer.owner} · onboarded ${customer.onboarded}`}
         crumbs={[
-          { label: "Operate", to: "/" },
+          { label: "Operate", to: "/command" },
           { label: "Customers", to: "/customers" },
           { label: customer.name },
         ]}

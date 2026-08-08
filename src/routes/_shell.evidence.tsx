@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { toast } from "sonner";
 import { FileSearch, Maximize2, ScrollText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,12 +51,94 @@ function useLiveVerifyRate(base: number) {
   return n;
 }
 
+function formatCollected(isoOrTime: string) {
+  const d = new Date(isoOrTime);
+  if (Number.isNaN(d.getTime())) return { label: isoOrTime, iso: isoOrTime };
+  return {
+    label: d.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "medium",
+    }),
+    iso: d.toISOString(),
+  };
+}
+
+function LoadGraphPanel({ body }: { body: string }) {
+  const series = useMemo(() => {
+    try {
+      const parsed = JSON.parse(body) as {
+        series?: Array<{ t: string; cpu: number; mem: number; disk: number; pullErrors: number }>;
+      };
+      return parsed.series ?? [];
+    } catch {
+      return [];
+    }
+  }, [body]);
+
+  if (!series.length) return null;
+
+  return (
+    <div className="mb-4 rounded-xl border border-border bg-surface/60 p-3">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        Load graph · host utilisation vs PullImage errors
+      </p>
+      <div className="h-52 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+            <XAxis dataKey="t" tick={{ fontSize: 10 }} />
+            <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={32} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={28} />
+            <Tooltip
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "var(--card)",
+              }}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="cpu"
+              name="CPU %"
+              stroke="#2b4cff"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="mem"
+              name="Mem %"
+              stroke="#0f7a55"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="pullErrors"
+              name="Pull errors"
+              stroke="var(--destructive)"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 function EvidenceViewer() {
   const [selected, setSelected] = useState(evidenceArtifacts[0]!.id);
   const artifact = evidenceArtifacts.find((a) => a.id === selected)!;
   const { focusMode, setFocusMode } = useShellChrome();
   const liveVerify = useLiveVerifyRate(6);
   const kinds = new Set(evidenceArtifacts.map((a) => a.kind)).size;
+  const collected = formatCollected(artifact.collected);
+  const isLoadGraph = artifact.name === "load-graph.json" || artifact.kind.includes("load graph");
 
   return (
     <div className="space-y-6">
@@ -69,8 +160,8 @@ function EvidenceViewer() {
               Evidence Viewer
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Immutable artefacts for incident inc-4821 — each with a content hash. Focus mode
-              hides sidebars for full-width reading.
+              Immutable artefacts for incident inc-4821 — each with a content hash and full capture
+              timestamp. Focus mode hides sidebars for full-width reading.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               {!focusMode && (
@@ -185,25 +276,27 @@ function EvidenceViewer() {
             </div>
           </div>
           <div className="space-y-2 p-3">
-            {evidenceArtifacts.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => setSelected(a.id)}
-                aria-pressed={a.id === selected}
-                className={cn(
-                  "w-full rounded-xl border p-3 text-left transition-colors",
-                  a.id === selected
-                    ? "border-brand-coral/50 bg-brand-coral/10"
-                    : "border-border bg-surface/40 hover:bg-accent/50",
-                )}
-              >
-                <p className="truncate font-mono text-xs font-medium">{a.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {a.kind} · {a.collected}
-                </p>
-              </button>
-            ))}
+            {evidenceArtifacts.map((a) => {
+              const when = formatCollected(a.collected);
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setSelected(a.id)}
+                  aria-pressed={a.id === selected}
+                  className={cn(
+                    "w-full rounded-xl border p-3 text-left transition-colors",
+                    a.id === selected
+                      ? "border-brand-coral/50 bg-brand-coral/10"
+                      : "border-border bg-surface/40 hover:bg-accent/50",
+                  )}
+                >
+                  <p className="truncate font-mono text-xs font-medium">{a.name}</p>
+                  <p className="text-xs text-muted-foreground">{a.kind}</p>
+                  <p className="mt-1 font-mono text-[10px] text-muted-foreground/80">{when.label}</p>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -216,10 +309,16 @@ function EvidenceViewer() {
                 <StatusPill tone="success">integrity verified</StatusPill>
                 <span className="break-all font-mono">{artifact.hash}</span>
               </p>
+              <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
+                Captured <span className="text-foreground/80">{collected.label}</span>
+                <span className="mx-1.5 text-border">·</span>
+                <span className="opacity-70">{collected.iso}</span>
+              </p>
             </div>
             <StatusPill tone="neutral">{artifact.kind}</StatusPill>
           </div>
           <div className="p-4">
+            {isLoadGraph && <LoadGraphPanel body={artifact.body} />}
             <pre
               className={cn(
                 "overflow-auto rounded-xl border border-border bg-surface p-4 font-mono text-xs leading-relaxed whitespace-pre",

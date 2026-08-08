@@ -102,14 +102,34 @@ export interface Incident {
   recurrence: number;
 }
 
+export interface TimelineMetricPoint {
+  t: string;
+  cpu?: number;
+  mem?: number;
+  disk?: number;
+  pullErrors?: number;
+  bytesMb?: number;
+  rst?: number;
+}
+
 export interface TimelineStep {
   id: string;
   label: string;
   phase: string;
   status: "verified" | "anomaly" | "rejected" | "info";
+  /** Clock time within the incident day (legacy display). */
   time: string;
+  /** Full ISO timestamp for the step. */
+  at: string;
   detail: string;
+  /** Longer formation / investigator notes. */
+  formation?: string;
   evidence?: string[];
+  /** Raw log excerpt captured for this step. */
+  logs?: string;
+  /** Optional load / error series for inline charts. */
+  series?: TimelineMetricPoint[];
+  seriesLabel?: string;
 }
 
 export interface ModelProvider {

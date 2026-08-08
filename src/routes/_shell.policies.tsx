@@ -236,7 +236,7 @@ function PolicyManagement() {
       <PageHeader
         title="Rules & simulation"
         description="Toggle enforcement, edit effects, and dry-run candidate intents against the rule set."
-        crumbs={[{ label: "Govern", to: "/" }, { label: "Policy Management" }]}
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "Policy Management" }]}
       />
       <SafetyBanner />
 

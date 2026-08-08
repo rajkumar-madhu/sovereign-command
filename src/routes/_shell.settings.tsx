@@ -279,7 +279,7 @@ function SettingsPage() {
       <PageHeader
         title="Workspace configuration"
         description="Preferences below apply to the selected tenant only — never mutate the upstream IdP."
-        crumbs={[{ label: "Govern", to: "/" }, { label: "Settings" }]}
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "Settings" }]}
       />
       <SafetyBanner compact />
 

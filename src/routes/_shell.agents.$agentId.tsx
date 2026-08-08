@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Bot, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,14 +77,6 @@ function AgentDetail() {
   const sigTone =
     passport.signature === "valid" ? "success" : passport.signature === "expiring" ? "warning" : "danger";
 
-  function act(kind: "suspend" | "quarantine" | "kill") {
-    const next = kind === "suspend" ? "suspended" : kind === "quarantine" ? "quarantined" : "terminated";
-    ops.setAgentState(agent.id, next);
-    toast.success(`Simulated ${kind}: ${agent.name} is now ${next}`, {
-      description: "Control-plane simulation only — no production system was modified.",
-    });
-  }
-
   return (
     <div className="space-y-6">
       <section
@@ -115,24 +106,7 @@ function AgentDetail() {
               {agent.kind} · {agent.model} · {agent.environment}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                variant="outline"
-                className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
-                onClick={() => act("suspend")}
-              >
-                Suspend
-              </Button>
-              <Button
-                variant="outline"
-                className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
-                onClick={() => act("quarantine")}
-              >
-                Quarantine
-              </Button>
-              <Button variant="destructive" onClick={() => act("kill")}>
-                Kill switch
-              </Button>
-              <Button asChild variant="ghost" className="text-sidebar-accent-foreground hover:bg-sidebar-accent">
+              <Button asChild variant="outline" className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent">
                 <Link to="/agents">Back to registry</Link>
               </Button>
             </div>
@@ -166,9 +140,9 @@ function AgentDetail() {
 
       <PageHeader
         title="Operating envelope"
-        description="Signed passport, capabilities, tools and audit — simulated controls only."
+        description="Signed passport, capabilities, tools and audit — read-only view."
         crumbs={[
-          { label: "Operate", to: "/" },
+          { label: "Operate", to: "/command" },
           { label: "Agent Registry", to: "/agents" },
           { label: agent.name },
         ]}

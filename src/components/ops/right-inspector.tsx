@@ -38,7 +38,7 @@ function useWideDesktop() {
 }
 
 function inspectorTitle(pathname: string) {
-  if (pathname === "/") return "Quick actions";
+  if (pathname === "/command") return "Quick actions";
   if (pathname === "/agents" || pathname.startsWith("/agents/")) return "Agent details";
   if (pathname === "/evidence") return "Evidence";
   if (pathname.startsWith("/incidents")) return "Incident";
@@ -277,43 +277,28 @@ function AgentInspector() {
         </section>
       )}
 
-      <section className="space-y-2">
-        <h3 className="font-display text-sm font-semibold text-sidebar-accent-foreground">
-          Simulated controls
-        </h3>
-        <div className="grid gap-2">
+      {pathname.startsWith(`/agents/${agent.id}`) ? (
+        <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
+          Full passport is open on the canvas. This console is read-only — lifecycle actions are
+          managed outside Sovereign.
+        </p>
+      ) : (
+        <section className="space-y-2">
           <Button
+            asChild
             size="sm"
-            variant="outline"
-            className="justify-start border-sidebar-border"
-            onClick={() => ops.setAgentState(agent.id, "suspended")}
+            className="w-full justify-start bg-brand-coral text-white hover:bg-brand-coral/90"
           >
-            Suspend
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="justify-start border-sidebar-border"
-            onClick={() => ops.setAgentState(agent.id, "quarantined")}
-          >
-            Quarantine
-          </Button>
-          <Button asChild size="sm" className="justify-start">
             <Link to="/agents/$agentId" params={{ agentId: agent.id }}>
               <ExternalLink className="size-4" aria-hidden="true" />
-              Open full passport
+              View full passport
             </Link>
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="justify-start text-sidebar-foreground"
-            onClick={() => setSelectedAgentId(null)}
-          >
-            Clear selection
-          </Button>
-        </div>
-      </section>
+          <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
+            This console is read-only. Lifecycle actions are managed outside Sovereign.
+          </p>
+        </section>
+      )}
     </div>
   );
 }
@@ -363,7 +348,7 @@ function IncidentInspector() {
       <div className="space-y-3 p-4">
         <p className="text-xs text-sidebar-foreground/70">No open incident in scope.</p>
         <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
-          <Link to="/">Back to Command Centre</Link>
+          <Link to="/command">Back to Command Centre</Link>
         </Button>
       </div>
     );
@@ -468,7 +453,7 @@ function EmptyInspector() {
 
 function InspectorBody() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (pathname === "/") return <CommandCentreInspector />;
+  if (pathname === "/command") return <CommandCentreInspector />;
   if (pathname === "/agents" || pathname.startsWith("/agents/")) return <AgentInspector />;
   if (pathname === "/evidence") return <EvidenceInspector />;
   if (pathname.startsWith("/incidents")) return <IncidentInspector />;

@@ -243,7 +243,7 @@ function SlaAdmin() {
       <PageHeader
         title="Windows & overrides"
         description="Configure risk windows, at-risk alerts and tenant tightenings. Simulation only — no production enforcement write."
-        crumbs={[{ label: "Govern", to: "/" }, { label: "SLA Administration" }]}
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "SLA Administration" }]}
       />
       <SafetyBanner compact />
 

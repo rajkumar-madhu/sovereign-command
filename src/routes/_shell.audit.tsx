@@ -208,7 +208,7 @@ function AuditCompliance() {
       <PageHeader
         title="Immutable trail"
         description="Search by correlation ID, action or outcome; filter by tenant, user, agent or decision."
-        crumbs={[{ label: "Govern", to: "/" }, { label: "Audit & Compliance" }]}
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "Audit & Compliance" }]}
       />
       <SafetyBanner compact />
 

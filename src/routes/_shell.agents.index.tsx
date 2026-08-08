@@ -148,7 +148,7 @@ function AgentRegistry() {
       <PageHeader
         title="Registry"
         description="Search, filter and sort the fleet. Click a row for passport controls in the details panel."
-        crumbs={[{ label: "Operate", to: "/" }, { label: "Agent Registry" }]}
+        crumbs={[{ label: "Operate", to: "/command" }, { label: "Agent Registry" }]}
         actions={
           !inspectorOpen ? (
             <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">

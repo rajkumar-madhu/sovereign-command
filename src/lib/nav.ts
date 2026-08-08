@@ -39,7 +39,7 @@ export const navDomains: NavDomain[] = [
     label: "Operate",
     icon: Gauge,
     items: [
-      { title: "Command Centre", url: "/", icon: Gauge },
+      { title: "Command Centre", url: "/command", icon: Gauge },
       { title: "Customers", url: "/customers", icon: Building2 },
       { title: "Agent Registry", url: "/agents", icon: Bot },
     ],
@@ -76,8 +76,8 @@ export const navDomains: NavDomain[] = [
 export function domainForPath(pathname: string): NavDomainId {
   for (const domain of navDomains) {
     for (const item of domain.items) {
-      if (item.url === "/") {
-        if (pathname === "/") return domain.id;
+      if (item.url === "/command") {
+        if (pathname === "/command" || pathname === "/") return domain.id;
         continue;
       }
       if (pathname === item.url || pathname.startsWith(`${item.url}/`)) {
@@ -89,5 +89,7 @@ export function domainForPath(pathname: string): NavDomainId {
 }
 
 export function isNavActive(pathname: string, url: string) {
-  return url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`);
+  return url === "/command"
+    ? pathname === "/command"
+    : pathname === url || pathname.startsWith(`${url}/`);
 }

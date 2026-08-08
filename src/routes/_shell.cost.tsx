@@ -199,7 +199,7 @@ function TokenAndCost() {
       <PageHeader
         title="Attribution & budgets"
         description="Switch dimension and metric; adjust monthly allocation per tenant."
-        crumbs={[{ label: "Govern", to: "/" }, { label: "Token & Cost" }]}
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "Token & Cost" }]}
       />
       <SafetyBanner compact />
 

@@ -31,7 +31,7 @@ import {
   spendTrend,
 } from "@/data/seed";
 
-export const Route = createFileRoute("/_shell/")({
+export const Route = createFileRoute("/_shell/command")({
   head: () => ({
     meta: [
       { title: "Global Command Centre · Sovereign Agentic Operations OS" },

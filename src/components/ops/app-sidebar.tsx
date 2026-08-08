@@ -34,7 +34,7 @@ const groups: Array<{ label: string; items: Array<{ title: string; url: string; 
   {
     label: "Operate",
     items: [
-      { title: "Command Centre", url: "/", icon: Gauge },
+      { title: "Command Centre", url: "/command", icon: Gauge },
       { title: "Customers", url: "/customers", icon: Building2 },
       { title: "Agent Registry", url: "/agents", icon: Bot },
     ],
@@ -68,7 +68,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const isActive = (url: string) =>
-    url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`);
+    url === "/command" ? pathname === "/command" : pathname === url || pathname.startsWith(`${url}/`);
 
   return (
     <Sidebar collapsible="icon">

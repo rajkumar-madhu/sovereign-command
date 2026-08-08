@@ -1,6 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Clock, FileSearch, Siren } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { ChevronDown, Clock, FileSearch, Siren } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ops/page-header";
@@ -15,6 +26,7 @@ import {
   rcaReport,
   tenantName,
 } from "@/data/seed";
+import type { TimelineStep } from "@/data/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/incidents/$incidentId")({
@@ -52,6 +64,25 @@ export const Route = createFileRoute("/_shell/incidents/$incidentId")({
   ),
 });
 
+function formatStepAt(iso: string) {
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }),
+    time: d.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZoneName: "short",
+    }),
+    iso,
+  };
+}
+
 function useElapsed(openedIso: string) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -66,12 +97,228 @@ function useElapsed(openedIso: string) {
   return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
 }
 
+function StepLoadGraph({ step }: { step: TimelineStep }) {
+  const series = step.series;
+  if (!series?.length) return null;
+
+  const hasHost = series.some((p) => p.cpu != null || p.mem != null);
+  const hasPull = series.some((p) => p.pullErrors != null);
+  const hasBytes = series.some((p) => p.bytesMb != null);
+  const hasRst = series.some((p) => p.rst != null);
+
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-surface/60 p-3">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        Load graph · {step.seriesLabel ?? "series"}
+      </p>
+      <div className="h-44 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          {hasHost || hasPull ? (
+            <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="t" tick={{ fontSize: 10 }} />
+              <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={32} />
+              {hasPull && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={28} />}
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
+                }}
+              />
+              {hasHost && (
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="cpu"
+                  name="CPU %"
+                  stroke="var(--brand-blue, #2b4cff)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+              {hasHost && (
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="mem"
+                  name="Mem %"
+                  stroke="#0f7a55"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+              {hasPull && (
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="pullErrors"
+                  name="Pull errors"
+                  stroke="var(--destructive)"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              )}
+            </LineChart>
+          ) : (
+            <AreaChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="t" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={32} />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
+                }}
+              />
+              {hasBytes && (
+                <Area
+                  type="monotone"
+                  dataKey="bytesMb"
+                  name="MB transferred"
+                  stroke="#2b4cff"
+                  fill="rgba(43,76,255,0.15)"
+                  strokeWidth={2}
+                />
+              )}
+              {hasRst && (
+                <Area
+                  type="monotone"
+                  dataKey="rst"
+                  name="RST count"
+                  stroke="var(--destructive)"
+                  fill="rgba(220,38,38,0.12)"
+                  strokeWidth={2}
+                />
+              )}
+            </AreaChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function TimelineStepCard({
+  step,
+  open,
+  onToggle,
+}: {
+  step: TimelineStep;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const when = formatStepAt(step.at);
+  return (
+    <li className="relative border-l border-border pl-5">
+      <span
+        className={cn(
+          "absolute -left-[5px] top-2 size-2.5 rounded-full",
+          step.status === "verified"
+            ? "bg-success"
+            : step.status === "anomaly"
+              ? "bg-warning"
+              : step.status === "rejected"
+                ? "bg-destructive"
+                : "bg-primary",
+        )}
+        aria-hidden="true"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full flex-wrap items-start gap-2 text-left"
+      >
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{step.label}</span>
+            <StatusPill tone={toneForStatus(step.status)}>{step.status}</StatusPill>
+            <span className="text-xs text-muted-foreground">{step.phase}</span>
+          </div>
+          <p className="font-mono text-[11px] text-muted-foreground">
+            <span className="text-foreground/80">{when.date}</span>
+            <span className="mx-1.5 text-border">·</span>
+            <span>{when.time}</span>
+            <span className="mx-1.5 text-border">·</span>
+            <span className="opacity-70">{when.iso}</span>
+          </p>
+          <p className="text-sm text-muted-foreground">{step.detail}</p>
+        </div>
+        <ChevronDown
+          className={cn(
+            "mt-1 size-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3 pb-2">
+          {step.formation && (
+            <div className="rounded-xl border border-border bg-surface/50 p-3">
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Detailed formation
+              </p>
+              <p className="text-sm leading-relaxed text-foreground/85">{step.formation}</p>
+            </div>
+          )}
+
+          <StepLoadGraph step={step} />
+
+          {step.logs && (
+            <div className="rounded-xl border border-border bg-[#0e1116] p-3">
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                Logs · evidence excerpt
+              </p>
+              <pre className="max-h-56 overflow-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-[#e8e4dc]">
+                {step.logs}
+              </pre>
+            </div>
+          )}
+
+          {step.evidence && (
+            <ul className="flex flex-wrap gap-1.5">
+              {step.evidence.map((e) => (
+                <li
+                  key={e}
+                  className="rounded border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
+                >
+                  {e}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 function IncidentWorkspace() {
   const { incident } = Route.useLoaderData();
   const isPrimary = incident.id === "inc-4821";
   const steps = isPrimary ? incidentTimeline : incidentTimeline.slice(0, 6);
   const elapsed = useElapsed(incident.opened);
   const open = incident.status !== "closed";
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => ({
+    s1: true,
+    s5: true,
+    s6: true,
+    s7: true,
+  }));
+
+  const openedLabel = useMemo(() => {
+    const d = new Date(incident.opened);
+    return d.toLocaleString(undefined, {
+      dateStyle: "full",
+      timeStyle: "medium",
+    });
+  }, [incident.opened]);
 
   return (
     <div className="space-y-6">
@@ -101,6 +348,9 @@ function IncidentWorkspace() {
               {incident.title}
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">{incident.summary}</p>
+            <p className="font-mono text-[11px] text-sidebar-foreground/55">
+              Opened {openedLabel} · {incident.opened}
+            </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
                 <Link to="/evidence">
@@ -176,7 +426,7 @@ function IncidentWorkspace() {
       </section>
 
       <section className="ops-panel rounded-2xl p-5" aria-labelledby="timeline-title">
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="mb-1 flex items-center gap-2">
               <Siren className="size-4 text-destructive" aria-hidden="true" />
@@ -185,47 +435,35 @@ function IncidentWorkspace() {
               </h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Severity {incident.severity} · phases are append-only evidence steps
+              Severity {incident.severity} · phases are append-only evidence steps · expand a step for
+              formation, load graph, and logs
             </p>
           </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setExpanded(Object.fromEntries(steps.map((s) => [s.id, true])))
+              }
+            >
+              Expand all
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setExpanded({})}>
+              Collapse
+            </Button>
+          </div>
         </div>
-        <ol className="space-y-4">
+        <ol className="space-y-5">
           {steps.map((s) => (
-            <li key={s.id} className="relative border-l border-border pl-5">
-              <span
-                className={cn(
-                  "absolute -left-[5px] top-1.5 size-2.5 rounded-full",
-                  s.status === "verified"
-                    ? "bg-success"
-                    : s.status === "anomaly"
-                      ? "bg-warning"
-                      : s.status === "rejected"
-                        ? "bg-destructive"
-                        : "bg-primary",
-                )}
-                aria-hidden="true"
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium">{s.label}</span>
-                <StatusPill tone={toneForStatus(s.status)}>{s.status}</StatusPill>
-                <span className="text-xs text-muted-foreground">
-                  {s.phase} · {s.time}
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">{s.detail}</p>
-              {s.evidence && (
-                <ul className="mt-2 flex flex-wrap gap-1.5">
-                  {s.evidence.map((e) => (
-                    <li
-                      key={e}
-                      className="rounded border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-                    >
-                      {e}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
+            <TimelineStepCard
+              key={s.id}
+              step={s}
+              open={Boolean(expanded[s.id])}
+              onToggle={() =>
+                setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))
+              }
+            />
           ))}
         </ol>
       </section>
@@ -261,7 +499,7 @@ function IncidentWorkspace() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Opened {new Date(incident.opened).toLocaleString()} · {incident.id}
+        Opened {openedLabel} · {incident.id}
       </p>
     </div>
   );

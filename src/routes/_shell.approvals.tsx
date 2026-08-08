@@ -299,7 +299,7 @@ function ApprovalQueue() {
       <PageHeader
         title="Pending dual-control"
         description={`Default windows: critical ${formatWindow(slaConfig.defaults.critical)} · high ${formatWindow(slaConfig.defaults.high)} · medium ${formatWindow(slaConfig.defaults.medium)} · low ${formatWindow(slaConfig.defaults.low)}. Alerts at ${Math.round(slaConfig.atRiskPct)}% consumed.`}
-        crumbs={[{ label: "Govern", to: "/" }, { label: "Approval Queue" }]}
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "Approval Queue" }]}
       />
       <SafetyBanner compact />
 
