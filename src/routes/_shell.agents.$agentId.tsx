@@ -141,7 +141,7 @@ function AgentDetail() {
 
       <PageHeader
         title="Operating envelope"
-        description="Signed passport, capabilities, tools and audit — read-only view."
+        description="Passport configuration on this canvas — live routing, open work, and jumps stay in Agent details (right)."
         crumbs={[
           { label: "Operate", to: "/command" },
           { label: "Agent Registry", to: "/agents" },
@@ -173,14 +173,25 @@ function AgentDetail() {
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               label="Trust score"
-              value={agent.trustScore}
+              value={String(agent.trustScore)}
+              hint="Passport trust"
               tone={agent.trustScore >= 88 ? "success" : "warning"}
             />
-            <MetricCard label="Executions (24h)" value={agent.executions24h} />
-            <MetricCard label="Success rate" value={`${agent.successRate}%`} tone="info" />
+            <MetricCard
+              label="Executions (24h)"
+              value={agent.executions24h.toLocaleString()}
+              hint="Completed runs"
+            />
+            <MetricCard
+              label="Success rate"
+              value={`${agent.successRate}%`}
+              hint="Last 24h"
+              tone="info"
+            />
             <MetricCard
               label="Risk level"
               value={agent.riskLevel}
+              hint="Composite"
               tone={agent.riskLevel === "low" ? "success" : "danger"}
             />
           </section>

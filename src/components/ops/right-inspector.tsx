@@ -147,6 +147,7 @@ function AgentInspector() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { selectedAgentId, setSelectedAgentId, focusAgent } = useInspector();
   const ops = useOps();
+  const onDetail = Boolean(pathname.match(/^\/agents\/[^/]+/));
 
   useEffect(() => {
     const match = pathname.match(/^\/agents\/([^/]+)/);
@@ -204,6 +205,21 @@ function AgentInspector() {
   const budgetPct = passport
     ? Math.min(100, Math.round((passport.tokensUsed / passport.tokenBudget) * 100))
     : 0;
+  const routeIds = agent.routesTo ?? [];
+  const specialists = routeIds
+    .map((id) => agents.find((a) => a.id === id))
+    .filter((a): a is (typeof agents)[number] => Boolean(a));
+  const openWork = incidents.filter((inc) => {
+    if (inc.status === "closed") return false;
+    if (inc.assignedAgent === agent.id) return true;
+    if (agent.kind === "orchestration" && routeIds.includes(inc.assignedAgent)) return true;
+    return false;
+  });
+  const stepsUsed = agent.stepsUsedRecent ?? 0;
+  const maxSteps = passport?.maxSteps ?? 24;
+  const stepsPct = Math.min(100, Math.round((stepsUsed / maxSteps) * 100));
+  const spiffeShort = passport?.identity.replace("spiffe://sovereign.os/", "…/") ?? "—";
+  const liveRuns = Math.max(4, Math.round(agent.executions24h / 48));
 
   return (
     <div className="space-y-5 p-4">
@@ -211,11 +227,12 @@ function AgentInspector() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/55">
-              {agent.kind}
+              {agent.kind === "orchestration" ? "Orchestration context" : agent.kind}
             </p>
             <h3 className="font-display truncate text-base font-semibold tracking-tight text-sidebar-accent-foreground">
               {agent.name}
             </h3>
+            <p className="mt-0.5 truncate font-mono text-[10px] text-sidebar-foreground/55">{spiffeShort}</p>
           </div>
           <StatusPill tone={toneForStatus(status!)}>{status}</StatusPill>
         </div>
@@ -228,82 +245,144 @@ function AgentInspector() {
             </p>
           </div>
           <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">Autonomy</p>
-            <p className="mt-1 text-sm font-medium capitalize text-sidebar-accent-foreground">
-              {agent.autonomy}
+            <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">Runs/hr</p>
+            <p className="font-display mt-1 text-xl font-semibold tabular-nums text-sidebar-accent-foreground">
+              {liveRuns}
             </p>
           </div>
         </div>
+        {passport && (
+          <div>
+            <div className="mb-1 flex justify-between gap-2 text-[11px]">
+              <span className="text-sidebar-foreground/60">Token budget</span>
+              <span className="tabular-nums text-sidebar-accent-foreground">{budgetPct}%</span>
+            </div>
+            <Progress value={budgetPct} aria-label={`Token budget ${budgetPct}% used`} />
+            {(passport.signature === "expiring" || passport.signature === "invalid") && (
+              <p className="mt-1.5 text-[11px] text-warning-foreground">
+                Signature {passport.signature} — renew before next orchestration window.
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
-      {passport && (
+      {agent.kind === "orchestration" && (
         <section className="space-y-2">
-          <h3 className="font-display text-sm font-semibold text-sidebar-accent-foreground">Passport</h3>
-          <dl className="space-y-2 text-xs">
-            <div className="flex justify-between gap-2">
-              <dt className="text-sidebar-foreground/60">Signature</dt>
-              <dd>
-                <StatusPill tone={passport.signature === "valid" ? "success" : "warning"}>
-                  {passport.signature}
-                </StatusPill>
-              </dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-sidebar-foreground/60">Max steps</dt>
-              <dd className="font-medium tabular-nums text-sidebar-accent-foreground">
-                {passport.maxSteps}
-              </dd>
-            </div>
+          <h3 className="font-display text-sm font-semibold text-sidebar-accent-foreground">
+            Routing
+          </h3>
+          <p className="text-[11px] leading-relaxed text-sidebar-foreground/60">
+            Specialists this supervisor may dispatch within the tenant estate.
+          </p>
+          {passport && (
             <div>
-              <div className="mb-1 flex justify-between gap-2">
-                <dt className="text-sidebar-foreground/60">Token budget</dt>
-                <dd className="tabular-nums text-sidebar-accent-foreground">
-                  {passport.tokensUsed.toLocaleString()} / {passport.tokenBudget.toLocaleString()}
-                </dd>
+              <div className="mb-1 flex justify-between gap-2 text-[11px]">
+                <span className="text-sidebar-foreground/60">Step budget</span>
+                <span className="tabular-nums text-sidebar-accent-foreground">
+                  {stepsUsed} / {maxSteps}
+                </span>
               </div>
-              <Progress value={budgetPct} aria-label={`Token budget ${budgetPct}% used`} />
+              <Progress value={stepsPct} aria-label={`Step budget ${stepsPct}% used`} />
             </div>
-          </dl>
-          <div>
-            <p className="mb-1.5 text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
-              Blocked actions
-            </p>
-            <ul className="flex flex-wrap gap-1">
-              {passport.blockedActions.slice(0, 4).map((action) => (
-                <li
-                  key={action}
-                  className="rounded-md border border-sidebar-border bg-sidebar-accent/50 px-1.5 py-0.5 text-[10px] text-sidebar-accent-foreground"
-                >
-                  {action}
+          )}
+          <ul className="space-y-1.5">
+            {specialists.length === 0 ? (
+              <li className="text-[11px] text-sidebar-foreground/55">No specialists bound.</li>
+            ) : (
+              specialists.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    to="/agents/$agentId"
+                    params={{ agentId: s.id }}
+                    className="flex w-full items-center justify-between gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/30 px-2.5 py-2 text-left transition-colors hover:border-brand-coral/40 hover:bg-sidebar-accent/60"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-medium text-sidebar-accent-foreground">
+                        {s.name}
+                      </span>
+                      <span className="text-[11px] text-sidebar-foreground/60">{s.kind}</span>
+                    </span>
+                    <StatusPill tone={toneForStatus(ops.agentStates[s.id] ?? s.status)}>
+                      {ops.agentStates[s.id] ?? s.status}
+                    </StatusPill>
+                  </Link>
                 </li>
-              ))}
-            </ul>
-          </div>
+              ))
+            )}
+          </ul>
         </section>
       )}
 
-      {pathname.startsWith(`/agents/${agent.id}`) ? (
-        <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
-          Full passport is open on the canvas. This console is read-only — lifecycle actions are
-          managed outside Wecrew Ops.
-        </p>
-      ) : (
-        <section className="space-y-2">
-          <Button
-            asChild
-            size="sm"
-            className="w-full justify-start bg-brand-coral text-white hover:bg-brand-coral/90"
-          >
-            <Link to="/agents/$agentId" params={{ agentId: agent.id }}>
-              <ExternalLink className="size-4" aria-hidden="true" />
-              View full passport
-            </Link>
+      <section className="space-y-2">
+        <h3 className="font-display text-sm font-semibold text-sidebar-accent-foreground">Open work</h3>
+        {openWork.length === 0 ? (
+          <p className="text-[11px] text-sidebar-foreground/55">No open investigations for this agent.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {openWork.slice(0, 4).map((inc) => (
+              <li key={inc.id}>
+                <Link
+                  to="/incidents/$incidentId"
+                  params={{ incidentId: inc.id }}
+                  className="block rounded-lg border border-sidebar-border bg-sidebar-accent/30 px-2.5 py-2 transition-colors hover:border-brand-coral/40 hover:bg-sidebar-accent/60"
+                >
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 truncate text-xs font-medium text-sidebar-accent-foreground">
+                      {inc.title}
+                    </span>
+                    <StatusPill tone={toneForSeverity(inc.severity)}>{inc.severity}</StatusPill>
+                  </span>
+                  <span className="mt-0.5 block font-mono text-[10px] text-sidebar-foreground/55">
+                    {inc.id} · {inc.assignedAgent}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-[10px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/55">
+          Jumps
+        </h3>
+        <div className="grid gap-1.5">
+          {!onDetail && (
+            <Button
+              asChild
+              size="sm"
+              className="w-full justify-start bg-brand-coral text-white hover:bg-brand-coral/90"
+            >
+              <Link to="/agents/$agentId" params={{ agentId: agent.id }}>
+                <ExternalLink className="size-4" aria-hidden="true" />
+                Open agent
+              </Link>
+            </Button>
+          )}
+          {onDetail && (
+            <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
+              Canvas shows the passport envelope. This panel is live ops context — routing, open work,
+              and next jumps.
+            </p>
+          )}
+          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+            <Link to="/agents">Back to registry</Link>
           </Button>
-          <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
-            This console is read-only. Lifecycle actions are managed outside Wecrew Ops.
-          </p>
-        </section>
-      )}
+          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+            <Link to="/investigations">Investigations</Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+            <Link to="/evidence">Evidence</Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+            <Link to="/soc">Agent Security SOC</Link>
+          </Button>
+        </div>
+        <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
+          This console is read-only. Lifecycle actions are managed outside Wecrew Ops.
+        </p>
+      </section>
     </div>
   );
 }
@@ -518,6 +597,14 @@ export function RightInspector() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const wide = useWideDesktop();
   const title = inspectorTitle(pathname);
+  const { focusMode, setFocusMode } = useShellChrome();
+
+  // Agent detail is an operate surface: keep Agent details visible.
+  useEffect(() => {
+    if (!/^\/agents\/[^/]+/.test(pathname)) return;
+    setOpen(true);
+    if (focusMode) setFocusMode(false);
+  }, [pathname, setOpen, focusMode, setFocusMode]);
 
   const panel = (
     <div className="inspector-panel flex h-full flex-col bg-sidebar/95 text-sidebar-foreground backdrop-blur-md">

@@ -52,6 +52,8 @@ const envs = ["production", "staging", "dev", "dr"] as const;
 const statuses = ["active", "active", "active", "degraded", "suspended", "quarantined"] as const;
 const autonomies = ["read-only", "advisory", "supervised", "guarded"] as const;
 
+const specialistKinds = new Set(["platform", "network", "database", "application", "reasoning", "security"]);
+
 export const agents: Agent[] = agentSpecs.flatMap(([name, kind, description], i) =>
   [0, 1, 2].map((j) => {
     const idx = i * 3 + j;
@@ -80,6 +82,7 @@ export const agents: Agent[] = agentSpecs.flatMap(([name, kind, description], i)
       cost30dUsd: 420 + idx * 137,
       riskLevel: trust > 88 ? "low" : trust > 78 ? "medium" : trust > 68 ? "high" : "critical",
       description,
+      stepsUsedRecent: kind === "orchestration" ? 6 + ((idx * 5) % 14) : undefined,
       runtime: {
         application: `wecrew-${name.toLowerCase()}-agent`,
         hostname: `ops-runner-${clusterSlug}-${String(j + 1).padStart(2, "0")}`,
@@ -96,6 +99,19 @@ export const agents: Agent[] = agentSpecs.flatMap(([name, kind, description], i)
     } satisfies Agent;
   }),
 );
+
+/** Wire supervisor → specialist routing for the same tenant estate. */
+for (const supervisor of agents.filter((a) => a.kind === "orchestration")) {
+  supervisor.routesTo = agents
+    .filter(
+      (a) =>
+        a.id !== supervisor.id &&
+        a.tenantId === supervisor.tenantId &&
+        specialistKinds.has(a.kind),
+    )
+    .slice(0, 5)
+    .map((a) => a.id);
+}
 
 export const passports: Record<string, AgentPassport> = Object.fromEntries(
   agents.map((a, i) => [

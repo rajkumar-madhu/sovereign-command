@@ -73,6 +73,10 @@ export interface Agent {
   description: string;
   /** Where this agent runtime is scheduled. */
   runtime?: ResourceIdentity;
+  /** For orchestration agents: specialist agent ids this supervisor may route to. */
+  routesTo?: string[];
+  /** Recent step consumption vs passport maxSteps (demo / live pulse). */
+  stepsUsedRecent?: number;
 }
 
 export interface EvidenceArtifact {

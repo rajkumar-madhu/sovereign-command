@@ -24,13 +24,13 @@ function writeBoolCookie(name: string, value: boolean) {
   document.cookie = `${name}=${value}; path=/; max-age=${60 * 60 * 24 * 30}`;
 }
 
-/** Detail / reading routes prefer maximized canvas. */
+/** Detail / reading routes prefer maximized canvas.
+ * Agent detail stays an operate surface (nav + Agent details inspector), not auto-focus. */
 export function isDetailReadingRoute(pathname: string) {
   return (
     pathname === "/evidence" ||
     pathname === "/rca" ||
     pathname.startsWith("/incidents/") ||
-    pathname.startsWith("/agents/") ||
     pathname.startsWith("/customers/")
   );
 }

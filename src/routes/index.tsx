@@ -219,6 +219,9 @@ function LandingPage() {
             <a href="#how-it-works" className="hover:text-[#1c1c1c]">
               How it works
             </a>
+            <Link to="/docs" className="hover:text-[#1c1c1c]">
+              Docs
+            </Link>
             <a href="#security" className="hover:text-[#1c1c1c]">
               Security
             </a>
@@ -262,6 +265,9 @@ function LandingPage() {
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="border-[#d4cdc0] bg-white">
+                  <Link to="/docs">Read the docs</Link>
+                </Button>
+                <Button asChild size="lg" variant="ghost" className="text-[#1c1c1c]">
                   <Link to="/command">View product demo</Link>
                 </Button>
               </div>
@@ -646,7 +652,7 @@ function LandingPage() {
             {[
               ["Product", ["#product", "#features", "#how-it-works"]],
               ["Solutions", ["#solutions"]],
-              ["Resources", ["#security", "/command", "/login"]],
+              ["Resources", ["/docs", "#security", "/command", "/login"]],
               ["Company", ["#contact", "/signup"]],
             ].map(([title, links]) => (
               <div key={title as string}>
@@ -656,13 +662,15 @@ function LandingPage() {
                     <li key={href}>
                       {href.startsWith("/") ? (
                         <Link to={href} className="hover:text-[#1c1c1c]">
-                          {href === "/command"
-                            ? "Console"
-                            : href === "/login"
-                              ? "Sign in"
-                              : href === "/signup"
-                                ? "Get started"
-                                : href}
+                          {href === "/docs"
+                            ? "Docs"
+                            : href === "/command"
+                              ? "Console"
+                              : href === "/login"
+                                ? "Sign in"
+                                : href === "/signup"
+                                  ? "Get started"
+                                  : href}
                         </Link>
                       ) : (
                         <a href={href} className="hover:text-[#1c1c1c]">

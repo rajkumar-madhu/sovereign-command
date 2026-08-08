@@ -38,8 +38,9 @@ export function InspectorProvider({ children }: { children: ReactNode }) {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Prefer closed unless the user explicitly left it open
-    setOpenState(readInspectorCookie(false));
+    // Restore only an explicit "left open" preference — never force-close after
+    // route handlers (e.g. agent detail) auto-open the panel on mount.
+    if (readInspectorCookie(false)) setOpenState(true);
   }, []);
 
   const setOpen = useCallback((next: boolean) => {
