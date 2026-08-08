@@ -86,7 +86,7 @@ export const passports: Record<string, AgentPassport> = Object.fromEntries(
     {
       agentId: a.id,
       identity: `spiffe://sovereign.os/${a.tenantId}/${a.id}`,
-      issuer: "Sovereign Agent Identity Authority (SAIA)",
+      issuer: "Wecrew Ops Agent Identity Authority",
       signature: i % 11 === 0 ? "expiring" : i % 17 === 0 ? "invalid" : "valid",
       signatureAlg: "Ed25519 / X.509 SVID",
       issuedAt: "2026-05-14T09:12:00Z",

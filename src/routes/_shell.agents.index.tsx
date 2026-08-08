@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/agents/")({
   head: () => ({
     meta: [
-      { title: "Agent Registry · Sovereign Agentic Operations OS" },
+      { title: "Agent Registry · Wecrew Ops" },
       {
         name: "description",
         content:
           "Searchable registry of supervisor, platform, network, database, security and reasoning agents with trust score, autonomy, model and owner.",
       },
-      { property: "og:title", content: "Agent Registry · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Agent Registry · Wecrew Ops" },
       {
         property: "og:description",
         content: "Trust score, autonomy, model, tenant, environment and owner for every registered agent.",

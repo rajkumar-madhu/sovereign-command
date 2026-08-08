@@ -15,13 +15,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/models")({
   head: () => ({
     meta: [
-      { title: "Model Gateway · Sovereign Agentic Operations OS" },
+      { title: "Model Gateway · Wecrew Ops" },
       {
         name: "description",
         content:
           "Provider health, latency, data residency, cost tier, fallback order and per-tenant allow-lists for every model routed through the sovereign gateway.",
       },
-      { property: "og:title", content: "Model Gateway · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Model Gateway · Wecrew Ops" },
       {
         property: "og:description",
         content: "Vendor-neutral model routing with residency, latency and tenant allow-list controls.",
@@ -174,7 +174,7 @@ function ModelGateway() {
                 live: true,
               },
               { label: "Gateway rps", value: liveRps, hint: "live", live: true },
-              { label: "Sovereign", value: sovereign, hint: "on-prem" },
+              { label: "On-prem", value: sovereign, hint: "sovereign.ops" },
               {
                 label: "Blocked",
                 value: decisionCounts.blocked,

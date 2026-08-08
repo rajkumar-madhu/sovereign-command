@@ -13,11 +13,11 @@ import {
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in · Sovereign Ops" },
+      { title: "Sign in · Wecrew Ops" },
       {
         name: "description",
         content:
-          "Sign in to Sovereign Agentic Operations OS — read-only multi-tenant agent operations for regulated hybrid infrastructure.",
+          "Sign in to Wecrew Ops — read-only multi-tenant agent operations for regulated hybrid infrastructure.",
       },
     ],
   }),
@@ -101,7 +101,7 @@ function SignInPage() {
           </AuthSubmit>
           <AuthDemoButton onClick={enterDemo} />
           <p className="mt-4 text-center font-mono text-[10.5px] tracking-wide text-[#8a8680]">
-            Protected internal console · Sovereign Agentic Operations OS
+            Protected internal console · Wecrew Ops
           </p>
         </form>
       }

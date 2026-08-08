@@ -45,13 +45,13 @@ interface BulkOutcome {
 export const Route = createFileRoute("/_shell/approvals")({
   head: () => ({
     meta: [
-      { title: "Approval Queue · Sovereign Agentic Operations OS" },
+      { title: "Approval Queue · Wecrew Ops" },
       {
         name: "description",
         content:
           "Real-time queue of pending dual-control approvals with live SLA countdowns, at-risk alerts and approve or reject decisions.",
       },
-      { property: "og:title", content: "Approval Queue · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Approval Queue · Wecrew Ops" },
       {
         property: "og:description",
         content: "Track pending agent approvals approaching their SLA threshold and decide before they breach.",

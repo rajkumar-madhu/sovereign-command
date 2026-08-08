@@ -280,7 +280,7 @@ function AgentInspector() {
       {pathname.startsWith(`/agents/${agent.id}`) ? (
         <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
           Full passport is open on the canvas. This console is read-only — lifecycle actions are
-          managed outside Sovereign.
+          managed outside Wecrew Ops.
         </p>
       ) : (
         <section className="space-y-2">
@@ -295,7 +295,7 @@ function AgentInspector() {
             </Link>
           </Button>
           <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
-            This console is read-only. Lifecycle actions are managed outside Sovereign.
+            This console is read-only. Lifecycle actions are managed outside Wecrew Ops.
           </p>
         </section>
       )}

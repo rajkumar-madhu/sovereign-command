@@ -15,13 +15,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/soc")({
   head: () => ({
     meta: [
-      { title: "Agent Security SOC · Sovereign Agentic Operations OS" },
+      { title: "Agent Security SOC · Wecrew Ops" },
       {
         name: "description",
         content:
           "Detect and triage prompt injection, secret access, cross-tenant attempts, malicious MCP tools, token anomalies and reasoning loops.",
       },
-      { property: "og:title", content: "Agent Security SOC · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Agent Security SOC · Wecrew Ops" },
       {
         property: "og:description",
         content: "Prompt injection, secret access, cross-tenant and malicious tool detections.",

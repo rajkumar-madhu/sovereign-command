@@ -79,10 +79,10 @@ export function AppSidebar() {
           </span>
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
             <span className="font-display block truncate text-sm font-semibold tracking-tight">
-              Sovereign
+              Wecrew Ops
             </span>
             <span className="block truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              Agentic Ops OS
+              sovereign.ops
             </span>
           </span>
         </div>

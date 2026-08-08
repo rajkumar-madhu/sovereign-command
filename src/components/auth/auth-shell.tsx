@@ -13,10 +13,10 @@ export function AuthBrand() {
         }}
       >
         <span className="absolute inset-[2px] rounded-[9px] bg-[#0e1116]" />
-        <span className="font-display relative z-[1] text-xl italic text-[#f7f7f4]">S</span>
+        <span className="font-display relative z-[1] text-xl italic text-[#f7f7f4]">W</span>
       </span>
       <span className="font-display text-[22px] tracking-wide text-[#f7f7f4]">
-        Sovereign <em className="not-italic text-brand-coral">Ops</em>
+        Wecrew <em className="not-italic text-brand-coral">Ops</em>
       </span>
     </div>
   );

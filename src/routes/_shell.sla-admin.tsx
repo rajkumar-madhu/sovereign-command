@@ -28,18 +28,18 @@ import {
 import type { RiskLevel } from "@/data/types";
 import { cn } from "@/lib/utils";
 
-const ACTOR = "j.lindqvist@sovereign.ops";
+const ACTOR = "support@wecrew.in";
 
 export const Route = createFileRoute("/_shell/sla-admin")({
   head: () => ({
     meta: [
-      { title: "SLA Administration · Sovereign Agentic Operations OS" },
+      { title: "SLA Administration · Wecrew Ops" },
       {
         name: "description",
         content:
           "Configure approval SLA risk windows, the at-risk alert threshold and per-tenant SLA overrides with validation and a full change audit trail.",
       },
-      { property: "og:title", content: "SLA Administration · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "SLA Administration · Wecrew Ops" },
       {
         property: "og:description",
         content:

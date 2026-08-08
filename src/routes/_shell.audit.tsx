@@ -15,13 +15,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/audit")({
   head: () => ({
     meta: [
-      { title: "Audit & Compliance · Sovereign Agentic Operations OS" },
+      { title: "Audit & Compliance · Wecrew Ops" },
       {
         name: "description",
         content:
           "Immutable, searchable audit trail of every agent action with correlation ID, user, agent, tenant, tool, decision and outcome.",
       },
-      { property: "og:title", content: "Audit & Compliance · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Audit & Compliance · Wecrew Ops" },
       {
         property: "og:description",
         content:

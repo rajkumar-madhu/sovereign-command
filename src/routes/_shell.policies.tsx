@@ -28,13 +28,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/policies")({
   head: () => ({
     meta: [
-      { title: "Policy Management · Sovereign Agentic Operations OS" },
+      { title: "Policy Management · Wecrew Ops" },
       {
         name: "description",
         content:
           "Editable policy simulation rules, approval gates and dual-control queues governing every agent intent across tenant estates.",
       },
-      { property: "og:title", content: "Policy Management · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Policy Management · Wecrew Ops" },
       {
         property: "og:description",
         content: "Simulate, edit and enforce approval, deny and time-window policies for agent intents.",

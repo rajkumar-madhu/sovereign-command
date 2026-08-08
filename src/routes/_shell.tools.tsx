@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/tools")({
   head: () => ({
     meta: [
-      { title: "Tool & MCP Registry · Sovereign Agentic Operations OS" },
+      { title: "Tool & MCP Registry · Wecrew Ops" },
       {
         name: "description",
         content:
           "Registry of every MCP tool available to the agent fleet: owner, version, permissions, security scan status, call volume, error rate, external access and trust score.",
       },
-      { property: "og:title", content: "Tool & MCP Registry · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Tool & MCP Registry · Wecrew Ops" },
       {
         property: "og:description",
         content: "Governed MCP tool inventory with scan status, trust scores and per-tool telemetry.",

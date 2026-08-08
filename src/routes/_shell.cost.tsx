@@ -36,13 +36,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/cost")({
   head: () => ({
     meta: [
-      { title: "Token & Cost · Sovereign Agentic Operations OS" },
+      { title: "Token & Cost · Wecrew Ops" },
       {
         name: "description",
         content:
           "Token and spend analytics by tenant, model, agent class and incident, with retry waste, remaining budget and alert threshold controls.",
       },
-      { property: "og:title", content: "Token & Cost · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Token & Cost · Wecrew Ops" },
       {
         property: "og:description",
         content: "Multi-tenant token accounting, retry waste and budget threshold governance.",

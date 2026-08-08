@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/evidence")({
   head: () => ({
     meta: [
-      { title: "Evidence Viewer · Sovereign Agentic Operations OS" },
+      { title: "Evidence Viewer · Wecrew Ops" },
       {
         name: "description",
         content:
           "Hash-verified, read-only evidence artefacts collected during agent investigations: cluster snapshots, journals, probes and metrics.",
       },
-      { property: "og:title", content: "Evidence Viewer · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Evidence Viewer · Wecrew Ops" },
       {
         property: "og:description",
         content: "Hash-verified read-only evidence artefacts from agent investigations.",

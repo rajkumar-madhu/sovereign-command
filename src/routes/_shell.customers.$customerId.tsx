@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_shell/customers/$customerId")({
     const name = loaderData?.customer.name ?? "Customer";
     return {
       meta: [
-        { title: `${name} · Customer Detail · Sovereign Agentic OS` },
+        { title: `${name} · Customer Detail · Wecrew Ops` },
         {
           name: "description",
           content: `Estate detail for ${name}: clusters, nodes, registered agents, open incidents and agent spend.`,

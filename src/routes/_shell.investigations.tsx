@@ -13,13 +13,13 @@ import { customerName, incidents, tenantName } from "@/data/seed";
 export const Route = createFileRoute("/_shell/investigations")({
   head: () => ({
     meta: [
-      { title: "Investigations · Sovereign Agentic Operations OS" },
+      { title: "Investigations · Wecrew Ops" },
       {
         name: "description",
         content:
           "Agent-led, evidence-backed investigations across every tenant estate, with SLA exposure and recurrence signals.",
       },
-      { property: "og:title", content: "Investigations · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Investigations · Wecrew Ops" },
       {
         property: "og:description",
         content: "Evidence-backed agent investigations with SLA exposure and recurrence.",

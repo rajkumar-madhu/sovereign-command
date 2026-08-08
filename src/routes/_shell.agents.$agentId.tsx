@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_shell/agents/$agentId")({
     const name = loaderData?.agent.name ?? "Agent";
     return {
       meta: [
-        { title: `${name} · Agent Detail · Sovereign Agentic OS` },
+        { title: `${name} · Agent Detail · Wecrew Ops` },
         {
           name: "description",
           content: `Passport, capabilities, tools, models, executions, security events, cost and audit trail for ${name}.`,

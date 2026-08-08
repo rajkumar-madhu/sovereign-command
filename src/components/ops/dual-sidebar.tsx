@@ -40,7 +40,7 @@ export function DualSidebar({
       <Link
         to="/command"
         className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-coral text-white shadow-md"
-        aria-label="Sovereign home"
+        aria-label="Wecrew Ops home"
         onClick={() => onMobileOpenChange(false)}
       >
         <Cpu className="size-4" aria-hidden="true" />
@@ -48,10 +48,10 @@ export function DualSidebar({
       {expanded && (
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold tracking-tight text-sidebar-accent-foreground">
-            Sovereign
+            Wecrew Ops
           </p>
           <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/55">
-            Agentic Ops OS
+            sovereign.ops
           </p>
         </div>
       )}

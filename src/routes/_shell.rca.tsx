@@ -14,13 +14,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/rca")({
   head: () => ({
     meta: [
-      { title: "RCA Report · Sovereign Agentic Operations OS" },
+      { title: "RCA Report · Wecrew Ops" },
       {
         name: "description",
         content:
           "Read-only root cause analysis for fs-prod-cs-tool2 NotReady: registry egress interruption at 88% confidence with a full evidence trail.",
       },
-      { property: "og:title", content: "RCA Report · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "RCA Report · Wecrew Ops" },
       {
         property: "og:description",
         content: "Evidence-backed root cause analysis with confidence scoring and rejected hypotheses.",

@@ -14,11 +14,11 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Create account · Sovereign Ops" },
+      { title: "Create account · Wecrew Ops" },
       {
         name: "description",
         content:
-          "Create a Sovereign Ops account — vendor-neutral agent operations for regulated hybrid estates.",
+          "Create a Wecrew Ops account — vendor-neutral agent operations for regulated hybrid estates.",
       },
     ],
   }),
@@ -229,7 +229,7 @@ function SignUpPage() {
                 </svg>
               </div>
               <h3 className="font-display mb-3 text-3xl font-normal text-[#1c1c1c]">You&apos;re in</h3>
-              <p className="text-[#5c5a56]">Opening Sovereign Command Centre…</p>
+              <p className="text-[#5c5a56]">Opening Wecrew Ops Command Centre…</p>
             </div>
           )}
 

@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/settings")({
   head: () => ({
     meta: [
-      { title: "Settings · Sovereign Agentic Operations OS" },
+      { title: "Settings · Wecrew Ops" },
       {
         name: "description",
         content:
           "Tenant environment preferences, token and cost budget defaults, and role-based access controls for the read-only Agent OS.",
       },
-      { property: "og:title", content: "Settings · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Settings · Wecrew Ops" },
       {
         property: "og:description",
         content: "Configure default environments, budget guardrails and RBAC for each tenant workspace.",

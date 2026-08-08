@@ -18,16 +18,16 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sovereign · Agentic Operations OS" },
+      { title: "Wecrew Ops" },
       {
         name: "description",
         content:
-          "Enterprise agent operations OS — command centre, passports, policy, evidence-backed RCA. Read-only. Self-hosted on your cluster.",
+          "Wecrew Ops · sovereign.ops — command centre, passports, policy, evidence-backed RCA. Read-only. Self-hosted on your cluster.",
       },
-      { property: "og:title", content: "Sovereign · Agentic Operations OS" },
+      { property: "og:title", content: "Wecrew Ops" },
       {
         property: "og:description",
-        content: "Command every agent estate from one secure operations plane.",
+        content: "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
       },
     ],
   }),
@@ -124,7 +124,7 @@ const steps = [
   {
     n: "01",
     title: "Connect estates",
-    body: "Point Sovereign at your tenants, environments, and agent runtimes with scoped credentials.",
+    body: "Point Wecrew Ops at your tenants, environments, and agent runtimes with scoped credentials.",
   },
   {
     n: "02",
@@ -188,10 +188,10 @@ function LandingPage() {
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <span className="flex size-8 items-center justify-center rounded-lg bg-brand-coral text-sm font-bold text-white">
-              S
+              W
             </span>
             <span className="text-[15px] font-semibold tracking-tight">
-              Sovereign <em className="not-italic text-brand-coral">Ops</em>
+              Wecrew <em className="not-italic text-brand-coral">Ops</em>
             </span>
           </Link>
           <nav className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex" aria-label="Primary">
@@ -245,7 +245,7 @@ function LandingPage() {
               <div className="flex flex-wrap gap-3">
                 <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
                   <Link to="/signup">
-                    Start using Sovereign
+                    Start using Wecrew Ops
                     <ArrowRight className="size-4" aria-hidden />
                   </Link>
                 </Button>
@@ -270,7 +270,7 @@ function LandingPage() {
             {/* Product preview — Copilot-style live mock */}
             <div
               className="relative overflow-hidden rounded-2xl border border-[#ddd6c8] bg-[#0e1116] text-[#f7f7f4] shadow-[0_24px_80px_-24px_rgba(14,17,22,0.55)]"
-              aria-label="Animated preview of Sovereign Command Centre"
+              aria-label="Animated preview of Wecrew Ops Command Centre"
             >
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-[11px]">
                 <span className="font-mono text-white/55">sovereign.ops.wecrew.in</span>
@@ -295,7 +295,7 @@ function LandingPage() {
                   </ul>
                   <div className="mt-3 flex gap-2">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand-coral text-xs font-bold text-white">
-                      S
+                      W
                     </span>
                     <div className="space-y-2">
                       <p className="leading-relaxed text-white/90">
@@ -360,10 +360,10 @@ function LandingPage() {
             <div className="max-w-2xl space-y-3">
               <p className="text-sm font-medium text-brand-coral">Product tour</p>
               <h2 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
-                See Sovereign at work
+                See Wecrew Ops at work
               </h2>
               <p className="text-[#5c5a56]">
-                Four of the jobs operators hand to Sovereign every day — each against the screen it
+                Four of the jobs operators hand to Wecrew Ops every day — each against the screen it
                 actually runs on.
               </p>
             </div>
@@ -400,7 +400,7 @@ function LandingPage() {
                   </p>
                   <p className="text-sm text-[#1c1c1c]">{active.question}</p>
                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-brand-coral">
-                    Sovereign
+                    Wecrew Ops
                   </p>
                   <p className="text-sm leading-relaxed text-[#1c1c1c]">{active.answer}</p>
                   <ul className="space-y-1 text-xs text-[#5c5a56]">
@@ -418,7 +418,7 @@ function LandingPage() {
                   Live console — {active.label}
                 </figcaption>
                 <div className="space-y-2 font-mono text-[11px] leading-relaxed text-white/75">
-                  <p className="text-brand-coral">sovereign › {active.id}</p>
+                  <p className="text-brand-coral">sovereign.ops › {active.id}</p>
                   <p>{active.question}</p>
                   <p className="text-white/90">{active.answer}</p>
                 </div>
@@ -515,7 +515,7 @@ function LandingPage() {
                 Enterprise agents without compromising control
               </h2>
               <p className="text-[#5c5a56]">
-                Sovereign ships as containers you run yourself. Passports, evidence, and audit stay
+                Wecrew Ops ships as containers you run yourself. Passports, evidence, and audit stay
                 inside the infrastructure you already govern.
               </p>
             </div>
@@ -577,7 +577,7 @@ function LandingPage() {
                 variant="outline"
                 className="border-white/20 bg-transparent text-white hover:bg-white/10"
               >
-                <a href="mailto:support@wecrew.in?subject=Sovereign%20Ops%20enquiry">Talk to our team</a>
+                <a href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20enquiry">Talk to our team</a>
               </Button>
             </div>
             <div className="space-y-1 text-sm text-white/65">
@@ -604,10 +604,10 @@ function LandingPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
               <span className="flex size-8 items-center justify-center rounded-lg bg-brand-coral text-sm font-bold text-white">
-                S
+                W
               </span>
               <span className="text-[15px] font-semibold tracking-tight">
-                Sovereign <em className="not-italic text-brand-coral">Ops</em>
+                Wecrew <em className="not-italic text-brand-coral">Ops</em>
               </span>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-[#5c5a56]">
@@ -666,7 +666,7 @@ function LandingPage() {
         </div>
         <div className="border-t border-[#e8e6e0]">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-xs text-[#5c5a56] md:px-6">
-            <p>© 2026 Wecrew · Agentic Operations OS</p>
+            <p>© 2026 Wecrew Ops · sovereign.ops</p>
             <a href="#security" className="hover:text-[#1c1c1c]">
               Security overview
             </a>

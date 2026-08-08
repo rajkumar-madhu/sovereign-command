@@ -28,13 +28,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/customers/")({
   head: () => ({
     meta: [
-      { title: "Customer Management · Sovereign Agentic Operations OS" },
+      { title: "Customer Management · Wecrew Ops" },
       {
         name: "description",
         content:
           "Manage multi-tenant customer estates: clusters, nodes, agents, open incidents, health scores and monthly agent spend.",
       },
-      { property: "og:title", content: "Customer Management · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Customer Management · Wecrew Ops" },
       {
         property: "og:description",
         content: "Customer estates with clusters, nodes, agents, incidents and spend.",

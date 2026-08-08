@@ -34,13 +34,13 @@ import {
 export const Route = createFileRoute("/_shell/command")({
   head: () => ({
     meta: [
-      { title: "Global Command Centre · Sovereign Agentic Operations OS" },
+      { title: "Global Command Centre · Wecrew Ops" },
       {
         name: "description",
         content:
           "Cross-tenant command centre for agent fleet health, incidents, SLA risk, security signals and token spend across regulated hybrid infrastructure.",
       },
-      { property: "og:title", content: "Global Command Centre · Sovereign Agentic Operations OS" },
+      { property: "og:title", content: "Global Command Centre · Wecrew Ops" },
       {
         property: "og:description",
         content: "Fleet health, incidents, SLA risk, security signals and token spend in one console.",
