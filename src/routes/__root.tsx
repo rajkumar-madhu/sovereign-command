@@ -103,7 +103,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Wecrew Ops" },
       { property: "og:description", content: "Vendor-neutral agent operations command centre at sovereign.ops.wecrew.in." },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

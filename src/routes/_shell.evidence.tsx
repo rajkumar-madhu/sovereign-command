@@ -20,6 +20,10 @@ import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/evidence")({
+  validateSearch: (search: Record<string, unknown>): { artifact?: string } => {
+    const artifact = typeof search.artifact === "string" ? search.artifact : undefined;
+    return artifact ? { artifact } : {};
+  },
   head: () => ({
     meta: [
       { title: "Evidence Viewer · Wecrew Ops" },
@@ -132,13 +136,22 @@ function LoadGraphPanel({ body }: { body: string }) {
 }
 
 function EvidenceViewer() {
-  const [selected, setSelected] = useState(evidenceArtifacts[0]!.id);
+  const { artifact: artifactParam } = Route.useSearch();
+  const initial =
+    evidenceArtifacts.find((a) => a.id === artifactParam)?.id ?? evidenceArtifacts[0]!.id;
+  const [selected, setSelected] = useState(initial);
   const artifact = evidenceArtifacts.find((a) => a.id === selected)!;
   const { focusMode, setFocusMode } = useShellChrome();
   const liveVerify = useLiveVerifyRate(6);
   const kinds = new Set(evidenceArtifacts.map((a) => a.kind)).size;
   const collected = formatCollected(artifact.collected);
   const isLoadGraph = artifact.name === "load-graph.json" || artifact.kind.includes("load graph");
+
+  useEffect(() => {
+    if (artifactParam && evidenceArtifacts.some((a) => a.id === artifactParam)) {
+      setSelected(artifactParam);
+    }
+  }, [artifactParam]);
 
   return (
     <div className="space-y-6">

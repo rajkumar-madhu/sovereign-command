@@ -283,14 +283,27 @@ function TimelineStepCard({
 
           {step.evidence && (
             <ul className="flex flex-wrap gap-1.5">
-              {step.evidence.map((e) => (
-                <li
-                  key={e}
-                  className="rounded border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-                >
-                  {e}
-                </li>
-              ))}
+              {step.evidence.map((e) => {
+                const match = e.match(/\bev-\d+\b/);
+                const artifactId = match?.[0];
+                const chipClass =
+                  "rounded border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-brand-coral/50 hover:text-foreground";
+                return (
+                  <li key={e}>
+                    {artifactId ? (
+                      <Link
+                        to="/evidence"
+                        search={{ artifact: artifactId }}
+                        className={chipClass}
+                      >
+                        {e}
+                      </Link>
+                    ) : (
+                      <span className={chipClass}>{e}</span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

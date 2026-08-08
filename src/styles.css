@@ -273,6 +273,26 @@
   .animate-rail-glow {
     animation: die-breathe 4s ease-in-out infinite;
   }
+
+  .wl-hero-copy {
+    animation: rise-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .wl-hero-preview {
+    animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  }
+
+  .wl-preview-float {
+    animation: preview-float 5.5s ease-in-out infinite;
+  }
+
+  .wl-tour-panel {
+    animation: tour-swap 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .wl-cta-rise {
+    animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 
 @keyframes circuit-pulse {
@@ -322,10 +342,36 @@
   }
 }
 
+@keyframes preview-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes tour-swap {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-circuit-pulse,
   .animate-die-breathe,
-  .animate-rise-in {
+  .animate-rise-in,
+  .wl-hero-copy,
+  .wl-hero-preview,
+  .wl-preview-float,
+  .wl-tour-panel,
+  .wl-cta-rise {
     animation: none;
   }
 }

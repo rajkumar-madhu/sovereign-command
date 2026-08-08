@@ -29,6 +29,18 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://sovereign.ops.wecrew.in/" },
+      { property: "og:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Wecrew Ops" },
+      {
+        name: "twitter:description",
+        content: "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
+      },
+      { name: "twitter:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
     ],
   }),
   component: LandingPage,
@@ -229,7 +241,7 @@ function LandingPage() {
         {/* Hero */}
         <section className="border-b border-[#e8e6e0]">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
-            <div className="space-y-6">
+            <div className="wl-hero-copy space-y-6">
               <p className="text-sm font-medium text-brand-coral">
                 Secure agent operations for enterprise teams
               </p>
@@ -269,7 +281,7 @@ function LandingPage() {
 
             {/* Product preview — Copilot-style live mock */}
             <div
-              className="relative overflow-hidden rounded-2xl border border-[#ddd6c8] bg-[#0e1116] text-[#f7f7f4] shadow-[0_24px_80px_-24px_rgba(14,17,22,0.55)]"
+              className="wl-hero-preview wl-preview-float relative overflow-hidden rounded-2xl border border-[#ddd6c8] bg-[#0e1116] text-[#f7f7f4] shadow-[0_24px_80px_-24px_rgba(14,17,22,0.55)]"
               aria-label="Animated preview of Wecrew Ops Command Centre"
             >
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-[11px]">
@@ -390,7 +402,7 @@ function LandingPage() {
                 </button>
               ))}
             </div>
-            <div role="tabpanel" className="grid gap-8 lg:grid-cols-2 lg:items-start">
+            <div role="tabpanel" key={active.id} className="wl-tour-panel grid gap-8 lg:grid-cols-2 lg:items-start">
               <div className="space-y-4">
                 <h3 className="font-display text-2xl font-semibold tracking-tight">{active.title}</h3>
                 <p className="text-[#5c5a56]">{active.body}</p>
@@ -559,7 +571,7 @@ function LandingPage() {
 
         {/* Final CTA */}
         <section id="contact" className="border-b border-[#e8e6e0] bg-[#0e1116] text-[#f7f7f4]">
-          <div className="mx-auto max-w-3xl space-y-6 px-4 py-20 text-center md:px-6">
+          <div className="wl-cta-rise mx-auto max-w-3xl space-y-6 px-4 py-20 text-center md:px-6">
             <h2 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
               Turn your agent estate into an operable system.
             </h2>
