@@ -347,8 +347,48 @@ function IncidentWorkspace() {
   const { incident } = Route.useLoaderData();
   const allSteps = getIncidentTimeline(incident.id);
   const execution = getExecutionByIncident(incident.id);
-  const [range, setRange] = useState<TimeRange>(DEFAULT_INCIDENT_RANGE);
+  const sealedRca = incident.status === "rca-ready" || incident.status === "closed";
+  const defaultRange = useMemo(() => {
+    const opened = new Date(incident.opened);
+    if (Number.isNaN(opened.getTime())) return DEFAULT_INCIDENT_RANGE;
+    const from = new Date(opened.getTime() - 15 * 60_000);
+    const to = new Date(opened.getTime() + 30 * 60_000);
+    return { from, to };
+  }, [incident.opened]);
+  const rangePresets = useMemo(() => {
+    const opened = new Date(incident.opened);
+    if (Number.isNaN(opened.getTime())) return undefined;
+    const dayStart = new Date(opened);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(opened);
+    dayEnd.setUTCHours(23, 59, 59, 999);
+    const dayLabel = opened.toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+    });
+    return [
+      { id: "incident", label: "Incident window", range: defaultRange },
+      {
+        id: "onset",
+        label: "Onset ±10m",
+        range: {
+          from: new Date(opened.getTime() - 10 * 60_000),
+          to: new Date(opened.getTime() + 10 * 60_000),
+        },
+      },
+      {
+        id: "full-day",
+        label: `Full day ${dayLabel}`,
+        range: { from: dayStart, to: dayEnd },
+      },
+    ];
+  }, [incident.opened, defaultRange]);
+  const [range, setRange] = useState<TimeRange>(defaultRange);
   const [presetId, setPresetId] = useState("incident");
+  useEffect(() => {
+    setRange(defaultRange);
+    setPresetId("incident");
+  }, [incident.id, defaultRange]);
   const steps = useMemo(
     () =>
       allSteps.filter((s) => {
@@ -573,6 +613,7 @@ function IncidentWorkspace() {
       <TimeRangeControl
         value={range}
         presetId={presetId}
+        presets={rangePresets}
         onChange={(next, id) => {
           setRange(next);
           setPresetId(id);
@@ -672,8 +713,8 @@ function IncidentWorkspace() {
         </div>
         {steps.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-            No timeline steps in {formatRangeLabel(range)}. Try Full day 2 Aug or widen the custom
-            date range.
+            No timeline steps in {formatRangeLabel(range)}. Widen the history window or choose
+            Full day.
           </p>
         ) : (
           <ol className="space-y-5">
@@ -694,10 +735,13 @@ function IncidentWorkspace() {
 
       <section className="ops-panel rounded-2xl p-5" aria-labelledby="rca-title">
         <h2 id="rca-title" className="font-display text-lg font-semibold tracking-tight">
-          {isPrimary ? "Final root cause" : "RCA package"}
+          {sealedRca ? "Final root cause" : "RCA package"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Confidence {report.confidence}% · risk {report.risk} · no production write required
+          Confidence {report.confidence}% · risk {report.risk} ·{" "}
+          {report.productionWriteRequired
+            ? "remediation requires approval (console read-only)"
+            : "no production write required"}
         </p>
         <div className="mt-4 space-y-4 text-sm">
           <p>{report.rootCause}</p>

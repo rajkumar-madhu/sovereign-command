@@ -151,6 +151,8 @@ type TimeRangeControlProps = {
   presetId: string;
   className?: string;
   compact?: boolean;
+  /** Override default presets (e.g. per-incident window). */
+  presets?: TimeRangePreset[];
 };
 
 export function TimeRangeControl({
@@ -159,6 +161,7 @@ export function TimeRangeControl({
   presetId,
   className,
   compact,
+  presets = TIME_RANGE_PRESETS,
 }: TimeRangeControlProps) {
   const [customFrom, setCustomFrom] = useState(toLocalInputValue(value.from));
   const [customTo, setCustomTo] = useState(toLocalInputValue(value.to));
@@ -196,7 +199,7 @@ export function TimeRangeControl({
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">
-        {TIME_RANGE_PRESETS.map((p) => (
+        {presets.map((p) => (
           <Button
             key={p.id}
             type="button"
