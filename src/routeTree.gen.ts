@@ -27,8 +27,12 @@ import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellSlaAdminRouteImport } from './routes/_shell.sla-admin'
 import { Route as ShellSocRouteImport } from './routes/_shell.soc'
 import { Route as ShellToolsRouteImport } from './routes/_shell.tools'
+import { Route as DemoVerticalSliceRouteImport } from './routes/demo.vertical-slice'
+import { Route as DocsAegisRouteImport } from './routes/docs.aegis'
 import { Route as ShellAgentsIndexRouteImport } from './routes/_shell.agents.index'
 import { Route as ShellAgentsAgentIdRouteImport } from './routes/_shell.agents.$agentId'
+import { Route as ShellControlTowerIndexRouteImport } from './routes/_shell.control-tower.index'
+import { Route as ShellControlTowerExecutionIdRouteImport } from './routes/_shell.control-tower.$executionId'
 import { Route as ShellCustomersIndexRouteImport } from './routes/_shell.customers.index'
 import { Route as ShellCustomersCustomerIdRouteImport } from './routes/_shell.customers.$customerId'
 import { Route as ShellIncidentsIncidentIdRouteImport } from './routes/_shell.incidents.$incidentId'
@@ -122,6 +126,16 @@ const ShellToolsRoute = ShellToolsRouteImport.update({
   path: '/tools',
   getParentRoute: () => ShellRoute,
 } as any)
+const DemoVerticalSliceRoute = DemoVerticalSliceRouteImport.update({
+  id: '/demo/vertical-slice',
+  path: '/demo/vertical-slice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsAegisRoute = DocsAegisRouteImport.update({
+  id: '/aegis',
+  path: '/aegis',
+  getParentRoute: () => DocsRoute,
+} as any)
 const ShellAgentsIndexRoute = ShellAgentsIndexRouteImport.update({
   id: '/agents/',
   path: '/agents/',
@@ -132,6 +146,17 @@ const ShellAgentsAgentIdRoute = ShellAgentsAgentIdRouteImport.update({
   path: '/agents/$agentId',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellControlTowerIndexRoute = ShellControlTowerIndexRouteImport.update({
+  id: '/control-tower/',
+  path: '/control-tower/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellControlTowerExecutionIdRoute =
+  ShellControlTowerExecutionIdRouteImport.update({
+    id: '/control-tower/$executionId',
+    path: '/control-tower/$executionId',
+    getParentRoute: () => ShellRoute,
+  } as any)
 const ShellCustomersIndexRoute = ShellCustomersIndexRouteImport.update({
   id: '/customers/',
   path: '/customers/',
@@ -152,7 +177,7 @@ const ShellIncidentsIncidentIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/docs': typeof DocsRoute
+  '/docs': typeof DocsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/approvals': typeof ShellApprovalsRoute
@@ -168,15 +193,19 @@ export interface FileRoutesByFullPath {
   '/sla-admin': typeof ShellSlaAdminRoute
   '/soc': typeof ShellSocRoute
   '/tools': typeof ShellToolsRoute
+  '/demo/vertical-slice': typeof DemoVerticalSliceRoute
+  '/docs/aegis': typeof DocsAegisRoute
   '/agents/$agentId': typeof ShellAgentsAgentIdRoute
+  '/control-tower/$executionId': typeof ShellControlTowerExecutionIdRoute
   '/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/incidents/$incidentId': typeof ShellIncidentsIncidentIdRoute
   '/agents/': typeof ShellAgentsIndexRoute
+  '/control-tower/': typeof ShellControlTowerIndexRoute
   '/customers/': typeof ShellCustomersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/docs': typeof DocsRoute
+  '/docs': typeof DocsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/approvals': typeof ShellApprovalsRoute
@@ -192,17 +221,21 @@ export interface FileRoutesByTo {
   '/sla-admin': typeof ShellSlaAdminRoute
   '/soc': typeof ShellSocRoute
   '/tools': typeof ShellToolsRoute
+  '/demo/vertical-slice': typeof DemoVerticalSliceRoute
+  '/docs/aegis': typeof DocsAegisRoute
   '/agents/$agentId': typeof ShellAgentsAgentIdRoute
+  '/control-tower/$executionId': typeof ShellControlTowerExecutionIdRoute
   '/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/incidents/$incidentId': typeof ShellIncidentsIncidentIdRoute
   '/agents': typeof ShellAgentsIndexRoute
+  '/control-tower': typeof ShellControlTowerIndexRoute
   '/customers': typeof ShellCustomersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_shell': typeof ShellRouteWithChildren
-  '/docs': typeof DocsRoute
+  '/docs': typeof DocsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_shell/approvals': typeof ShellApprovalsRoute
@@ -218,10 +251,14 @@ export interface FileRoutesById {
   '/_shell/sla-admin': typeof ShellSlaAdminRoute
   '/_shell/soc': typeof ShellSocRoute
   '/_shell/tools': typeof ShellToolsRoute
+  '/demo/vertical-slice': typeof DemoVerticalSliceRoute
+  '/docs/aegis': typeof DocsAegisRoute
   '/_shell/agents/$agentId': typeof ShellAgentsAgentIdRoute
+  '/_shell/control-tower/$executionId': typeof ShellControlTowerExecutionIdRoute
   '/_shell/customers/$customerId': typeof ShellCustomersCustomerIdRoute
   '/_shell/incidents/$incidentId': typeof ShellIncidentsIncidentIdRoute
   '/_shell/agents/': typeof ShellAgentsIndexRoute
+  '/_shell/control-tower/': typeof ShellControlTowerIndexRoute
   '/_shell/customers/': typeof ShellCustomersIndexRoute
 }
 export interface FileRouteTypes {
@@ -244,10 +281,14 @@ export interface FileRouteTypes {
     | '/sla-admin'
     | '/soc'
     | '/tools'
+    | '/demo/vertical-slice'
+    | '/docs/aegis'
     | '/agents/$agentId'
+    | '/control-tower/$executionId'
     | '/customers/$customerId'
     | '/incidents/$incidentId'
     | '/agents/'
+    | '/control-tower/'
     | '/customers/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -268,10 +309,14 @@ export interface FileRouteTypes {
     | '/sla-admin'
     | '/soc'
     | '/tools'
+    | '/demo/vertical-slice'
+    | '/docs/aegis'
     | '/agents/$agentId'
+    | '/control-tower/$executionId'
     | '/customers/$customerId'
     | '/incidents/$incidentId'
     | '/agents'
+    | '/control-tower'
     | '/customers'
   id:
     | '__root__'
@@ -293,19 +338,24 @@ export interface FileRouteTypes {
     | '/_shell/sla-admin'
     | '/_shell/soc'
     | '/_shell/tools'
+    | '/demo/vertical-slice'
+    | '/docs/aegis'
     | '/_shell/agents/$agentId'
+    | '/_shell/control-tower/$executionId'
     | '/_shell/customers/$customerId'
     | '/_shell/incidents/$incidentId'
     | '/_shell/agents/'
+    | '/_shell/control-tower/'
     | '/_shell/customers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ShellRoute: typeof ShellRouteWithChildren
-  DocsRoute: typeof DocsRoute
+  DocsRoute: typeof DocsRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  DemoVerticalSliceRoute: typeof DemoVerticalSliceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -436,6 +486,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellToolsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/demo/vertical-slice': {
+      id: '/demo/vertical-slice'
+      path: '/demo/vertical-slice'
+      fullPath: '/demo/vertical-slice'
+      preLoaderRoute: typeof DemoVerticalSliceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/aegis': {
+      id: '/docs/aegis'
+      path: '/aegis'
+      fullPath: '/docs/aegis'
+      preLoaderRoute: typeof DocsAegisRouteImport
+      parentRoute: typeof DocsRoute
+    }
     '/_shell/agents/': {
       id: '/_shell/agents/'
       path: '/agents'
@@ -448,6 +512,20 @@ declare module '@tanstack/react-router' {
       path: '/agents/$agentId'
       fullPath: '/agents/$agentId'
       preLoaderRoute: typeof ShellAgentsAgentIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/control-tower/': {
+      id: '/_shell/control-tower/'
+      path: '/control-tower'
+      fullPath: '/control-tower/'
+      preLoaderRoute: typeof ShellControlTowerIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/control-tower/$executionId': {
+      id: '/_shell/control-tower/$executionId'
+      path: '/control-tower/$executionId'
+      fullPath: '/control-tower/$executionId'
+      preLoaderRoute: typeof ShellControlTowerExecutionIdRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/customers/': {
@@ -489,9 +567,11 @@ interface ShellRouteChildren {
   ShellSocRoute: typeof ShellSocRoute
   ShellToolsRoute: typeof ShellToolsRoute
   ShellAgentsAgentIdRoute: typeof ShellAgentsAgentIdRoute
+  ShellControlTowerExecutionIdRoute: typeof ShellControlTowerExecutionIdRoute
   ShellCustomersCustomerIdRoute: typeof ShellCustomersCustomerIdRoute
   ShellIncidentsIncidentIdRoute: typeof ShellIncidentsIncidentIdRoute
   ShellAgentsIndexRoute: typeof ShellAgentsIndexRoute
+  ShellControlTowerIndexRoute: typeof ShellControlTowerIndexRoute
   ShellCustomersIndexRoute: typeof ShellCustomersIndexRoute
 }
 
@@ -510,31 +590,34 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellSocRoute: ShellSocRoute,
   ShellToolsRoute: ShellToolsRoute,
   ShellAgentsAgentIdRoute: ShellAgentsAgentIdRoute,
+  ShellControlTowerExecutionIdRoute: ShellControlTowerExecutionIdRoute,
   ShellCustomersCustomerIdRoute: ShellCustomersCustomerIdRoute,
   ShellIncidentsIncidentIdRoute: ShellIncidentsIncidentIdRoute,
   ShellAgentsIndexRoute: ShellAgentsIndexRoute,
+  ShellControlTowerIndexRoute: ShellControlTowerIndexRoute,
   ShellCustomersIndexRoute: ShellCustomersIndexRoute,
 }
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
 
+interface DocsRouteChildren {
+  DocsAegisRoute: typeof DocsAegisRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsAegisRoute: DocsAegisRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShellRoute: ShellRouteWithChildren,
-  DocsRoute: DocsRoute,
+  DocsRoute: DocsRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  DemoVerticalSliceRoute: DemoVerticalSliceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

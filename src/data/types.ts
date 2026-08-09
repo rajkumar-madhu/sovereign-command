@@ -258,3 +258,49 @@ export interface GatewayDecision {
   tokens: number;
   outcome: string;
 }
+
+/** AI Control Tower — one hop on the prompt→infra path. */
+export type TraceDomain =
+  | "prompt"
+  | "agent"
+  | "model"
+  | "mcp"
+  | "api"
+  | "evidence"
+  | "security"
+  | "policy"
+  | "approval"
+  | "action"
+  | "verification";
+
+export interface ExecutionHop {
+  id: string;
+  at: string;
+  domain: TraceDomain;
+  label: string;
+  detail: string;
+  status: "ok" | "warn" | "blocked" | "pending";
+  meta?: Record<string, string | number>;
+}
+
+/** Immutable execution ID correlating AI path, policy, approval and verification. */
+export interface ExecutionTrace {
+  id: string;
+  incidentId: string;
+  tenantId: string;
+  customerId: string;
+  agentId: string;
+  model: string;
+  tool: string;
+  autonomyLevel: "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
+  status: "complete" | "awaiting-approval" | "running";
+  startedAt: string;
+  endedAt?: string;
+  summary: string;
+  hops: ExecutionHop[];
+  tokens: number;
+  costUsd: number;
+  confidence?: number;
+  approvalId?: string;
+  auditCorrelationId: string;
+}

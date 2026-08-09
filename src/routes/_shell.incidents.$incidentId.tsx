@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Building2, ChevronDown, Clock, FileSearch, Siren } from "lucide-react";
+import { Building2, ChevronDown, Clock, FileSearch, Radar, Siren } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ops/page-header";
@@ -22,8 +22,9 @@ import {
   agentName,
   customerName,
   customers,
+  getExecutionByIncident,
+  getIncidentTimeline,
   getRcaReport,
-  incidentTimeline,
   incidents,
   tenantName,
   tenants,
@@ -344,8 +345,8 @@ function TimelineStepCard({
 
 function IncidentWorkspace() {
   const { incident } = Route.useLoaderData();
-  const isPrimary = incident.id === "inc-4821";
-  const allSteps = isPrimary ? incidentTimeline : incidentTimeline.slice(0, 6);
+  const allSteps = getIncidentTimeline(incident.id);
+  const execution = getExecutionByIncident(incident.id);
   const [range, setRange] = useState<TimeRange>(DEFAULT_INCIDENT_RANGE);
   const [presetId, setPresetId] = useState("incident");
   const steps = useMemo(
@@ -482,6 +483,21 @@ function IncidentWorkspace() {
                   Evidence viewer
                 </Link>
               </Button>
+              {execution && (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
+                >
+                  <Link
+                    to="/control-tower/$executionId"
+                    params={{ executionId: execution.id }}
+                  >
+                    <Radar className="size-4" aria-hidden="true" />
+                    AI Control Tower
+                  </Link>
+                </Button>
+              )}
               <Button
                 asChild
                 variant="outline"

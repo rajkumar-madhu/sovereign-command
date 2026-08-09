@@ -31,7 +31,8 @@ export function isDetailReadingRoute(pathname: string) {
     pathname === "/evidence" ||
     pathname === "/rca" ||
     pathname.startsWith("/incidents/") ||
-    pathname.startsWith("/customers/")
+    pathname.startsWith("/customers/") ||
+    pathname.startsWith("/control-tower/")
   );
 }
 

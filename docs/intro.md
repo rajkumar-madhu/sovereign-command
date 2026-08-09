@@ -2,7 +2,7 @@
 
 Wecrew Ops is a vendor-neutral, multi-tenant, **read-only** agent operations plane for regulated hybrid infrastructure. It shows what agents are doing, what they are allowed to do, and why something broke — with evidence you can take to audit.
 
-Live product: [sovereign.ops.wecrew.in](https://sovereign.ops.wecrew.in) · Docs UI: [/docs](https://sovereign.ops.wecrew.in/docs)
+Live product: [sovereign.ops.wecrew.in](https://sovereign.ops.wecrew.in) · Docs UI: [/docs](https://sovereign.ops.wecrew.in/docs) · AEGIS freeze: [/docs/aegis](https://sovereign.ops.wecrew.in/docs/aegis) · Stage-1 slice: [/demo/vertical-slice](https://sovereign.ops.wecrew.in/demo/vertical-slice)
 
 ---
 

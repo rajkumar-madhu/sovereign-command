@@ -14,6 +14,15 @@ import type {
   Tenant,
   TimelineStep,
 } from "./types";
+import { crashLoopRca, crashLoopTimeline } from "./control-tower";
+
+export {
+  crashLoopTimeline,
+  crashLoopRca,
+  executionTraces,
+  getExecutionTrace,
+  getExecutionByIncident,
+} from "./control-tower";
 
 export const tenants: Tenant[] = [
   { id: "tn-nordic", name: "Nordic Federated Bank", region: "eu-north-1", residency: "EU", customers: 4, clusters: 18, agents: 22 },
@@ -23,7 +32,7 @@ export const tenants: Tenant[] = [
 ];
 
 export const customers: Customer[] = [
-  { id: "cu-fsprod", name: "FS Core Banking Platform", tenantId: "tn-nordic", industry: "Financial Services", contract: "platinum", slaTarget: "99.99%", clusters: 6, nodes: 148, agents: 9, openIncidents: 3, health: 91, monthlyCostUsd: 18420, owner: "Ingrid Halvorsen", onboarded: "2023-04-11" },
+  { id: "cu-fsprod", name: "FS Core Banking Platform", tenantId: "tn-nordic", industry: "Financial Services", contract: "platinum", slaTarget: "99.99%", clusters: 6, nodes: 148, agents: 9, openIncidents: 4, health: 89, monthlyCostUsd: 18420, owner: "Ingrid Halvorsen", onboarded: "2023-04-11" },
   { id: "cu-payments", name: "Nordic Payments Rail", tenantId: "tn-nordic", industry: "Payments", contract: "platinum", slaTarget: "99.99%", clusters: 4, nodes: 96, agents: 6, openIncidents: 1, health: 97, monthlyCostUsd: 11380, owner: "Petter Aas", onboarded: "2023-09-02" },
   { id: "cu-cards", name: "Card Issuing Services", tenantId: "tn-nordic", industry: "Financial Services", contract: "gold", slaTarget: "99.9%", clusters: 3, nodes: 54, agents: 4, openIncidents: 0, health: 99, monthlyCostUsd: 6120, owner: "Lena Wik", onboarded: "2024-01-18" },
   { id: "cu-grid", name: "Grid Telemetry Fabric", tenantId: "tn-helios", industry: "Energy", contract: "platinum", slaTarget: "99.95%", clusters: 5, nodes: 132, agents: 7, openIncidents: 2, health: 88, monthlyCostUsd: 14260, owner: "Marco Feist", onboarded: "2023-06-27" },
@@ -144,6 +153,44 @@ export const passports: Record<string, AgentPassport> = Object.fromEntries(
 );
 
 export const incidents: Incident[] = [
+  {
+    id: "inc-clb-01",
+    title: "CrashLoopBackOff on payments-auth after deploy v4.21",
+    severity: "P1",
+    status: "rca-ready",
+    tenantId: "tn-nordic",
+    customerId: "cu-fsprod",
+    environment: "production",
+    opened: "2026-08-09T08:12:00Z",
+    slaRisk: true,
+    assignedAgent: "ag-kubernetes-01",
+    summary:
+      "payments-auth CrashLoopBackOff after image v4.21; missing AUTH_JWKS_URI in ConfigMap auth-runtime. Stage-1 thin vertical slice.",
+    recurrence: 1,
+    application: "payments-auth",
+    resources: [
+      {
+        application: "payments-auth",
+        hostname: "pay-auth-a3.payments.corp",
+        ipAddress: "10.33.12.44",
+        cluster: "fs-prod-k8s",
+        namespace: "payments",
+        pod: "payments-auth-7d9f8c6b4-xq2n1",
+        fqdn: "auth.payments.nordic.internal",
+        region: "eu-north-1",
+        role: "application",
+      },
+      {
+        application: "auth-runtime ConfigMap",
+        hostname: "fs-prod-k8s-api",
+        ipAddress: "10.33.1.10",
+        cluster: "fs-prod-k8s",
+        namespace: "payments",
+        region: "eu-north-1",
+        role: "config",
+      },
+    ],
+  },
   {
     id: "inc-4821",
     title: "Why is fs-prod-cs-tool2 NotReady?",
@@ -884,7 +931,8 @@ function draftRca(incidentId: string) {
 }
 
 /** Full sealed RCA for P1; draft packages for other incidents. */
-export const rcaReports: Record<string, typeof rcaReport> = {
+export const rcaReports = {
+  "inc-clb-01": crashLoopRca,
   "inc-4821": rcaReport,
   "inc-4818": draftRca("inc-4818"),
   "inc-4809": draftRca("inc-4809"),
@@ -896,6 +944,13 @@ export const rcaReports: Record<string, typeof rcaReport> = {
 export function getRcaReport(incidentId?: string) {
   if (incidentId && rcaReports[incidentId]) return rcaReports[incidentId]!;
   return rcaReport;
+}
+
+/** Prefer per-incident timelines; fall back to abbreviated primary demo. */
+export function getIncidentTimeline(incidentId: string): TimelineStep[] {
+  if (incidentId === "inc-clb-01") return crashLoopTimeline;
+  if (incidentId === "inc-4821") return incidentTimeline;
+  return incidentTimeline.slice(0, 6);
 }
 
 export const securityEvents: SecurityEvent[] = [
@@ -935,7 +990,7 @@ export const providers: ModelProvider[] = [
   { id: "gemini", name: "Google Gemini", status: "degraded", latencyMs: 1420, residency: "US", costTier: "medium", fallbackOrder: 5, allowedTenants: ["tn-meridian"], models: ["gemini-2.5-pro", "gemini-2.5-flash"], errorRate: 3.1 },
   { id: "azure", name: "Azure OpenAI", status: "healthy", latencyMs: 810, residency: "EU (Sweden Central)", costTier: "high", fallbackOrder: 3, allowedTenants: ["tn-nordic", "tn-helios", "tn-atlas"], models: ["azure-gpt-4o", "azure-gpt-4o-mini"], errorRate: 0.6 },
   { id: "bedrock", name: "AWS Bedrock", status: "healthy", latencyMs: 940, residency: "EU (Frankfurt)", costTier: "medium", fallbackOrder: 4, allowedTenants: ["tn-helios", "tn-atlas"], models: ["bedrock-claude-3.7", "bedrock-llama-3.1"], errorRate: 0.9 },
-  { id: "ollama", name: "Ollama (on-prem)", status: "healthy", latencyMs: 320, residency: "On-premise", costTier: "low", fallbackOrder: 6, allowedTenants: ["tn-atlas", "tn-helios"], models: ["llama-3.3-70b", "qwen2.5-32b"], errorRate: 1.4 },
+  { id: "ollama", name: "Ollama (on-prem)", status: "healthy", latencyMs: 320, residency: "On-premise", costTier: "low", fallbackOrder: 6, allowedTenants: ["tn-nordic", "tn-atlas", "tn-helios"], models: ["llama-3.3-70b", "qwen2.5-32b"], errorRate: 1.4 },
   { id: "vllm", name: "vLLM Cluster", status: "healthy", latencyMs: 410, residency: "On-premise (sovereign)", costTier: "low", fallbackOrder: 7, allowedTenants: ["tn-nordic", "tn-atlas"], models: ["llama-3.3-70b (vLLM)", "mistral-large"], errorRate: 1.1 },
 ];
 
@@ -959,6 +1014,9 @@ export const initialPolicies: Policy[] = [
 ];
 
 export const auditLog: AuditEntry[] = [
+  { id: "au-clb-1", correlationId: "corr-clb-01", time: "2026-08-09T08:12:18Z", user: "system", agentId: "ag-kubernetes-01", tenantId: "tn-nordic", tool: "k8s-read", action: "get pod payments-auth-7d9f8c6b4-xq2n1", decision: "allowed", outcome: "CrashLoopBackOff · restartCount=14" },
+  { id: "au-clb-2", correlationId: "corr-clb-01", time: "2026-08-09T08:12:41Z", user: "system", agentId: "ag-kubernetes-01", tenantId: "tn-nordic", tool: "log-reader", action: "read previous container logs", decision: "allowed", outcome: "panic AUTH_JWKS_URI missing" },
+  { id: "au-clb-3", correlationId: "corr-clb-01", time: "2026-08-09T08:13:44Z", user: "system", agentId: "ag-kubernetes-01", tenantId: "tn-nordic", tool: "configmap.patch", action: "patch auth-runtime AUTH_JWKS_URI", decision: "approval-required", outcome: "apr-clb-01 queued · Stage-1 hold" },
   { id: "au-1", correlationId: "corr-4821-a1", time: "2026-08-02T06:41:12Z", user: "system", agentId: "ag-kubernetes-01", tenantId: "tn-nordic", tool: "k8s-read", action: "get node fs-prod-cs-tool2", decision: "allowed", outcome: "NotReady returned" },
   { id: "au-2", correlationId: "corr-4821-a2", time: "2026-08-02T06:43:04Z", user: "system", agentId: "ag-linux-01", tenantId: "tn-nordic", tool: "log-reader", action: "read kubelet journal", decision: "allowed", outcome: "412 lines, redacted" },
   { id: "au-3", correlationId: "corr-4821-a3", time: "2026-08-02T06:45:33Z", user: "system", agentId: "ag-network-01", tenantId: "tn-nordic", tool: "net-diag-plus", action: "probe egress 443", decision: "approval-required", outcome: "approved by Network Operations" },
@@ -974,6 +1032,7 @@ export const auditLog: AuditEntry[] = [
 ];
 
 export const initialApprovals: Approval[] = [
+  { id: "apr-clb-01", request: "Patch ConfigMap auth-runtime with AUTH_JWKS_URI + rollout restart payments-auth", agentId: "ag-kubernetes-01", tenantId: "tn-nordic", requiredRoles: ["Platform Engineering", "Change Manager"], requestedBy: "ag-kubernetes-01", risk: "medium", requestedAt: "2026-08-09T08:13:44Z", status: "pending" },
   { id: "apr-301", request: "Restart clinical read replica pg-clin-r2", agentId: "ag-database-01", tenantId: "tn-meridian", requestedBy: "ag-planner-01", requiredRoles: ["DBA On-call", "Service Owner"], risk: "high", requestedAt: "2026-08-02T05:10:00Z", status: "pending" },
   { id: "apr-302", request: "Add SSL-inspection exclusion for registry.corp.internal", agentId: "ag-network-01", tenantId: "tn-nordic", requiredRoles: ["Network Operations", "Security Engineering"], requestedBy: "ag-supervisor-01", risk: "medium", requestedAt: "2026-08-02T06:50:00Z", status: "pending" },
   { id: "apr-303", request: "Enable net-diag-plus for tenant tn-atlas", agentId: "ag-execution-02", tenantId: "tn-atlas", requiredRoles: ["Security Engineering"], requestedBy: "p.raman", risk: "critical", requestedAt: "2026-08-01T15:02:00Z", status: "pending" },
@@ -1049,6 +1108,83 @@ export const heatmap = customers.map((c) => ({
 }));
 
 export const evidenceArtifacts: EvidenceArtifact[] = [
+  {
+    id: "ev-clb-1",
+    name: "payments-auth-previous.log",
+    kind: "Container log · previous",
+    collected: "2026-08-09T08:12:41Z",
+    hash: "sha256:clb01a…91e4",
+    incidentId: "inc-clb-01",
+    resource: {
+      application: "payments-auth",
+      hostname: "pay-auth-a3.payments.corp",
+      ipAddress: "10.33.12.44",
+      cluster: "fs-prod-k8s",
+      namespace: "payments",
+      pod: "payments-auth-7d9f8c6b4-xq2n1",
+      region: "eu-north-1",
+      role: "application",
+    },
+    body: `panic: required env AUTH_JWKS_URI not set
+goroutine 1 [running]:
+main.mustEnv(...)
+    /src/cmd/auth/main.go:48
+main.main()
+    /src/cmd/auth/main.go:91 +0x1a4
+exit code=1`,
+  },
+  {
+    id: "ev-clb-2",
+    name: "pod-status.json",
+    kind: "Kubernetes snapshot",
+    collected: "2026-08-09T08:12:18Z",
+    hash: "sha256:clb02b…44a1",
+    incidentId: "inc-clb-01",
+    resource: {
+      application: "payments-auth",
+      hostname: "pay-auth-a3.payments.corp",
+      ipAddress: "10.33.12.44",
+      cluster: "fs-prod-k8s",
+      namespace: "payments",
+      pod: "payments-auth-7d9f8c6b4-xq2n1",
+      region: "eu-north-1",
+      role: "application",
+    },
+    body: `{
+  "name": "payments-auth-7d9f8c6b4-xq2n1",
+  "phase": "Running",
+  "containerStatuses": [{
+    "ready": false,
+    "restartCount": 14,
+    "state": { "waiting": { "reason": "CrashLoopBackOff" } },
+    "lastState": { "terminated": { "exitCode": 1, "reason": "Error" } }
+  }]
+}`,
+  },
+  {
+    id: "ev-clb-3",
+    name: "argocd-sync-v4.21.json",
+    kind: "Change correlation",
+    collected: "2026-08-09T08:13:02Z",
+    hash: "sha256:clb03c…7f20",
+    incidentId: "inc-clb-01",
+    resource: {
+      application: "argocd",
+      hostname: "argocd.fsprod.corp",
+      ipAddress: "10.33.1.20",
+      cluster: "fs-prod-k8s",
+      region: "eu-north-1",
+      role: "cd",
+    },
+    body: `{
+  "app": "payments-auth",
+  "image": "registry.corp.internal/payments-auth:v4.21",
+  "syncedAt": "2026-08-09T08:01:12Z",
+  "configMap": "auth-runtime",
+  "configMapChanged": false,
+  "changeId": "CHG-slice-01"
+}`,
+  },
   {
     id: "ev-1",
     name: "node-conditions.json",

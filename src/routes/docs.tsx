@@ -184,7 +184,7 @@ function DocsIntroPage() {
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="border-[#d4cdc0] bg-white">
-                  <Link to="/login">Sign in / demo</Link>
+                  <Link to="/docs/aegis">AEGIS freeze</Link>
                 </Button>
               </div>
               <ul className="space-y-2.5 pt-1 text-sm text-[#5c5a56]">
@@ -534,6 +534,16 @@ function DocsIntroPage() {
                     </a>
                   </li>
                 ))}
+                <li>
+                  <Link to="/docs/aegis" className="hover:text-[#1c1c1c]">
+                    AEGIS product freeze
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/demo/vertical-slice" className="hover:text-[#1c1c1c]">
+                    Stage-1 vertical slice
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>

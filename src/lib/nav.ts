@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Siren,
   Timer,
+  TowerControl,
   Wrench,
 } from "lucide-react";
 
@@ -50,9 +51,10 @@ export const navDomains: NavDomain[] = [
     icon: Radar,
     items: [
       { title: "Investigations", url: "/investigations", icon: Radar },
-      { title: "Incident Workspace", url: "/incidents/inc-4821", icon: Siren },
+      { title: "Incident Workspace", url: "/incidents/inc-clb-01", icon: Siren },
       { title: "Evidence Viewer", url: "/evidence", icon: FileSearch },
       { title: "RCA Report", url: "/rca", icon: ScrollText },
+      { title: "AI Control Tower", url: "/control-tower", icon: TowerControl },
     ],
   },
   {
