@@ -1,14 +1,22 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowRight, FileSearch, Gauge, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
   AuthBackLink,
-  AuthDemoButton,
+  AuthDivider,
+  AuthFeatures,
   AuthField,
   AuthShell,
   AuthSpinner,
   AuthSubmit,
 } from "@/components/auth/auth-shell";
+import { isOperatorEmail, MIN_PASSWORD_LENGTH } from "@/data/operator-allowlist";
+import {
+  createDemoSession,
+  createOperatorSession,
+  setSession,
+} from "@/lib/session";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -32,6 +40,7 @@ function SignInPage() {
   const [error, setError] = useState<string | null>(null);
 
   function enterDemo() {
+    setSession(createDemoSession());
     toast.success("Demo session established", {
       description: "Scope: Nordic Federated Bank · production (read-only)",
     });
@@ -41,12 +50,21 @@ function SignInPage() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!email.includes("@") || password.length < 6) {
-      setError("Enter a valid work email and a password of at least 6 characters.");
+    if (!email.includes("@") || password.length < MIN_PASSWORD_LENGTH) {
+      setError(
+        `Enter a valid work email and a password of at least ${MIN_PASSWORD_LENGTH} characters.`,
+      );
+      return;
+    }
+    if (!isOperatorEmail(email)) {
+      setError(
+        "This email is not on the operator allowlist. Contact your platform administrator.",
+      );
       return;
     }
     setBusy(true);
     window.setTimeout(() => {
+      setSession(createOperatorSession(email));
       setBusy(false);
       toast.success("Read-only session established", {
         description: "Scope: Nordic Federated Bank · production",
@@ -59,23 +77,39 @@ function SignInPage() {
     <AuthShell
       title={
         <>
-          Welcome back
-          <br />
-          to the <em className="text-brand-coral italic">console.</em>
+          Evidence before action.{" "}
+          <span className="bg-gradient-to-r from-brand-coral to-[#2b4cff] bg-clip-text text-transparent">
+            Passports before trust.
+          </span>
         </>
       }
+      footer="Self-hosted · vendor neutral · multi-tenant"
       panel={
         <form onSubmit={submit} noValidate>
           <AuthBackLink />
-          <h2 className="font-display mb-1.5 text-4xl font-normal tracking-tight text-[#1c1c1c]">
+          <h2 className="font-display mb-1.5 text-[2rem] font-semibold tracking-tight text-[#1c1c1c] sm:text-[2.25rem]">
             Sign in
           </h2>
-          <p className="mb-7 text-[14.5px] font-light text-[#5c5a56]">
-            New here?{" "}
-            <Link to="/signup" className="font-medium text-brand-coral hover:underline">
-              Create account →
-            </Link>
+          <p className="mb-6 text-[14.5px] leading-relaxed text-[#5c5a56]">
+            Use your operator credentials or continue with the product demo.
           </p>
+
+          <AuthSubmit type="button" variant="coral" onClick={enterDemo}>
+            <ShieldCheck className="size-4" aria-hidden />
+            Continue with product demo
+            <ArrowRight className="size-4" aria-hidden />
+          </AuthSubmit>
+
+          <AuthDivider label="Or email" />
+
+          {error && (
+            <div
+              role="alert"
+              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+            >
+              {error}
+            </div>
+          )}
 
           <AuthField
             label="Work email"
@@ -91,50 +125,51 @@ function SignInPage() {
             type="password"
             value={password}
             onChange={setPassword}
-            placeholder="Your password"
+            placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
             autoComplete="current-password"
             required
           />
-          {error && <p className="my-2.5 text-xs text-red-600">{error}</p>}
-          <AuthSubmit disabled={busy || !email || !password}>
-            {busy ? <AuthSpinner /> : "Sign in →"}
+          <AuthSubmit disabled={busy || !email || !password} variant="secondary">
+            {busy ? <AuthSpinner /> : "Sign in with credentials"}
+            {!busy && <ArrowRight className="size-4" aria-hidden />}
           </AuthSubmit>
-          <AuthDemoButton onClick={enterDemo} />
-          <p className="mt-4 text-center font-mono text-[10.5px] tracking-wide text-[#8a8680]">
-            Protected internal console · Wecrew Ops
+
+          <p className="mt-5 text-center text-[13px] text-[#5c5a56]">
+            New here?{" "}
+            <Link to="/signup" className="font-medium text-brand-coral hover:underline">
+              Create account
+            </Link>
+          </p>
+          <p className="mt-4 text-center text-[12px] leading-relaxed text-[#8a8680]">
+            Access is limited to allowlisted operators. Contact your platform administrator for
+            provisioning.
           </p>
         </form>
       }
     >
-      <p className="max-w-[360px] text-sm leading-relaxed font-light text-[#6f6a62]">
-        Sign in to open the command centre, inspect agent passports, and follow
-        evidence-backed RCA — strictly read-only.
+      <p className="max-w-[400px] text-[15px] leading-relaxed text-[#8a8680]">
+        Command centre for multi-tenant agent estates — live posture, passports, and evidence-backed
+        RCA for SRE teams.
       </p>
-      <div className="mt-2 overflow-hidden rounded-[14px] border border-white/10 bg-white/[0.03]">
-        <div className="flex gap-1.5 border-b border-white/10 bg-black/25 px-3.5 py-2.5">
-          <i className="block size-2 rounded-full bg-brand-coral" />
-          <i className="block size-2 rounded-full bg-[#2b4cff]" />
-          <i className="block size-2 rounded-full bg-[#0f7a55]" />
-        </div>
-        <div className="flex gap-2 p-4">
-          {[
-            ["Open incidents", "7", "−12%"],
-            ["Active agents", "30", "fleet"],
-            ["Evidence packs", "94%", "cited"],
-          ].map(([l, v, t]) => (
-            <div
-              key={l}
-              className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5"
-            >
-              <div className="mb-0.5 font-mono text-[9px] tracking-wide text-[#6f6a62] uppercase">
-                {l}
-              </div>
-              <div className="text-lg tracking-tight text-[#faf7f0]">{v}</div>
-              <div className="mt-0.5 font-mono text-[9px] text-[#0f7a55]">{t}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AuthFeatures
+        items={[
+          {
+            icon: Gauge,
+            title: "Estate command centre",
+            body: "Fleet health, incidents, and scoped platform filters in one plane.",
+          },
+          {
+            icon: FileSearch,
+            title: "Evidence-backed RCA",
+            body: "Hash-verified artefacts and timelines operators can defend in audit.",
+          },
+          {
+            icon: Lock,
+            title: "Read-only console",
+            body: "No shell, cluster-admin, secret reads, or autonomous remediation.",
+          },
+        ]}
+      />
     </AuthShell>
   );
 }

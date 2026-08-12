@@ -31,6 +31,27 @@ export interface Customer {
   onboarded: string;
 }
 
+/** Structured host / network / workload identity for SRE & platform views. */
+export interface ResourceIdentity {
+  /** Business or service name operators recognize. */
+  application?: string;
+  /** Node or VM hostname. */
+  hostname?: string;
+  /** Primary IPv4/IPv6 on the affected interface. */
+  ipAddress?: string;
+  /** Kubernetes / estate cluster name. */
+  cluster?: string;
+  namespace?: string;
+  pod?: string;
+  /** Node name when distinct from hostname. */
+  nodeName?: string;
+  /** External or internal FQDN / endpoint. */
+  fqdn?: string;
+  region?: string;
+  /** Optional role label: worker, control-plane, edge, db, gateway. */
+  role?: string;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -50,6 +71,24 @@ export interface Agent {
   cost30dUsd: number;
   riskLevel: RiskLevel;
   description: string;
+  /** Where this agent runtime is scheduled. */
+  runtime?: ResourceIdentity;
+  /** For orchestration agents: specialist agent ids this supervisor may route to. */
+  routesTo?: string[];
+  /** Recent step consumption vs passport maxSteps (demo / live pulse). */
+  stepsUsedRecent?: number;
+}
+
+export interface EvidenceArtifact {
+  id: string;
+  name: string;
+  kind: string;
+  collected: string;
+  hash: string;
+  body: string;
+  incidentId?: string;
+  /** Capture locus — host/IP/cluster for platform triage. */
+  resource?: ResourceIdentity;
 }
 
 export interface AgentPassport {
@@ -85,6 +124,8 @@ export interface SecurityEvent {
   tenantId: string;
   detail: string;
   action: "blocked" | "quarantined" | "flagged" | "allowed-with-audit";
+  /** Runtime host / IP when the event was observed. */
+  resource?: ResourceIdentity;
 }
 
 export interface Incident {
@@ -100,6 +141,10 @@ export interface Incident {
   assignedAgent: string;
   summary: string;
   recurrence: number;
+  /** Primary affected application / service name. */
+  application?: string;
+  /** Affected hosts, pods, endpoints — first-class for SRE triage. */
+  resources?: ResourceIdentity[];
 }
 
 export interface TimelineMetricPoint {
@@ -212,4 +257,50 @@ export interface GatewayDecision {
   latencyMs: number;
   tokens: number;
   outcome: string;
+}
+
+/** AI Control Tower — one hop on the prompt→infra path. */
+export type TraceDomain =
+  | "prompt"
+  | "agent"
+  | "model"
+  | "mcp"
+  | "api"
+  | "evidence"
+  | "security"
+  | "policy"
+  | "approval"
+  | "action"
+  | "verification";
+
+export interface ExecutionHop {
+  id: string;
+  at: string;
+  domain: TraceDomain;
+  label: string;
+  detail: string;
+  status: "ok" | "warn" | "blocked" | "pending";
+  meta?: Record<string, string | number>;
+}
+
+/** Immutable execution ID correlating AI path, policy, approval and verification. */
+export interface ExecutionTrace {
+  id: string;
+  incidentId: string;
+  tenantId: string;
+  customerId: string;
+  agentId: string;
+  model: string;
+  tool: string;
+  autonomyLevel: "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
+  status: "complete" | "awaiting-approval" | "running";
+  startedAt: string;
+  endedAt?: string;
+  summary: string;
+  hops: ExecutionHop[];
+  tokens: number;
+  costUsd: number;
+  confidence?: number;
+  approvalId?: string;
+  auditCorrelationId: string;
 }

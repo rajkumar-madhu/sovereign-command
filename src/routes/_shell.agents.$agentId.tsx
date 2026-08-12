@@ -19,6 +19,7 @@ import {
   securityEvents,
   tenantName,
 } from "@/data/seed";
+import { ResourceIdentityPanel } from "@/components/ops/resource-identity-panel";
 import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
 
@@ -140,7 +141,7 @@ function AgentDetail() {
 
       <PageHeader
         title="Operating envelope"
-        description="Signed passport, capabilities, tools and audit — read-only view."
+        description="Passport configuration on this canvas — live routing, open work, and jumps stay in Agent details (right)."
         crumbs={[
           { label: "Operate", to: "/command" },
           { label: "Agent Registry", to: "/agents" },
@@ -172,17 +173,35 @@ function AgentDetail() {
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               label="Trust score"
-              value={agent.trustScore}
+              value={String(agent.trustScore)}
+              hint="Passport trust"
               tone={agent.trustScore >= 88 ? "success" : "warning"}
             />
-            <MetricCard label="Executions (24h)" value={agent.executions24h} />
-            <MetricCard label="Success rate" value={`${agent.successRate}%`} tone="info" />
+            <MetricCard
+              label="Executions (24h)"
+              value={agent.executions24h.toLocaleString()}
+              hint="Completed runs"
+            />
+            <MetricCard
+              label="Success rate"
+              value={`${agent.successRate}%`}
+              hint="Last 24h"
+              tone="info"
+            />
             <MetricCard
               label="Risk level"
               value={agent.riskLevel}
+              hint="Composite"
               tone={agent.riskLevel === "low" ? "success" : "danger"}
             />
           </section>
+          {agent.runtime ? (
+            <ResourceIdentityPanel
+              resources={[agent.runtime]}
+              title="Runtime placement"
+              description="Hostname, IP, cluster, and application identity for this agent runner"
+            />
+          ) : null}
           <section className="ops-panel rounded-2xl p-5">
             <div className="mb-3 flex items-center gap-2">
               <Bot className="size-4 text-brand-coral" aria-hidden="true" />
@@ -195,6 +214,8 @@ function AgentDetail() {
               <Row label="Owner" value={agent.owner} />
               <Row label="Autonomy" value={agent.autonomy} />
               <Row label="Model" value={agent.model} />
+              <Row label="Hostname" value={agent.runtime?.hostname ?? "—"} />
+              <Row label="IP address" value={agent.runtime?.ipAddress ?? "—"} />
             </div>
           </section>
         </TabsContent>

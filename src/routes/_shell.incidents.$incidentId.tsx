@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ChevronDown, Clock, FileSearch, Siren } from "lucide-react";
+import { Building2, ChevronDown, Clock, FileSearch, Radar, Siren } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ops/page-header";
@@ -21,13 +21,28 @@ import { StatusPill, toneForSeverity, toneForStatus } from "@/components/ops/sta
 import {
   agentName,
   customerName,
-  incidentTimeline,
+  customers,
+  getExecutionByIncident,
+  getIncidentTimeline,
+  getRcaReport,
   incidents,
-  rcaReport,
   tenantName,
+  tenants,
 } from "@/data/seed";
 import type { TimelineStep } from "@/data/types";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_INCIDENT_RANGE,
+  TimeRangeControl,
+  filterLogLines,
+  filterSeriesByClock,
+  formatRangeLabel,
+  inTimeRange,
+  type TimeRange,
+} from "@/components/ops/time-range-control";
+import {
+  ResourceIdentityPanel,
+} from "@/components/ops/resource-identity-panel";
 
 export const Route = createFileRoute("/_shell/incidents/$incidentId")({
   loader: ({ params }) => {
@@ -97,9 +112,19 @@ function useElapsed(openedIso: string) {
   return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
 }
 
-function StepLoadGraph({ step }: { step: TimelineStep }) {
-  const series = step.series;
-  if (!series?.length) return null;
+function StepLoadGraph({ step, range }: { step: TimelineStep; range: TimeRange }) {
+  const series = useMemo(
+    () => filterSeriesByClock(step.series, range),
+    [step.series, range],
+  );
+  if (!step.series?.length) return null;
+  if (!series.length) {
+    return (
+      <div className="mt-3 rounded-xl border border-dashed border-border bg-surface/40 p-3 text-sm text-muted-foreground">
+        No load-graph samples in {formatRangeLabel(range)}.
+      </div>
+    );
+  }
 
   const hasHost = series.some((p) => p.cpu != null || p.mem != null);
   const hasPull = series.some((p) => p.pullErrors != null);
@@ -109,7 +134,7 @@ function StepLoadGraph({ step }: { step: TimelineStep }) {
   return (
     <div className="mt-3 rounded-xl border border-border bg-surface/60 p-3">
       <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Load graph · {step.seriesLabel ?? "series"}
+        Load graph · {step.seriesLabel ?? "series"} · filtered
       </p>
       <div className="h-44 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -206,12 +231,18 @@ function TimelineStepCard({
   step,
   open,
   onToggle,
+  range,
 }: {
   step: TimelineStep;
   open: boolean;
   onToggle: () => void;
+  range: TimeRange;
 }) {
   const when = formatStepAt(step.at);
+  const filteredLogs = useMemo(
+    () => filterLogLines(step.logs, range),
+    [step.logs, range],
+  );
   return (
     <li className="relative border-l border-border pl-5">
       <span
@@ -268,15 +299,15 @@ function TimelineStepCard({
             </div>
           )}
 
-          <StepLoadGraph step={step} />
+          <StepLoadGraph step={step} range={range} />
 
           {step.logs && (
             <div className="rounded-xl border border-border bg-[#0e1116] p-3">
               <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
-                Logs · evidence excerpt
+                Logs · filtered by time
               </p>
               <pre className="max-h-56 overflow-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-[#e8e4dc]">
-                {step.logs}
+                {filteredLogs.trim() || "No log lines in the selected time window."}
               </pre>
             </div>
           )}
@@ -314,8 +345,58 @@ function TimelineStepCard({
 
 function IncidentWorkspace() {
   const { incident } = Route.useLoaderData();
-  const isPrimary = incident.id === "inc-4821";
-  const steps = isPrimary ? incidentTimeline : incidentTimeline.slice(0, 6);
+  const allSteps = getIncidentTimeline(incident.id);
+  const execution = getExecutionByIncident(incident.id);
+  const sealedRca = incident.status === "rca-ready" || incident.status === "closed";
+  const defaultRange = useMemo(() => {
+    const opened = new Date(incident.opened);
+    if (Number.isNaN(opened.getTime())) return DEFAULT_INCIDENT_RANGE;
+    const from = new Date(opened.getTime() - 15 * 60_000);
+    const to = new Date(opened.getTime() + 30 * 60_000);
+    return { from, to };
+  }, [incident.opened]);
+  const rangePresets = useMemo(() => {
+    const opened = new Date(incident.opened);
+    if (Number.isNaN(opened.getTime())) return undefined;
+    const dayStart = new Date(opened);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(opened);
+    dayEnd.setUTCHours(23, 59, 59, 999);
+    const dayLabel = opened.toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+    });
+    return [
+      { id: "incident", label: "Incident window", range: defaultRange },
+      {
+        id: "onset",
+        label: "Onset ±10m",
+        range: {
+          from: new Date(opened.getTime() - 10 * 60_000),
+          to: new Date(opened.getTime() + 10 * 60_000),
+        },
+      },
+      {
+        id: "full-day",
+        label: `Full day ${dayLabel}`,
+        range: { from: dayStart, to: dayEnd },
+      },
+    ];
+  }, [incident.opened, defaultRange]);
+  const [range, setRange] = useState<TimeRange>(defaultRange);
+  const [presetId, setPresetId] = useState("incident");
+  useEffect(() => {
+    setRange(defaultRange);
+    setPresetId("incident");
+  }, [incident.id, defaultRange]);
+  const steps = useMemo(
+    () =>
+      allSteps.filter((s) => {
+        const d = new Date(s.at);
+        return !Number.isNaN(d.getTime()) && inTimeRange(d, range);
+      }),
+    [allSteps, range],
+  );
   const elapsed = useElapsed(incident.opened);
   const open = incident.status !== "closed";
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => ({
@@ -324,6 +405,9 @@ function IncidentWorkspace() {
     s6: true,
     s7: true,
   }));
+  const tenant = tenants.find((t) => t.id === incident.tenantId);
+  const customer = customers.find((c) => c.id === incident.customerId);
+  const report = getRcaReport(incident.id);
 
   const openedLabel = useMemo(() => {
     const d = new Date(incident.opened);
@@ -364,6 +448,74 @@ function IncidentWorkspace() {
             <p className="font-mono text-[11px] text-sidebar-foreground/55">
               Opened {openedLabel} · {incident.opened}
             </p>
+
+            {/* Multi-tenant org / client context — always visible for platform admins */}
+            <div
+              className="rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-3 backdrop-blur"
+              aria-label="Organisation and client"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <Building2 className="size-3.5 text-brand-coral" aria-hidden />
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/55">
+                  Organisation · client scope
+                </p>
+              </div>
+              <dl className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">
+                    Tenant / org
+                  </dt>
+                  <dd className="mt-0.5 text-sm font-medium text-sidebar-accent-foreground">
+                    {tenant?.name ?? tenantName(incident.tenantId)}
+                  </dd>
+                  <dd className="font-mono text-[10px] text-sidebar-foreground/55">
+                    {incident.tenantId}
+                    {tenant ? ` · ${tenant.region} · ${tenant.residency}` : ""}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">
+                    Client / customer
+                  </dt>
+                  <dd className="mt-0.5 text-sm font-medium text-sidebar-accent-foreground">
+                    {customer ? (
+                      <Link
+                        to="/customers/$customerId"
+                        params={{ customerId: customer.id }}
+                        className="underline-offset-2 hover:underline"
+                      >
+                        {customer.name}
+                      </Link>
+                    ) : (
+                      customerName(incident.customerId)
+                    )}
+                  </dd>
+                  <dd className="font-mono text-[10px] text-sidebar-foreground/55">
+                    {incident.customerId}
+                    {customer
+                      ? ` · ${customer.industry} · ${customer.contract} · SLA ${customer.slaTarget}`
+                      : ""}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">
+                    Environment
+                  </dt>
+                  <dd className="mt-0.5 font-mono text-sm text-sidebar-accent-foreground">
+                    {incident.environment}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">
+                    Client owner
+                  </dt>
+                  <dd className="mt-0.5 text-sm text-sidebar-accent-foreground">
+                    {customer?.owner ?? "—"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
                 <Link to="/evidence">
@@ -371,13 +523,41 @@ function IncidentWorkspace() {
                   Evidence viewer
                 </Link>
               </Button>
+              {execution && (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
+                >
+                  <Link
+                    to="/control-tower/$executionId"
+                    params={{ executionId: execution.id }}
+                  >
+                    <Radar className="size-4" aria-hidden="true" />
+                    AI Control Tower
+                  </Link>
+                </Button>
+              )}
               <Button
                 asChild
                 variant="outline"
                 className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
               >
-                <Link to="/rca">Open RCA report</Link>
+                <Link to="/rca" search={{ incident: incident.id }}>
+                  Open RCA report
+                </Link>
               </Button>
+              {customer && (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
+                >
+                  <Link to="/customers/$customerId" params={{ customerId: customer.id }}>
+                    Client estate
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
           <div className="grid w-full max-w-xs grid-cols-2 gap-2">
@@ -404,13 +584,24 @@ function IncidentWorkspace() {
                 recurrence {incident.recurrence}x
               </p>
             </div>
+            <div className="col-span-2 rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                Tenant scope
+              </p>
+              <p className="mt-1 truncate text-sm font-medium text-sidebar-accent-foreground">
+                {tenant?.name ?? tenantName(incident.tenantId)}
+              </p>
+              <p className="mt-0.5 truncate font-mono text-[10px] text-sidebar-foreground/50">
+                {customer?.name ?? customerName(incident.customerId)} · {incident.environment}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       <PageHeader
         title="Investigation workspace"
-        description="Evidence-backed timeline — every step is read-only, bounded and audited."
+        description="Evidence-backed timeline — every step is read-only, bounded and audited. Select a custom date to review previous history, logs, and graphs."
         crumbs={[
           { label: "Investigate" },
           { label: "Investigations", to: "/investigations" },
@@ -419,8 +610,48 @@ function IncidentWorkspace() {
       />
       <SafetyBanner compact />
 
+      <TimeRangeControl
+        value={range}
+        presetId={presetId}
+        presets={rangePresets}
+        onChange={(next, id) => {
+          setRange(next);
+          setPresetId(id);
+        }}
+      />
+
+      {incident.resources?.length ? (
+        <ResourceIdentityPanel resources={incident.resources} />
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Status" value={incident.status} tone="info" />
+        <MetricCard
+          label="Application"
+          value={incident.application ?? "—"}
+          hint={incident.resources?.[0]?.hostname ?? incident.environment}
+        />
+        <MetricCard
+          label="Primary host"
+          value={incident.resources?.[0]?.hostname ?? "—"}
+          hint={
+            incident.resources?.[0]?.ipAddress
+              ? `IP ${incident.resources[0].ipAddress}`
+              : customerName(incident.customerId)
+          }
+        />
+        <MetricCard
+          label="Cluster"
+          value={incident.resources?.[0]?.cluster ?? "—"}
+          hint={
+            incident.resources?.[0]?.namespace
+              ? `ns ${incident.resources[0].namespace}`
+              : `Environment: ${incident.environment}`
+          }
+        />
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Tenant"
           value={tenantName(incident.tenantId)}
@@ -428,13 +659,26 @@ function IncidentWorkspace() {
         />
         <MetricCard
           label="Lead agent"
-          value={agentName(incident.assignedAgent)}
+          value={
+            <Link
+              to="/agents/$agentId"
+              params={{ agentId: incident.assignedAgent }}
+              className="text-primary hover:underline"
+            >
+              {agentName(incident.assignedAgent)}
+            </Link>
+          }
           hint={`Environment: ${incident.environment}`}
         />
         <MetricCard
           label="RCA confidence"
-          value={isPrimary ? `${rcaReport.confidence}%` : "pending"}
-          tone={isPrimary ? "success" : "warning"}
+          value={`${report.confidence}%`}
+          tone={report.confidence >= 80 ? "success" : "warning"}
+        />
+        <MetricCard
+          label="FQDN / endpoint"
+          value={incident.resources?.[0]?.fqdn ?? incident.resources?.[1]?.fqdn ?? "—"}
+          hint={incident.resources?.[0]?.region ?? "region n/a"}
         />
       </section>
 
@@ -448,8 +692,8 @@ function IncidentWorkspace() {
               </h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Severity {incident.severity} · phases are append-only evidence steps · expand a step for
-              formation, load graph, and logs
+              Severity {incident.severity} · {steps.length} of {allSteps.length} steps in window ·
+              expand for formation, load graph, and logs
             </p>
           </div>
           <div className="flex gap-2">
@@ -467,40 +711,56 @@ function IncidentWorkspace() {
             </Button>
           </div>
         </div>
-        <ol className="space-y-5">
-          {steps.map((s) => (
-            <TimelineStepCard
-              key={s.id}
-              step={s}
-              open={Boolean(expanded[s.id])}
-              onToggle={() =>
-                setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))
-              }
-            />
-          ))}
-        </ol>
+        {steps.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+            No timeline steps in {formatRangeLabel(range)}. Widen the history window or choose
+            Full day.
+          </p>
+        ) : (
+          <ol className="space-y-5">
+            {steps.map((s) => (
+              <TimelineStepCard
+                key={s.id}
+                step={s}
+                range={range}
+                open={Boolean(expanded[s.id])}
+                onToggle={() =>
+                  setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))
+                }
+              />
+            ))}
+          </ol>
+        )}
       </section>
 
-      {isPrimary && (
-        <section className="ops-panel rounded-2xl p-5" aria-labelledby="rca-title">
-          <h2 id="rca-title" className="font-display text-lg font-semibold tracking-tight">
-            Final root cause
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Confidence {rcaReport.confidence}% · risk {rcaReport.risk} · no production write required
-          </p>
-          <div className="mt-4 space-y-4 text-sm">
-            <p>{rcaReport.rootCause}</p>
-            <div>
-              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Recommendation
-              </p>
-              <p>{rcaReport.recommendation}</p>
-            </div>
+      <section className="ops-panel rounded-2xl p-5" aria-labelledby="rca-title">
+        <h2 id="rca-title" className="font-display text-lg font-semibold tracking-tight">
+          {sealedRca ? "Final root cause" : "RCA package"}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Confidence {report.confidence}% · risk {report.risk} ·{" "}
+          {report.productionWriteRequired
+            ? "remediation requires approval (console read-only)"
+            : "no production write required"}
+        </p>
+        <div className="mt-4 space-y-4 text-sm">
+          <p>{report.rootCause}</p>
+          <div>
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Recommendation
+            </p>
+            <p>{report.recommendation}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/rca" search={{ incident: incident.id }}>
+                Open full RCA
+              </Link>
+            </Button>
             <Button
               variant="outline"
               onClick={() =>
-                toast.success("RCA shared with Network Operations", {
+                toast.success("RCA shared with owners", {
                   description: "Read-only report, no remediation executed.",
                 })
               }
@@ -508,8 +768,8 @@ function IncidentWorkspace() {
               Share RCA with owner
             </Button>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       <p className="text-xs text-muted-foreground">
         Opened {openedLabel} · {incident.id}

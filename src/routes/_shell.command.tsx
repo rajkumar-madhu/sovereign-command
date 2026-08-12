@@ -16,8 +16,9 @@ import { Button } from "@/components/ui/button";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { LiveTelemetryDashboard } from "@/components/ops/live-telemetry-dashboard";
 import { StatusPill, toneForScore, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
+import { ResourceIdentityChips } from "@/components/ops/resource-identity-panel";
 import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
-import { useOps } from "@/lib/ops-context";
+import { inOpsScope, useOps } from "@/lib/ops-context";
 import {
   agents,
   customerName,
@@ -29,6 +30,7 @@ import {
   recurringIncidents,
   securityEvents,
   spendTrend,
+  tenantName,
 } from "@/data/seed";
 
 export const Route = createFileRoute("/_shell/command")({
@@ -63,15 +65,41 @@ function CommandCentre() {
   const pipelineLag = (0.6 + (live.latest.latencyMs / 400) * 1.4).toFixed(1);
   const pipelineStatus =
     Number(pipelineLag) >= 3 ? ("degraded" as const) : ("healthy" as const);
-  const nodes = customers.reduce((s, c) => s + c.nodes, 0);
-  const clusters = customers.reduce((s, c) => s + c.clusters, 0);
-  const highRisk = agents.filter((a) => a.riskLevel === "high" || a.riskLevel === "critical").length;
-  const openIncidents = incidents.filter((i) => i.status !== "closed");
+  const scopedCustomers = customers.filter(
+    (c) =>
+      c.tenantId === ops.tenantId &&
+      (ops.customerId === "all" || c.id === ops.customerId),
+  );
+  const nodes = scopedCustomers.reduce((s, c) => s + c.nodes, 0);
+  const clusters = scopedCustomers.reduce((s, c) => s + c.clusters, 0);
+  const scopedAgents = agents.filter((a) =>
+    inOpsScope(a, {
+      tenantId: ops.tenantId,
+      customerId: ops.customerId,
+      environment: ops.environment,
+    }),
+  );
+  const highRisk = scopedAgents.filter(
+    (a) => a.riskLevel === "high" || a.riskLevel === "critical",
+  ).length;
+  const openIncidents = incidents.filter(
+    (i) =>
+      i.status !== "closed" &&
+      inOpsScope(i, {
+        tenantId: ops.tenantId,
+        customerId: ops.customerId,
+        environment: ops.environment,
+      }),
+  );
   const p1 = openIncidents.filter((i) => i.severity === "P1");
   const p2 = openIncidents.filter((i) => i.severity === "P2").length;
   const slaRisks = openIncidents.filter((i) => i.slaRisk).length;
-  const injections = securityEvents.filter((e) => e.category === "prompt-injection").length;
-  const pending = ops.approvals.filter((a) => a.status === "pending").length;
+  const injections = securityEvents.filter(
+    (e) => e.category === "prompt-injection" && e.tenantId === ops.tenantId,
+  ).length;
+  const pending = ops.approvals.filter(
+    (a) => a.status === "pending" && a.tenantId === ops.tenantId,
+  ).length;
   const primaryIncident = p1[0] ?? openIncidents[0];
   const estateScore = Math.round(
     heatmap.reduce((s, row) => s + row.cells.reduce((a, c) => a + c.score, 0) / row.cells.length, 0) /
@@ -97,14 +125,14 @@ function CommandCentre() {
         <div className="relative z-10 flex flex-col gap-8 p-6 md:p-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-4 animate-rise-in">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
-              Unified observability plane
+              Platform · scoped estate
             </p>
             <h1 className="font-display text-3xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-4xl">
-              Global Command Centre
+              Command Centre
             </h1>
             <p className="max-w-xl text-sm leading-relaxed text-sidebar-foreground/70">
-              See metrics, events, logs and traces for the agent fleet in one place — then dig into
-              evidence when something breaks. Read-only; no autonomous remediation.
+              Metrics, events, logs and traces for the selected tenant / client / environment —
+              dig into evidence when something breaks. Read-only; no autonomous remediation.
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
@@ -144,7 +172,7 @@ function CommandCentre() {
             <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-3 backdrop-blur">
               <p className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/60">Agents</p>
               <p className="font-display mt-1 text-3xl font-semibold tabular-nums text-sidebar-accent-foreground">
-                {agents.length}
+                {scopedAgents.length}
               </p>
               <p className="text-xs text-sidebar-foreground/55">{highRisk} high-risk</p>
             </div>
@@ -398,9 +426,11 @@ function CommandCentre() {
                   <StatusPill tone={toneForSeverity(i.severity)}>{i.severity}</StatusPill>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {i.id} · {customerName(i.customerId)} · {i.environment}
+                  {i.id} · {tenantName(i.tenantId)} · {customerName(i.customerId)} · {i.environment}
+                  {i.application ? ` · ${i.application}` : ""}
                   {i.slaRisk ? " · SLA at risk" : ""}
                 </p>
+                <ResourceIdentityChips resource={i.resources?.[0]} className="mt-2" />
               </Link>
             ))}
           </div>

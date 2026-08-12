@@ -37,6 +37,7 @@ import {
 } from "@/components/ops/dual-sidebar";
 import { InspectorToggle } from "@/components/ops/right-inspector";
 import { useOps, tenantCustomers } from "@/lib/ops-context";
+import { clearSession } from "@/lib/session";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
 import { formatCountdown, slaLabel, slaTone } from "@/lib/approval-sla";
@@ -238,6 +239,7 @@ export function TopBar({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
+                clearSession();
                 toast.success("Signed out of the read-only session");
                 void navigate({ to: "/login" });
               }}
