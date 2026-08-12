@@ -11,6 +11,12 @@ import {
   AuthSpinner,
   AuthSubmit,
 } from "@/components/auth/auth-shell";
+import { isOperatorEmail, MIN_PASSWORD_LENGTH } from "@/data/operator-allowlist";
+import {
+  createDemoSession,
+  createOperatorSession,
+  setSession,
+} from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/signup")({
@@ -61,9 +67,10 @@ function SignUpPage() {
     form.firstName.trim().length > 0 &&
     form.lastName.trim().length > 0 &&
     form.email.includes("@") &&
-    form.password.length >= 8;
+    form.password.length >= MIN_PASSWORD_LENGTH;
 
   function enterDemo() {
+    setSession(createDemoSession());
     toast.success("Demo session established", {
       description: "Scope: Nordic Federated Bank · production (read-only)",
     });
@@ -74,11 +81,20 @@ function SignUpPage() {
     e.preventDefault();
     setError(null);
     if (!canSubmit) {
-      setError("Enter your name, a work email, and a password of at least 8 characters.");
+      setError(
+        `Enter your name, a work email, and a password of at least ${MIN_PASSWORD_LENGTH} characters.`,
+      );
+      return;
+    }
+    if (!isOperatorEmail(form.email)) {
+      setError(
+        "This email is not on the operator allowlist. Contact your platform administrator.",
+      );
       return;
     }
     setBusy(true);
     window.setTimeout(() => {
+      setSession(createOperatorSession(form.email));
       setBusy(false);
       toast.success("Account ready", {
         description: `${form.role} · read-only operations session`,
@@ -157,7 +173,7 @@ function SignUpPage() {
             type="password"
             value={form.password}
             onChange={(v) => set("password", v)}
-            placeholder="Min. 8 characters"
+            placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
             autoComplete="new-password"
             required
           />
