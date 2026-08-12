@@ -11,6 +11,12 @@ import {
   AuthSpinner,
   AuthSubmit,
 } from "@/components/auth/auth-shell";
+import { isOperatorEmail, MIN_PASSWORD_LENGTH } from "@/data/operator-allowlist";
+import {
+  createDemoSession,
+  createOperatorSession,
+  setSession,
+} from "@/lib/session";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -34,6 +40,7 @@ function SignInPage() {
   const [error, setError] = useState<string | null>(null);
 
   function enterDemo() {
+    setSession(createDemoSession());
     toast.success("Demo session established", {
       description: "Scope: Nordic Federated Bank · production (read-only)",
     });
@@ -43,12 +50,21 @@ function SignInPage() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!email.includes("@") || password.length < 6) {
-      setError("Invalid email or password.");
+    if (!email.includes("@") || password.length < MIN_PASSWORD_LENGTH) {
+      setError(
+        `Enter a valid work email and a password of at least ${MIN_PASSWORD_LENGTH} characters.`,
+      );
+      return;
+    }
+    if (!isOperatorEmail(email)) {
+      setError(
+        "This email is not on the operator allowlist. Contact your platform administrator.",
+      );
       return;
     }
     setBusy(true);
     window.setTimeout(() => {
+      setSession(createOperatorSession(email));
       setBusy(false);
       toast.success("Read-only session established", {
         description: "Scope: Nordic Federated Bank · production",
@@ -109,7 +125,7 @@ function SignInPage() {
             type="password"
             value={password}
             onChange={setPassword}
-            placeholder="Your password"
+            placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
             autoComplete="current-password"
             required
           />
