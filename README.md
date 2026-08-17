@@ -88,10 +88,10 @@ Work from this Desktop tree (or any clone). **Source of truth for production** i
 
 ```sh
 cd ~/Desktop/sovereign-command-main
-rsync -az --delete \\
-  --exclude node_modules --exclude .output --exclude .git \\
-  --exclude .wrangler --exclude .tanstack --exclude .nitro \\
-  --exclude dist --exclude tmp-screenshots \\
+rsync -az --delete \
+  --exclude node_modules --exclude .output --exclude .git \
+  --exclude .wrangler --exclude .tanstack --exclude .nitro \
+  --exclude dist --exclude tmp-screenshots \
   wecrew-anypoint:/opt/wecrew/sovereign-command/ ./
 bun install
 bun run dev
@@ -101,15 +101,15 @@ bun run dev
 
 ```sh
 cd ~/Desktop/sovereign-command-main
-rsync -az --delete \\
-  --exclude node_modules --exclude .output --exclude .git \\
-  --exclude .wrangler --exclude .tanstack --exclude .nitro \\
-  --exclude dist --exclude tmp-screenshots \\
+rsync -az --delete \
+  --exclude node_modules --exclude .output --exclude .git \
+  --exclude .wrangler --exclude .tanstack --exclude .nitro \
+  --exclude dist --exclude tmp-screenshots \
   ./ wecrew-anypoint:/opt/wecrew/sovereign-command/
 
 ssh wecrew-anypoint 'cd /opt/wecrew/sovereign-command && docker build -t sovereign-command:agents-ops .'
-ssh wecrew-anypoint 'kind load docker-image sovereign-command:agents-ops --name wecrew \\
-  && kubectl apply -f /opt/wecrew/sovereign-command/deploy/agents-ops/k8s.yaml \\
+ssh wecrew-anypoint 'kind load docker-image sovereign-command:agents-ops --name wecrew \
+  && kubectl apply -f /opt/wecrew/sovereign-command/deploy/agents-ops/k8s.yaml \
   && kubectl -n sovereign-command rollout status deploy/sovereign-command --timeout=180s'
 ```
 
