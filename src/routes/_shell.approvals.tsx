@@ -23,6 +23,13 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
 import { useOps } from "@/lib/ops-context";
+import { getSession } from "@/lib/session";
+import {
+  STAGE1_APPROVAL_ID,
+  decideLiveApproval,
+  fetchLiveApproval,
+  stage1ApiConfigured,
+} from "@/lib/stage1-api";
 import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
 import { formatCountdown, formatWindow, slaLabel, slaTone } from "@/lib/approval-sla";
 import { approversFor, tierLabel, tierTone, type EscalationTier } from "@/lib/escalation";
@@ -67,6 +74,7 @@ function ApprovalQueue() {
   const {
     decideApproval,
     decideApprovals,
+    hydrateApproval,
     revertApprovals,
     approvals,
     slaConfig,
@@ -81,7 +89,32 @@ function ApprovalQueue() {
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmAction, setConfirmAction] = useState<"approved" | "rejected" | null>(null);
   const [batch, setBatch] = useState<{ outcomes: BulkOutcome[]; expiresAt: number } | null>(null);
+  const [liveStage1, setLiveStage1] = useState(false);
   const undoTimer = useRef<number | null>(null);
+
+  // Hydrate once on mount — live Stage-1 is the source of truth for apr-clb-01.
+  useEffect(() => {
+    if (!stage1ApiConfigured()) return;
+    let cancelled = false;
+    fetchLiveApproval(STAGE1_APPROVAL_ID, "tn-nordic").then((live) => {
+      if (cancelled || !live) return;
+      setLiveStage1(true);
+      hydrateApproval({
+        id: live.id,
+        request: live.request,
+        agentId: live.agentId,
+        tenantId: live.tenantId,
+        requiredRoles: live.requiredRoles,
+        approvedRoles: live.approvedRoles,
+        risk: live.risk,
+        requestedAt: live.requestedAt,
+        status: live.status,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -128,7 +161,64 @@ function ApprovalQueue() {
     setSelected((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
   }
 
-  function runBulk(status: "approved" | "rejected") {
+  async function postLiveDecide(
+    approval: { id: string; tenantId: string; requiredRoles: string[]; approvedRoles?: string[] },
+    status: "approved" | "rejected",
+  ): Promise<{ ok: boolean; remaining?: string[] }> {
+    if (approval.id !== STAGE1_APPROVAL_ID || !stage1ApiConfigured()) return { ok: true };
+    const signed = approval.approvedRoles ?? [];
+    const nextRole = approval.requiredRoles.find((role) => !signed.includes(role));
+    if (status === "approved" && !nextRole) {
+      toast("Already decided", { description: "Stage-1 dual-control is complete. Remediator stays held." });
+      return { ok: false };
+    }
+    const session = getSession();
+    const actorId =
+      status === "rejected"
+        ? session?.email
+        : session?.kind === "demo" && nextRole
+          ? `demo:${nextRole}`
+          : session?.email;
+    const live = await decideLiveApproval({
+      id: approval.id,
+      decision: status,
+      tenantId: approval.tenantId,
+      actorRoles: status === "approved" && nextRole ? [nextRole] : [],
+      actorId,
+    });
+    if (!live.ok) {
+      toast.error("Stage-1 decide blocked", { description: live.error });
+      return { ok: false };
+    }
+    setLiveStage1(true);
+    hydrateApproval({
+      id: approval.id,
+      status: live.result.approval.status,
+      approvedRoles: live.result.approval.approvedRoles,
+    });
+    const remaining = live.result.approval.requiredRoles.filter(
+      (role) => !live.result.approval.approvedRoles.includes(role),
+    );
+    return { ok: true, remaining };
+  }
+
+  async function runBulk(status: "approved" | "rejected") {
+    const liveRow = selectedRows.find((item) => item.approval.id === STAGE1_APPROVAL_ID);
+    if (liveRow) {
+      const posted = await postLiveDecide(liveRow.approval, status);
+      if (!posted.ok) {
+        setConfirmAction(null);
+        return;
+      }
+      if (status === "approved" && posted.remaining && posted.remaining.length > 0) {
+        setConfirmAction(null);
+        toast.success("Stage-1 signature recorded", {
+          description: `${posted.remaining.join(" + ")} still required. Remediator stays held.`,
+        });
+        return;
+      }
+    }
+
     const outcomes: BulkOutcome[] = selectedRows.map((item) => ({
       id: item.approval.id,
       request: item.approval.request,
@@ -139,11 +229,15 @@ function ApprovalQueue() {
       countdown: formatCountdown(item.remainingMinutes),
       outcome: status,
       note:
-        status === "approved"
-          ? item.state === "breached"
-            ? "Approved after SLA breach — escalation recorded in the audit trail."
-            : "Dual control satisfied; written to the audit trail. No production change executed."
-          : "Rejected; requesting agent notified and the intent is closed.",
+        item.approval.id === STAGE1_APPROVAL_ID
+          ? status === "approved"
+            ? "Dual-control recorded on Stage-1. Remediator held — no production change executed."
+            : "Rejected on Stage-1. Remediator was not started."
+          : status === "approved"
+            ? item.state === "breached"
+              ? "Approved after SLA breach — escalation recorded in the audit trail."
+              : "Dual control satisfied; written to the audit trail. No production change executed."
+            : "Rejected; requesting agent notified and the intent is closed.",
     }));
 
     const ids = outcomes.map((o) => o.id);
@@ -158,33 +252,72 @@ function ApprovalQueue() {
 
     const verb = status === "approved" ? "approved" : "rejected";
     const message = `${ids.length} approval${ids.length === 1 ? "" : "s"} ${verb}`;
-    const options = {
-      description: `Undo available for ${Math.round(UNDO_WINDOW_MS / 1000)}s before the batch is sealed.`,
-      duration: UNDO_WINDOW_MS,
-      action: { label: "Undo", onClick: () => undoBatch(ids) },
-    };
+    const liveSealed = ids.includes(STAGE1_APPROVAL_ID) && (liveStage1 || Boolean(liveRow));
+    const options = liveSealed
+      ? {
+          description: "Stage-1 decide is sealed. Remediator stays held. Seed rows can still be undone.",
+          duration: UNDO_WINDOW_MS,
+        }
+      : {
+          description: `Undo available for ${Math.round(UNDO_WINDOW_MS / 1000)}s before the batch is sealed.`,
+          duration: UNDO_WINDOW_MS,
+          action: { label: "Undo", onClick: () => undoBatch(ids) },
+        };
     if (status === "approved") toast.success(message, options);
     else toast.error(message, options);
   }
 
   function undoBatch(ids: string[]) {
-    revertApprovals(ids);
+    const revertIds = liveStage1 ? ids.filter((id) => id !== STAGE1_APPROVAL_ID) : ids;
+    revertApprovals(revertIds);
     if (undoTimer.current) window.clearTimeout(undoTimer.current);
     setBatch(null);
     toast("Batch reverted", {
-      description: `${ids.length} approval${ids.length === 1 ? "" : "s"} returned to the pending queue with live SLA countdowns.`,
+      description:
+        revertIds.length === ids.length
+          ? `${ids.length} approval${ids.length === 1 ? "" : "s"} returned to the pending queue with live SLA countdowns.`
+          : "Seed rows reverted. Stage-1 apr-clb-01 stays decided; remediator remains held.",
     });
   }
 
-  function decide(id: string, request: string, status: "approved" | "rejected") {
-    decideApproval(id, status);
+  async function decide(
+    id: string,
+    request: string,
+    status: "approved" | "rejected",
+    tenantId: string,
+    requiredRoles: string[],
+    approvedRoles?: string[],
+  ) {
+    const posted = await postLiveDecide({ id, tenantId, requiredRoles, approvedRoles }, status);
+    if (!posted.ok) return;
+    if (
+      id === STAGE1_APPROVAL_ID &&
+      stage1ApiConfigured() &&
+      status === "approved" &&
+      posted.remaining &&
+      posted.remaining.length > 0
+    ) {
+      toast.success("Stage-1 signature recorded", {
+        description: `${request} — ${posted.remaining.join(" + ")} still required. Remediator stays held.`,
+      });
+      return;
+    }
+    if (id !== STAGE1_APPROVAL_ID || !stage1ApiConfigured()) {
+      decideApproval(id, status);
+    }
     if (status === "approved") {
       toast.success("Approval recorded", {
-        description: `${request} — dual control satisfied and written to the audit trail. No production change is executed.`,
+        description:
+          id === STAGE1_APPROVAL_ID && stage1ApiConfigured()
+            ? `${request} — dual control recorded on Stage-1. Remediator held; no production change executed.`
+            : `${request} — dual control satisfied and written to the audit trail. No production change is executed.`,
       });
     } else {
       toast.error("Request rejected", {
-        description: `${request} — the requesting agent is notified and the intent is closed.`,
+        description:
+          id === STAGE1_APPROVAL_ID && stage1ApiConfigured()
+            ? `${request} — rejected on Stage-1. Remediator was not started.`
+            : `${request} — the requesting agent is notified and the intent is closed.`,
       });
     }
   }
@@ -231,8 +364,9 @@ function ApprovalQueue() {
               Approval Queue
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Live dual-control queue. Countdowns refresh every second and alert before the approval
-              SLA is breached — decisions are simulated and audited only.
+              Live dual-control queue. Countdowns refresh every second. CrashLoop approval{" "}
+              <span className="font-mono">apr-clb-01</span> decides on Stage-1 — remediator stays
+              held. Other rows stay session-local.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
@@ -431,6 +565,9 @@ function ApprovalQueue() {
                         <p className="text-sm font-medium">{item.approval.request}</p>
                         <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                           {item.approval.id} · requested by {item.approval.requestedBy}
+                          {liveStage1 && item.approval.id === STAGE1_APPROVAL_ID
+                            ? ` · live Stage-1${item.approval.approvedRoles?.length ? ` · signed ${item.approval.approvedRoles.join(", ")}` : ""}`
+                            : ""}
                         </p>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">{tenantName(item.approval.tenantId)}</TableCell>
@@ -472,13 +609,36 @@ function ApprovalQueue() {
                           <Button size="sm" variant="ghost" onClick={() => escalateNow(item)}>
                             Escalate
                           </Button>
-                          <Button size="sm" onClick={() => decide(item.approval.id, item.approval.request, "approved")}>
-                            Approve
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              void decide(
+                                item.approval.id,
+                                item.approval.request,
+                                "approved",
+                                item.approval.tenantId,
+                                item.approval.requiredRoles,
+                                item.approval.approvedRoles,
+                              )
+                            }
+                          >
+                            {liveStage1 && item.approval.id === STAGE1_APPROVAL_ID
+                              ? `Sign ${item.approval.requiredRoles.find((role) => !(item.approval.approvedRoles ?? []).includes(role)) ?? "next"}`
+                              : "Approve"}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => decide(item.approval.id, item.approval.request, "rejected")}
+                            onClick={() =>
+                              void decide(
+                                item.approval.id,
+                                item.approval.request,
+                                "rejected",
+                                item.approval.tenantId,
+                                item.approval.requiredRoles,
+                                item.approval.approvedRoles,
+                              )
+                            }
                           >
                             Reject
                           </Button>

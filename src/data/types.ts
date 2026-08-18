@@ -240,6 +240,8 @@ export interface Approval {
   risk: RiskLevel;
   requestedAt: string;
   status: "pending" | "approved" | "rejected";
+  /** Dual-control signatures already recorded (Stage-1 live overlay). */
+  approvedRoles?: string[];
 }
 export interface GatewayDecision {
   id: string;
@@ -293,7 +295,7 @@ export interface ExecutionTrace {
   model: string;
   tool: string;
   autonomyLevel: "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
-  status: "complete" | "awaiting-approval" | "running";
+  status: "complete" | "awaiting-approval" | "running" | "held";
   startedAt: string;
   endedAt?: string;
   summary: string;

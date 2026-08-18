@@ -83,7 +83,7 @@ function ControlTowerDetail() {
               tone={
                 trace.status === "complete"
                   ? "success"
-                  : trace.status === "awaiting-approval"
+                  : trace.status === "awaiting-approval" || trace.status === "held"
                     ? "warning"
                     : "info"
               }
