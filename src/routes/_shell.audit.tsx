@@ -10,6 +10,15 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForStatus } from "@/components/ops/status-badge";
 import { agentName, agents, auditLog, tenantName, tenants } from "@/data/seed";
+import type { AuditEntry } from "@/data/types";
+import {
+  downloadJson,
+  fetchLiveAudit,
+  fetchLiveEvidenceBundle,
+  STAGE1_CORRELATION_ID,
+  STAGE1_EXECUTION_ID,
+  stage1ApiConfigured,
+} from "@/lib/stage1-api";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/audit")({
@@ -58,6 +67,12 @@ function useLiveChainHealth(base: number) {
   return n;
 }
 
+function mergeAuditLog(seed: AuditEntry[], live: AuditEntry[] | null): AuditEntry[] {
+  if (!live) return seed;
+  const withoutClb = seed.filter((a) => a.correlationId !== STAGE1_CORRELATION_ID);
+  return [...live, ...withoutClb];
+}
+
 function AuditCompliance() {
   const [query, setQuery] = useState("");
   const [tenantFilter, setTenantFilter] = useState("all");
@@ -65,17 +80,37 @@ function AuditCompliance() {
   const [agentFilter, setAgentFilter] = useState("all");
   const [decisionFilter, setDecisionFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [liveAudit, setLiveAudit] = useState<AuditEntry[] | null>(null);
+  const [liveReady, setLiveReady] = useState(false);
 
-  const users = useMemo(() => Array.from(new Set(auditLog.map((a) => a.user))).sort(), []);
+  useEffect(() => {
+    if (!stage1ApiConfigured()) {
+      setLiveReady(true);
+      return;
+    }
+    let cancelled = false;
+    fetchLiveAudit(STAGE1_EXECUTION_ID, "tn-nordic").then((rows) => {
+      if (cancelled) return;
+      setLiveAudit(rows);
+      setLiveReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const entries = useMemo(() => mergeAuditLog(auditLog, liveAudit), [liveAudit]);
+
+  const users = useMemo(() => Array.from(new Set(entries.map((a) => a.user))).sort(), [entries]);
   const auditAgents = useMemo(
-    () => Array.from(new Set(auditLog.map((a) => a.agentId))).sort(),
-    [],
+    () => Array.from(new Set(entries.map((a) => a.agentId))).sort(),
+    [entries],
   );
-  const tools = useMemo(() => Array.from(new Set(auditLog.map((a) => a.tool))).length, []);
+  const tools = useMemo(() => Array.from(new Set(entries.map((a) => a.tool))).length, [entries]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return auditLog
+    return entries
       .filter((a) => {
         if (tenantFilter !== "all" && a.tenantId !== tenantFilter) return false;
         if (userFilter !== "all" && a.user !== userFilter) return false;
@@ -97,16 +132,33 @@ function AuditCompliance() {
           .includes(q);
       })
       .sort((a, b) => b.time.localeCompare(a.time));
-  }, [query, tenantFilter, userFilter, agentFilter, decisionFilter]);
+  }, [entries, query, tenantFilter, userFilter, agentFilter, decisionFilter]);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);
   const visible = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
 
-  const denied = auditLog.filter((a) => a.decision === "denied").length;
-  const gated = auditLog.filter((a) => a.decision === "approval-required").length;
+  const denied = entries.filter((a) => a.decision === "denied").length;
+  const gated = entries.filter((a) => a.decision === "approval-required").length;
   const liveIngest = useLiveIngest(18);
   const liveChain = useLiveChainHealth(100);
+  const liveOverlay = liveReady && liveAudit !== null && liveAudit.length > 0;
+
+  async function exportBundle() {
+    if (!stage1ApiConfigured()) {
+      toast.error("Stage-1 API is not configured");
+      return;
+    }
+    const bundle = await fetchLiveEvidenceBundle(STAGE1_EXECUTION_ID, "tn-nordic");
+    if (!bundle) {
+      toast.error("Could not fetch Stage-1 evidence bundle");
+      return;
+    }
+    downloadJson(`exec-clb-01-evidence-bundle.json`, bundle);
+    toast.success("Evidence bundle downloaded", {
+      description: `Chain head ${bundle.chain.head.slice(0, 18)}… · remediator held`,
+    });
+  }
 
   function reset() {
     setQuery("");
@@ -142,11 +194,7 @@ function AuditCompliance() {
             </p>
             <Button
               className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
-              onClick={() =>
-                toast.success("Audit export queued", {
-                  description: `${rows.length} entries will be exported as a signed, hash-chained bundle.`,
-                })
-              }
+              onClick={() => void exportBundle()}
             >
               <FileCheck2 className="size-4" aria-hidden="true" />
               Export evidence bundle
@@ -154,7 +202,7 @@ function AuditCompliance() {
           </div>
           <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
             {[
-              { label: "Entries", value: auditLog.length, hint: "400d retain" },
+              { label: "Entries", value: entries.length, hint: "400d retain" },
               {
                 label: "Denied",
                 value: denied,
@@ -218,9 +266,11 @@ function AuditCompliance() {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-sm font-semibold">Audit trail</h2>
             <p className="text-xs text-muted-foreground">
-              {rows.length} of {auditLog.length} entries · chain integrity verified
+              {rows.length} of {entries.length} entries · chain integrity verified
+              {liveOverlay ? " · live Stage-1 ledger" : ""}
             </p>
           </div>
+          {liveOverlay && <StatusPill tone="info">live Stage-1</StatusPill>}
           {denied > 0 && (
             <StatusPill tone="danger">
               <ShieldAlert className="mr-1 size-3" aria-hidden="true" />

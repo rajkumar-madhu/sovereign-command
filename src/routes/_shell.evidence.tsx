@@ -16,6 +16,14 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
 import { evidenceArtifacts, incidents, customerName, tenantName } from "@/data/seed";
+import type { EvidenceArtifact } from "@/data/types";
+import {
+  downloadJson,
+  fetchLiveEvidence,
+  fetchLiveEvidenceBundle,
+  STAGE1_EXECUTION_ID,
+  stage1ApiConfigured,
+} from "@/lib/stage1-api";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
 import {
@@ -161,14 +169,57 @@ function LoadGraphPanel({
   );
 }
 
+function mergeEvidence(
+  seed: EvidenceArtifact[],
+  live: EvidenceArtifact[] | null,
+): EvidenceArtifact[] {
+  if (!live) return seed;
+  const liveIds = new Set(live.map((a) => a.id));
+  return [...live, ...seed.filter((a) => !liveIds.has(a.id))];
+}
+
 function EvidenceViewer() {
   const { artifact: artifactParam } = Route.useSearch();
   const ops = useOps();
   const [range, setRange] = useState<TimeRange>(DEFAULT_INCIDENT_RANGE);
   const [presetId, setPresetId] = useState("incident");
+  const [liveEvidence, setLiveEvidence] = useState<EvidenceArtifact[] | null>(null);
+  const [liveReady, setLiveReady] = useState(false);
+
+  useEffect(() => {
+    if (!stage1ApiConfigured()) {
+      setLiveReady(true);
+      return;
+    }
+    let cancelled = false;
+    fetchLiveEvidence(STAGE1_EXECUTION_ID, "tn-nordic", evidenceArtifacts).then((rows) => {
+      if (cancelled) return;
+      setLiveEvidence(rows);
+      setLiveReady(true);
+      if (rows && rows.length) {
+        const times = rows.map((a) => new Date(a.collected).getTime()).filter((n) => !Number.isNaN(n));
+        if (times.length) {
+          setRange({
+            from: new Date(Math.min(...times) - 60 * 60 * 1000),
+            to: new Date(Math.max(...times) + 60 * 60 * 1000),
+          });
+          setPresetId("stage1-live");
+        }
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const catalog = useMemo(
+    () => mergeEvidence(evidenceArtifacts, liveEvidence),
+    [liveEvidence],
+  );
+  const liveOverlay = liveReady && liveEvidence !== null && liveEvidence.length > 0;
   const filteredArtifacts = useMemo(
     () =>
-      evidenceArtifacts.filter((a) => {
+      catalog.filter((a) => {
         const d = new Date(a.collected);
         if (Number.isNaN(d.getTime()) || !inTimeRange(d, range)) return false;
         if (!a.incidentId) return true;
@@ -180,7 +231,7 @@ function EvidenceViewer() {
           environment: ops.environment,
         });
       }),
-    [range, ops.tenantId, ops.customerId, ops.environment],
+    [catalog, range, ops.tenantId, ops.customerId, ops.environment],
   );
   const initial =
     filteredArtifacts.find((a) => a.id === artifactParam)?.id ??
@@ -203,6 +254,22 @@ function EvidenceViewer() {
     if (isLoadGraph) return artifact.body;
     return filterLogLines(artifact.body, range);
   }, [artifact.body, isLoadGraph, range]);
+
+  async function exportBundle() {
+    if (!stage1ApiConfigured()) {
+      toast.error("Stage-1 API is not configured");
+      return;
+    }
+    const bundle = await fetchLiveEvidenceBundle(STAGE1_EXECUTION_ID, "tn-nordic");
+    if (!bundle) {
+      toast.error("Could not fetch Stage-1 evidence bundle");
+      return;
+    }
+    downloadJson("exec-clb-01-evidence-bundle.json", bundle);
+    toast.success("Evidence bundle exported", {
+      description: `sha256 head ${bundle.chain.head.slice(7, 19)}… · remediator held`,
+    });
+  }
 
   useEffect(() => {
     if (artifactParam && filteredArtifacts.some((a) => a.id === artifactParam)) {
@@ -254,11 +321,7 @@ function EvidenceViewer() {
                     ? "border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
                     : "",
                 )}
-                onClick={() =>
-                  toast.success("Evidence bundle exported", {
-                    description: `Window ${formatRangeLabel(range)}`,
-                  })
-                }
+                onClick={() => void exportBundle()}
               >
                 Export bundle
               </Button>
@@ -357,8 +420,10 @@ function EvidenceViewer() {
               <h2 className="font-display text-sm font-semibold">Artefacts</h2>
               <p className="text-xs text-muted-foreground">
                 {filteredArtifacts.length} in selected window
+                {liveOverlay ? " · live Stage-1 hashes" : ""}
               </p>
             </div>
+            {liveOverlay && <StatusPill tone="info">live Stage-1</StatusPill>}
           </div>
           <div className="space-y-2 p-3">
             {filteredArtifacts.length === 0 ? (
@@ -405,6 +470,9 @@ function EvidenceViewer() {
                   <h2 className="font-display font-mono text-sm font-semibold">{artifact.name}</h2>
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <StatusPill tone="success">integrity verified</StatusPill>
+                    {liveOverlay && artifact.id.startsWith("ev-clb-") && (
+                      <StatusPill tone="info">live sha256</StatusPill>
+                    )}
                     <span className="break-all font-mono">{artifact.hash}</span>
                   </p>
                   <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
