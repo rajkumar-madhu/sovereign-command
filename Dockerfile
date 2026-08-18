@@ -9,6 +9,8 @@ RUN bun install --frozen-lockfile
 FROM deps AS build
 WORKDIR /app
 COPY . .
+ARG VITE_STAGE1_API_URL=
+ENV VITE_STAGE1_API_URL=$VITE_STAGE1_API_URL
 ENV NITRO_PRESET=node-server
 RUN bun run build:selfhost
 

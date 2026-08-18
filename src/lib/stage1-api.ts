@@ -2,6 +2,9 @@ import type { ExecutionTrace } from "@/data/types";
 
 function stage1ApiUrl(): string {
   try {
+    const runtime =
+      typeof process !== "undefined" ? process.env?.STAGE1_API_URL : undefined;
+    if (runtime?.trim()) return runtime.replace(/\/$/, "");
     const raw = (import.meta as ImportMeta & { env?: Record<string, string> }).env
       ?.VITE_STAGE1_API_URL;
     return raw?.replace(/\/$/, "") ?? "";
