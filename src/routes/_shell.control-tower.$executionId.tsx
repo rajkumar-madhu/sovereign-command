@@ -11,13 +11,15 @@ import {
   tenantName,
 } from "@/data/seed";
 import type { ExecutionHop, ExecutionTrace, TraceDomain } from "@/data/types";
+import { fetchLiveExecution } from "@/lib/stage1-api";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/control-tower/$executionId")({
-  loader: ({ params }): { trace: ExecutionTrace } => {
-    const trace = getExecutionTrace(params.executionId);
+  loader: async ({ params }): Promise<{ trace: ExecutionTrace; source: "stage1" | "seed" }> => {
+    const live = await fetchLiveExecution(params.executionId);
+    const trace = live ?? getExecutionTrace(params.executionId);
     if (!trace) throw notFound();
-    return { trace };
+    return { trace, source: live ? "stage1" : "seed" };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -63,7 +65,10 @@ function hopTone(status: ExecutionHop["status"]) {
 }
 
 function ControlTowerDetail() {
-  const { trace } = Route.useLoaderData() as { trace: ExecutionTrace };
+  const { trace, source } = Route.useLoaderData() as {
+    trace: ExecutionTrace;
+    source: "stage1" | "seed";
+  };
 
   return (
     <div className="space-y-6">
@@ -86,6 +91,11 @@ function ControlTowerDetail() {
               {trace.status}
             </StatusPill>
             <StatusPill tone="info">{trace.autonomyLevel}</StatusPill>
+            {source === "stage1" ? (
+              <StatusPill tone="success">live Stage-1</StatusPill>
+            ) : trace.id === "exec-clb-01" ? (
+              <StatusPill tone="info">seed fixture</StatusPill>
+            ) : null}
           </div>
           <h1 className="font-display font-mono text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
             {trace.id}

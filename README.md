@@ -37,6 +37,20 @@ bun install   # or: npm i
 bun run dev   # http://127.0.0.1:5173
 ```
 
+## Live Stage-1 Control Tower (optional)
+
+When AEGIS compose is running, `/control-tower/exec-clb-01` can show the live runner output instead of the seed fixture. Production stays on seed unless `VITE_STAGE1_API_URL` is set at build time.
+
+```sh
+# in wecrew-aegis
+make compose-stage1
+
+# in this repo
+VITE_STAGE1_API_URL=http://127.0.0.1:8091 bun run dev
+```
+
+Stage-1 still holds the remediator (investigate + prove + decide only).
+
 ## Self-hosted deploy
 
 Production SSR build uses Nitro `node-server` (not Cloudflare). On this Mac use Colima for Docker.

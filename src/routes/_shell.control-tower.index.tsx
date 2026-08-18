@@ -7,10 +7,15 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
 import { agentName, customerName, executionTraces, tenantName } from "@/data/seed";
+import type { ExecutionTrace } from "@/data/types";
+import { fetchLiveExecution } from "@/lib/stage1-api";
 import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/control-tower/")({
+  loader: async (): Promise<{ liveClb: ExecutionTrace | null }> => ({
+    liveClb: await fetchLiveExecution("exec-clb-01"),
+  }),
   head: () => ({
     meta: [
       { title: "AI Control Tower · Wecrew Ops" },
@@ -33,11 +38,18 @@ function statusTone(status: string) {
 
 function ControlTowerIndex() {
   const ops = useOps();
+  const { liveClb } = Route.useLoaderData() as { liveClb: ExecutionTrace | null };
   const [query, setQuery] = useState("");
 
   const rows = useMemo(() => {
+    const traces = executionTraces.map((t) =>
+      liveClb && t.id === liveClb.id ? liveClb : t,
+    );
+    if (liveClb && !traces.some((t) => t.id === liveClb.id)) {
+      traces.unshift(liveClb);
+    }
     const q = query.trim().toLowerCase();
-    return executionTraces.filter((t) => {
+    return traces.filter((t) => {
       if (t.tenantId !== ops.tenantId) return false;
       if (!q) return true;
       return [
@@ -54,7 +66,7 @@ function ControlTowerIndex() {
         .toLowerCase()
         .includes(q);
     });
-  }, [ops.tenantId, query]);
+  }, [ops.tenantId, query, liveClb]);
 
   return (
     <div className="space-y-6">
@@ -131,6 +143,9 @@ function ControlTowerIndex() {
           className="max-w-md"
           aria-label="Filter executions"
         />
+        {liveClb && (
+          <StatusPill tone="success">exec-clb-01 live from Stage-1</StatusPill>
+        )}
       </div>
 
       <ul className="space-y-3">
@@ -150,6 +165,9 @@ function ControlTowerIndex() {
                     <p className="font-mono text-sm font-semibold text-foreground">{t.id}</p>
                     <StatusPill tone={statusTone(t.status)}>{t.status}</StatusPill>
                     <StatusPill tone="info">{t.autonomyLevel}</StatusPill>
+                    {liveClb && t.id === liveClb.id && (
+                      <StatusPill tone="success">live</StatusPill>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">{t.summary}</p>
                   <p className="font-mono text-[11px] text-muted-foreground">
