@@ -1,6 +1,42 @@
-import type { ExecutionTrace } from "@/data/types";
+import type { AuditEntry, EvidenceArtifact, ExecutionTrace } from "@/data/types";
 
 export const STAGE1_APPROVAL_ID = "apr-clb-01";
+export const STAGE1_EXECUTION_ID = "exec-clb-01";
+export const STAGE1_CORRELATION_ID = "corr-clb-01";
+
+export interface LiveAuditEvent {
+  id: string;
+  correlationId: string;
+  executionId: string;
+  at: string;
+  tenantId: string;
+  agentId: string;
+  action: string;
+  decision: string;
+  outcome: string;
+}
+
+export interface LiveEvidenceArtefact {
+  id: string;
+  tenantId: string;
+  incidentId: string;
+  kind: string;
+  collectedAt: string;
+  hash: string;
+  body: string;
+  provenance: string;
+}
+
+export interface LiveEvidenceBundle {
+  remediator: "held";
+  wouldExecute: boolean;
+  executionId: string;
+  tenantId: string;
+  generatedAt?: string;
+  chain: { genesis: string; head: string; remediator: "held"; links: unknown[] };
+  evidence: LiveEvidenceArtefact[];
+  audit: LiveAuditEvent[];
+}
 
 export interface LiveApproval {
   id: string;
@@ -92,6 +128,161 @@ export async function fetchLiveApproval(
   } catch {
     return null;
   }
+}
+
+function mapLiveDecision(decision: string): AuditEntry["decision"] {
+  const d = decision.toLowerCase();
+  if (d === "deny" || d === "denied") return "denied";
+  if (d === "allow" || d === "allowed") return "allowed";
+  return "approval-required";
+}
+
+function toolFromAction(action: string): string {
+  const token = action.trim().split(/\s+/)[0] ?? "stage1";
+  return token.includes(".") ? token.split(".")[0]! : token;
+}
+
+function isLiveAuditEvent(value: unknown): value is LiveAuditEvent {
+  if (!value || typeof value !== "object") return false;
+  const e = value as LiveAuditEvent;
+  return (
+    typeof e.id === "string" &&
+    typeof e.correlationId === "string" &&
+    typeof e.at === "string" &&
+    typeof e.tenantId === "string" &&
+    typeof e.agentId === "string" &&
+    typeof e.action === "string" &&
+    typeof e.decision === "string" &&
+    typeof e.outcome === "string"
+  );
+}
+
+export function toAuditEntries(events: LiveAuditEvent[]): AuditEntry[] {
+  return events.map((e) => ({
+    id: `live-${e.id}`,
+    correlationId: e.correlationId,
+    time: e.at,
+    user: "system",
+    agentId: e.agentId,
+    tenantId: e.tenantId,
+    tool: toolFromAction(e.action),
+    action: e.action,
+    decision: mapLiveDecision(e.decision),
+    outcome: e.outcome,
+  }));
+}
+
+export async function fetchLiveAudit(
+  executionId: string,
+  tenantId: string,
+): Promise<AuditEntry[] | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(
+      `${base}/executions/${encodeURIComponent(executionId)}/audit?tenantId=${encodeURIComponent(tenantId)}`,
+      { signal: AbortSignal.timeout(2500) },
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || !("audit" in body) || !Array.isArray(body.audit)) {
+      return null;
+    }
+    const events = body.audit.filter(isLiveAuditEvent);
+    return events.length ? toAuditEntries(events) : [];
+  } catch {
+    return null;
+  }
+}
+
+function isLiveEvidenceArtefact(value: unknown): value is LiveEvidenceArtefact {
+  if (!value || typeof value !== "object") return false;
+  const e = value as LiveEvidenceArtefact;
+  return (
+    typeof e.id === "string" &&
+    typeof e.tenantId === "string" &&
+    typeof e.hash === "string" &&
+    typeof e.body === "string" &&
+    typeof e.kind === "string" &&
+    typeof e.collectedAt === "string"
+  );
+}
+
+export function toEvidenceArtifacts(
+  events: LiveEvidenceArtefact[],
+  seed: EvidenceArtifact[],
+): EvidenceArtifact[] {
+  return events.map((e) => {
+    const prior = seed.find((s) => s.id === e.id);
+    return {
+      id: e.id,
+      name: prior?.name ?? `${e.id}.txt`,
+      kind: prior?.kind ?? e.kind,
+      collected: e.collectedAt,
+      hash: e.hash,
+      body: e.body,
+      incidentId: e.incidentId,
+      resource: prior?.resource,
+    };
+  });
+}
+
+export async function fetchLiveEvidence(
+  executionId: string,
+  tenantId: string,
+  seed: EvidenceArtifact[] = [],
+): Promise<EvidenceArtifact[] | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(
+      `${base}/executions/${encodeURIComponent(executionId)}/evidence?tenantId=${encodeURIComponent(tenantId)}`,
+      { signal: AbortSignal.timeout(2500) },
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || !("evidence" in body) || !Array.isArray(body.evidence)) {
+      return null;
+    }
+    const events = body.evidence.filter(isLiveEvidenceArtefact);
+    return events.length ? toEvidenceArtifacts(events, seed) : [];
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchLiveEvidenceBundle(
+  executionId: string,
+  tenantId: string,
+): Promise<LiveEvidenceBundle | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(
+      `${base}/executions/${encodeURIComponent(executionId)}/evidence-bundle?tenantId=${encodeURIComponent(tenantId)}`,
+      { signal: AbortSignal.timeout(4000) },
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || !("chain" in body) || !("evidence" in body)) {
+      return null;
+    }
+    const payload = body as LiveEvidenceBundle;
+    if (payload.remediator !== "held") return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export function downloadJson(filename: string, payload: unknown): void {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function decideLiveApproval(input: {
