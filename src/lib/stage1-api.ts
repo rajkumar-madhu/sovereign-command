@@ -367,6 +367,61 @@ export async function fetchLiveRca(
   }
 }
 
+export interface LivePolicyEvaluation {
+  action: string;
+  decision: "ALLOW" | "DENY" | "REQUIRE_APPROVAL";
+  reason: string;
+  killSwitchIdle: boolean;
+}
+
+export interface LivePolicyResult {
+  remediator: "held";
+  wouldExecute: boolean;
+  executionId: string;
+  tenantId: string;
+  environment?: string;
+  evaluations: LivePolicyEvaluation[];
+}
+
+function isLivePolicyEvaluation(value: unknown): value is LivePolicyEvaluation {
+  if (!value || typeof value !== "object") return false;
+  const e = value as LivePolicyEvaluation;
+  return (
+    typeof e.action === "string" &&
+    (e.decision === "ALLOW" || e.decision === "DENY" || e.decision === "REQUIRE_APPROVAL") &&
+    typeof e.reason === "string"
+  );
+}
+
+export async function fetchLivePolicy(
+  executionId: string,
+  tenantId: string,
+): Promise<LivePolicyResult | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(
+      `${base}/executions/${encodeURIComponent(executionId)}/policy?tenantId=${encodeURIComponent(tenantId)}`,
+      { signal: AbortSignal.timeout(2500) },
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || !("evaluations" in body) || !("remediator" in body)) {
+      return null;
+    }
+    const payload = body as LivePolicyResult;
+    if (payload.remediator !== "held") return null;
+    if (!Array.isArray(payload.evaluations)) return null;
+    return {
+      ...payload,
+      wouldExecute: false,
+      evaluations: payload.evaluations.filter(isLivePolicyEvaluation),
+    };
+  } catch {
+    return null;
+  }
+}
+
 type SeedRca = {
   incidentId: string;
   title: string;
