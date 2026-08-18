@@ -22,6 +22,7 @@ import {
   fetchLiveEvidence,
   fetchLiveEvidenceBundle,
   STAGE1_EXECUTION_ID,
+  STAGE1_INCIDENT_ID,
   stage1ApiConfigured,
 } from "@/lib/stage1-api";
 import { useShellChrome } from "@/lib/shell-chrome";
@@ -334,7 +335,7 @@ function EvidenceViewer() {
                     : "",
                 )}
               >
-                <Link to="/rca" search={{ incident: linkedIncident?.id ?? "inc-4821" }}>
+                <Link to="/rca" search={{ incident: linkedIncident?.id ?? STAGE1_INCIDENT_ID }}>
                   <ScrollText className="size-4" aria-hidden="true" />
                   Open RCA
                 </Link>

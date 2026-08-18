@@ -16,6 +16,14 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
 import { customerName, customers, getRcaReport, incidents, tenantName, tenants } from "@/data/seed";
+import { crashLoopRca } from "@/data/control-tower";
+import {
+  fetchLiveRca,
+  overlayLiveRca,
+  STAGE1_EXECUTION_ID,
+  STAGE1_INCIDENT_ID,
+  stage1ApiConfigured,
+} from "@/lib/stage1-api";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
 
@@ -205,9 +213,37 @@ function RejectedCard({
 
 function RcaPage() {
   const { incident: incidentParam } = Route.useSearch();
-  const report = getRcaReport(incidentParam);
+  const seed = getRcaReport(incidentParam);
+  const [liveReport, setLiveReport] = useState<typeof seed | null>(null);
+  const [liveReady, setLiveReady] = useState(false);
+  const wantsClb = !incidentParam || incidentParam === STAGE1_INCIDENT_ID;
+
+  useEffect(() => {
+    if (!wantsClb || !stage1ApiConfigured()) {
+      setLiveReady(true);
+      setLiveReport(null);
+      return;
+    }
+    let cancelled = false;
+    fetchLiveRca(STAGE1_EXECUTION_ID, "tn-nordic").then((live) => {
+      if (cancelled) return;
+      if (live?.rca) {
+        setLiveReport(overlayLiveRca(crashLoopRca, live.rca, []));
+      } else {
+        setLiveReport(null);
+      }
+      setLiveReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsClb]);
+
+  const report = liveReport ?? seed;
+  const liveOverlay = liveReady && liveReport !== null;
   const { focusMode, setFocusMode } = useShellChrome();
   const liveConf = useLiveConfidence(report.confidence);
+  const shownConf = liveOverlay ? report.confidence : liveConf;
   const [openEvidence, setOpenEvidence] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(report.evidence.map((e) => [e.id, true])),
   );
@@ -238,6 +274,7 @@ function RcaPage() {
               <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
                 Investigate · root cause
               </p>
+              {liveOverlay && <StatusPill tone="info">live Stage-1</StatusPill>}
               <StatusPill tone="success">risk {report.risk}</StatusPill>
               <StatusPill tone="success">no prod write</StatusPill>
             </div>
@@ -335,9 +372,9 @@ function RcaPage() {
             {[
               {
                 label: "Confidence",
-                value: liveConf,
+                value: shownConf,
                 unit: "%",
-                hint: "live",
+                hint: liveOverlay ? "sealed" : "live",
                 live: true,
               },
               { label: "Risk", value: report.risk, hint: "posture" },
@@ -395,9 +432,9 @@ function RcaPage() {
             <h2 className="font-display text-sm font-semibold">Root cause</h2>
             <p className="text-xs text-muted-foreground">Verification agent confidence score</p>
           </div>
-          <span className="font-display text-lg font-semibold tabular-nums">{liveConf}%</span>
+          <span className="font-display text-lg font-semibold tabular-nums">{shownConf}%</span>
         </div>
-        <Progress value={liveConf} className="mb-4" aria-label={`Confidence ${liveConf}%`} />
+        <Progress value={shownConf} className="mb-4" aria-label={`Confidence ${shownConf}%`} />
         <p className="text-sm leading-relaxed">{report.rootCause}</p>
       </section>
 

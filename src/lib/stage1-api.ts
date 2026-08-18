@@ -3,6 +3,7 @@ import type { AuditEntry, EvidenceArtifact, ExecutionTrace } from "@/data/types"
 export const STAGE1_APPROVAL_ID = "apr-clb-01";
 export const STAGE1_EXECUTION_ID = "exec-clb-01";
 export const STAGE1_CORRELATION_ID = "corr-clb-01";
+export const STAGE1_INCIDENT_ID = "inc-clb-01";
 
 export interface LiveAuditEvent {
   id: string;
@@ -283,6 +284,152 @@ export function downloadJson(filename: string, payload: unknown): void {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export interface LiveHypothesis {
+  id: string;
+  claim: string;
+  status: "supported" | "rejected" | "unknown";
+  evidenceIds: string[];
+  reason: string;
+}
+
+export interface LiveRcaPackage {
+  incidentId: string;
+  rootCause: string;
+  confidence: number;
+  supporting: LiveHypothesis[];
+  rejected: LiveHypothesis[];
+  unknowns: string[];
+  recommendation: string;
+  productionWriteRequired: boolean;
+}
+
+export interface LiveRcaResult {
+  remediator: "held";
+  wouldExecute: boolean;
+  executionId: string;
+  tenantId: string;
+  incidentId?: string;
+  rca: LiveRcaPackage | null;
+}
+
+function isLiveHypothesis(value: unknown): value is LiveHypothesis {
+  if (!value || typeof value !== "object") return false;
+  const h = value as LiveHypothesis;
+  return (
+    typeof h.id === "string" &&
+    typeof h.claim === "string" &&
+    typeof h.reason === "string" &&
+    Array.isArray(h.evidenceIds)
+  );
+}
+
+function isLiveRcaPackage(value: unknown): value is LiveRcaPackage {
+  if (!value || typeof value !== "object") return false;
+  const r = value as LiveRcaPackage;
+  return (
+    typeof r.incidentId === "string" &&
+    typeof r.rootCause === "string" &&
+    typeof r.confidence === "number" &&
+    Array.isArray(r.supporting) &&
+    Array.isArray(r.rejected) &&
+    typeof r.recommendation === "string"
+  );
+}
+
+export async function fetchLiveRca(
+  executionId: string,
+  tenantId: string,
+): Promise<LiveRcaResult | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(
+      `${base}/executions/${encodeURIComponent(executionId)}/rca?tenantId=${encodeURIComponent(tenantId)}`,
+      { signal: AbortSignal.timeout(2500) },
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || !("rca" in body) || !("remediator" in body)) {
+      return null;
+    }
+    const payload = body as LiveRcaResult;
+    if (payload.remediator !== "held") return null;
+    if (payload.rca && !isLiveRcaPackage(payload.rca)) return null;
+    if (payload.rca) {
+      payload.rca.supporting = payload.rca.supporting.filter(isLiveHypothesis);
+      payload.rca.rejected = payload.rca.rejected.filter(isLiveHypothesis);
+    }
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+type SeedRca = {
+  incidentId: string;
+  title: string;
+  confidence: number;
+  risk: "low" | "medium" | "high" | "critical";
+  productionWriteRequired: boolean;
+  rootCause: string;
+  evidence: Array<{
+    id: string;
+    claim: string;
+    status: "verified" | "partial";
+    artifacts: string[];
+    check: string;
+    capturedAt: string;
+    hostname?: string;
+    ipAddress?: string;
+    logs: string;
+    output: string;
+  }>;
+  rejected: Array<{
+    id: string;
+    claim: string;
+    artifacts: string[];
+    reason: string;
+    output: string;
+  }>;
+  recommendation: string;
+  owner: string;
+};
+
+/** Overlay live Stage-1 compileRca onto the seed CrashLoop RCA package. */
+export function overlayLiveRca(seed: SeedRca, live: LiveRcaPackage, artefacts: LiveEvidenceArtefact[]): SeedRca {
+  const locus = seed.evidence[0];
+  const capturedAt = artefacts[0]?.collectedAt ?? locus?.capturedAt ?? new Date().toISOString();
+  return {
+    ...seed,
+    confidence: live.confidence,
+    productionWriteRequired: false,
+    rootCause: live.rootCause,
+    recommendation: `${live.recommendation} Stage-1 remediator remains held.`,
+    evidence: live.supporting.map((h) => ({
+      id: h.id,
+      claim: h.claim,
+      status: "verified" as const,
+      artifacts: h.evidenceIds,
+      check: "stage1 compileRca · sealed evidence",
+      capturedAt,
+      hostname: locus?.hostname,
+      ipAddress: locus?.ipAddress,
+      logs: h.reason,
+      output: artefacts
+        .filter((a) => h.evidenceIds.includes(a.id))
+        .map((a) => `${a.id} ${a.hash}`)
+        .join("\n"),
+    })),
+    rejected: live.rejected.map((h) => ({
+      id: h.id,
+      claim: h.claim,
+      artifacts: h.evidenceIds,
+      reason: h.reason,
+      output: "Stage-1 remediator held",
+    })),
+  };
 }
 
 export async function decideLiveApproval(input: {
