@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_shell/control-tower/")({
 
 function statusTone(status: string) {
   if (status === "complete") return "success" as const;
-  if (status === "awaiting-approval") return "warning" as const;
+  if (status === "awaiting-approval" || status === "held") return "warning" as const;
   return "info" as const;
 }
 

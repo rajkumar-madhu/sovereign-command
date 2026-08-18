@@ -18,6 +18,7 @@ interface OpsState {
   setCustomerId: (id: string) => void;
   setEnvironment: (env: EnvName) => void;
   approvals: Approval[];
+  hydrateApproval: (patch: Pick<Approval, "id"> & Partial<Approval>) => void;
   decideApproval: (id: string, status: "approved" | "rejected") => void;
   decideApprovals: (ids: string[], status: "approved" | "rejected") => void;
   revertApprovals: (ids: string[]) => void;
@@ -91,6 +92,8 @@ export function OpsProvider({ children }: { children: ReactNode }) {
       setCustomerId,
       setEnvironment,
       approvals,
+      hydrateApproval: (patch) =>
+        setApprovals((prev) => prev.map((a) => (a.id === patch.id ? { ...a, ...patch } : a))),
       decideApproval: (id, status) =>
         setApprovals((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a))),
       decideApprovals: (ids, status) =>
