@@ -22,6 +22,12 @@ import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
 import { agentName, tenantName } from "@/data/seed";
 import type { Policy } from "@/data/types";
+import {
+  fetchLivePolicy,
+  STAGE1_EXECUTION_ID,
+  stage1ApiConfigured,
+  type LivePolicyResult,
+} from "@/lib/stage1-api";
 import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +96,18 @@ function PolicyManagement() {
   const [editing, setEditing] = useState<Policy | null>(null);
   const [draft, setDraft] = useState<Policy | null>(null);
   const [intent, setIntent] = useState(INTENTS[0]!.id);
+  const [livePolicy, setLivePolicy] = useState<LivePolicyResult | null>(null);
+
+  useEffect(() => {
+    if (!stage1ApiConfigured()) return;
+    let cancelled = false;
+    fetchLivePolicy(STAGE1_EXECUTION_ID, "tn-nordic").then((live) => {
+      if (!cancelled) setLivePolicy(live);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const active = ops.policies.filter((p) => p.enabled).length;
   const denyRules = ops.policies.filter((p) => p.effect === "deny" && p.enabled).length;
@@ -163,9 +181,14 @@ function PolicyManagement() {
         />
         <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
           <div className="max-w-xl space-y-3">
-            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
-              Govern · guardrails
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
+                Govern · guardrails
+              </p>
+              {livePolicy && livePolicy.evaluations.length > 0 && (
+                <StatusPill tone="info">live Stage-1</StatusPill>
+              )}
+            </div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
               Policy Management
             </h1>
@@ -239,6 +262,45 @@ function PolicyManagement() {
         crumbs={[{ label: "Govern", to: "/command" }, { label: "Policy Management" }]}
       />
       <SafetyBanner />
+
+      {livePolicy && livePolicy.evaluations.length > 0 && (
+        <section className="ops-panel rounded-2xl p-5" aria-label="Stage-1 live policy">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <ShieldQuestion className="size-4 text-brand-coral" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-sm font-semibold">Stage-1 live evaluation</h2>
+              <p className="text-xs text-muted-foreground">
+                exec-clb-01 · tn-nordic · remediator held · wouldExecute {String(livePolicy.wouldExecute)}
+              </p>
+            </div>
+            <StatusPill tone="success">kill switch idle</StatusPill>
+          </div>
+          <ul className="space-y-2">
+            {livePolicy.evaluations.map((e) => (
+              <li
+                key={e.action}
+                className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-border bg-surface/40 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-medium">{e.action}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{e.reason}</p>
+                </div>
+                <StatusPill
+                  tone={
+                    e.decision === "ALLOW"
+                      ? "success"
+                      : e.decision === "DENY"
+                        ? "danger"
+                        : "warning"
+                  }
+                >
+                  {e.decision}
+                </StatusPill>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="ops-panel overflow-hidden rounded-2xl" aria-label="Policy rules">
         <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
