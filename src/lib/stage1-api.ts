@@ -393,6 +393,71 @@ function isLivePolicyEvaluation(value: unknown): value is LivePolicyEvaluation {
   );
 }
 
+export interface LiveChange {
+  id: string;
+  app: string;
+  image: string;
+  imageSource: "live-k8s" | "sealed";
+  syncedAt: string;
+  configMap: string;
+  configMapChanged: boolean;
+  configMapSource?: "sealed";
+  provenance: string;
+  evidenceId: string;
+  hash: string;
+}
+
+export interface LiveChangeResult {
+  remediator: "held";
+  wouldExecute: boolean;
+  executionId: string;
+  tenantId: string;
+  change: LiveChange | null;
+}
+
+function isLiveChange(value: unknown): value is LiveChange {
+  if (!value || typeof value !== "object") return false;
+  const c = value as LiveChange;
+  return (
+    typeof c.id === "string" &&
+    typeof c.app === "string" &&
+    typeof c.image === "string" &&
+    (c.imageSource === "live-k8s" || c.imageSource === "sealed") &&
+    typeof c.syncedAt === "string" &&
+    typeof c.configMap === "string" &&
+    typeof c.evidenceId === "string" &&
+    typeof c.hash === "string"
+  );
+}
+
+export async function fetchLiveChange(
+  executionId: string,
+  tenantId: string,
+): Promise<LiveChangeResult | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(
+      `${base}/executions/${encodeURIComponent(executionId)}/change?tenantId=${encodeURIComponent(tenantId)}`,
+      { signal: AbortSignal.timeout(2500) },
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || !("remediator" in body) || !("change" in body)) {
+      return null;
+    }
+    const payload = body as LiveChangeResult;
+    if (payload.remediator !== "held") return null;
+    return {
+      ...payload,
+      wouldExecute: false,
+      change: payload.change && isLiveChange(payload.change) ? payload.change : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchLivePolicy(
   executionId: string,
   tenantId: string,
