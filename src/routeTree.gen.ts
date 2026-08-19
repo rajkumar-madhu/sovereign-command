@@ -20,6 +20,7 @@ import { Route as ShellCommandRouteImport } from './routes/_shell.command'
 import { Route as ShellCostRouteImport } from './routes/_shell.cost'
 import { Route as ShellEvidenceRouteImport } from './routes/_shell.evidence'
 import { Route as ShellInvestigationsRouteImport } from './routes/_shell.investigations'
+import { Route as ShellLinkedeyeRouteImport } from './routes/_shell.linkedeye'
 import { Route as ShellModelsRouteImport } from './routes/_shell.models'
 import { Route as ShellPoliciesRouteImport } from './routes/_shell.policies'
 import { Route as ShellRcaRouteImport } from './routes/_shell.rca'
@@ -89,6 +90,11 @@ const ShellEvidenceRoute = ShellEvidenceRouteImport.update({
 const ShellInvestigationsRoute = ShellInvestigationsRouteImport.update({
   id: '/investigations',
   path: '/investigations',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellLinkedeyeRoute = ShellLinkedeyeRouteImport.update({
+  id: '/linkedeye',
+  path: '/linkedeye',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellModelsRoute = ShellModelsRouteImport.update({
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
+  '/linkedeye': typeof ShellLinkedeyeRoute
   '/models': typeof ShellModelsRoute
   '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
@@ -214,6 +221,7 @@ export interface FileRoutesByTo {
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
+  '/linkedeye': typeof ShellLinkedeyeRoute
   '/models': typeof ShellModelsRoute
   '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
@@ -244,6 +252,7 @@ export interface FileRoutesById {
   '/_shell/cost': typeof ShellCostRoute
   '/_shell/evidence': typeof ShellEvidenceRoute
   '/_shell/investigations': typeof ShellInvestigationsRoute
+  '/_shell/linkedeye': typeof ShellLinkedeyeRoute
   '/_shell/models': typeof ShellModelsRoute
   '/_shell/policies': typeof ShellPoliciesRoute
   '/_shell/rca': typeof ShellRcaRoute
@@ -274,6 +283,7 @@ export interface FileRouteTypes {
     | '/cost'
     | '/evidence'
     | '/investigations'
+    | '/linkedeye'
     | '/models'
     | '/policies'
     | '/rca'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/cost'
     | '/evidence'
     | '/investigations'
+    | '/linkedeye'
     | '/models'
     | '/policies'
     | '/rca'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/_shell/cost'
     | '/_shell/evidence'
     | '/_shell/investigations'
+    | '/_shell/linkedeye'
     | '/_shell/models'
     | '/_shell/policies'
     | '/_shell/rca'
@@ -435,6 +447,13 @@ declare module '@tanstack/react-router' {
       path: '/investigations'
       fullPath: '/investigations'
       preLoaderRoute: typeof ShellInvestigationsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/linkedeye': {
+      id: '/_shell/linkedeye'
+      path: '/linkedeye'
+      fullPath: '/linkedeye'
+      preLoaderRoute: typeof ShellLinkedeyeRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/models': {
@@ -559,6 +578,7 @@ interface ShellRouteChildren {
   ShellCostRoute: typeof ShellCostRoute
   ShellEvidenceRoute: typeof ShellEvidenceRoute
   ShellInvestigationsRoute: typeof ShellInvestigationsRoute
+  ShellLinkedeyeRoute: typeof ShellLinkedeyeRoute
   ShellModelsRoute: typeof ShellModelsRoute
   ShellPoliciesRoute: typeof ShellPoliciesRoute
   ShellRcaRoute: typeof ShellRcaRoute
@@ -582,6 +602,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellCostRoute: ShellCostRoute,
   ShellEvidenceRoute: ShellEvidenceRoute,
   ShellInvestigationsRoute: ShellInvestigationsRoute,
+  ShellLinkedeyeRoute: ShellLinkedeyeRoute,
   ShellModelsRoute: ShellModelsRoute,
   ShellPoliciesRoute: ShellPoliciesRoute,
   ShellRcaRoute: ShellRcaRoute,

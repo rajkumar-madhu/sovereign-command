@@ -41,6 +41,7 @@ export const navDomains: NavDomain[] = [
     icon: Gauge,
     items: [
       { title: "Command Centre", url: "/command", icon: Gauge },
+      { title: "LinkedEye", url: "/linkedeye", icon: Radar },
       { title: "Customers", url: "/customers", icon: Building2 },
       { title: "Agent Registry", url: "/agents", icon: Bot },
     ],
