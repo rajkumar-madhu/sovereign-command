@@ -11,15 +11,28 @@ import {
   tenantName,
 } from "@/data/seed";
 import type { ExecutionHop, ExecutionTrace, TraceDomain } from "@/data/types";
-import { fetchLiveExecution } from "@/lib/stage1-api";
+import {
+  fetchLiveChange,
+  fetchLiveExecution,
+  STAGE1_EXECUTION_ID,
+  type LiveChange,
+} from "@/lib/stage1-api";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/control-tower/$executionId")({
-  loader: async ({ params }): Promise<{ trace: ExecutionTrace; source: "stage1" | "seed" }> => {
+  loader: async ({ params }): Promise<{
+    trace: ExecutionTrace;
+    source: "stage1" | "seed";
+    change: LiveChange | null;
+  }> => {
     const live = await fetchLiveExecution(params.executionId);
+    const changeResult =
+      params.executionId === STAGE1_EXECUTION_ID
+        ? await fetchLiveChange(STAGE1_EXECUTION_ID, "tn-nordic")
+        : null;
     const trace = live ?? getExecutionTrace(params.executionId);
     if (!trace) throw notFound();
-    return { trace, source: live ? "stage1" : "seed" };
+    return { trace, source: live ? "stage1" : "seed", change: changeResult?.change ?? null };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -65,9 +78,10 @@ function hopTone(status: ExecutionHop["status"]) {
 }
 
 function ControlTowerDetail() {
-  const { trace, source } = Route.useLoaderData() as {
+  const { trace, source, change } = Route.useLoaderData() as {
     trace: ExecutionTrace;
     source: "stage1" | "seed";
+    change: LiveChange | null;
   };
 
   return (
@@ -157,6 +171,38 @@ function ControlTowerDetail() {
       />
 
       <SafetyBanner />
+
+      {change && (
+        <section className="ops-panel rounded-2xl p-5" aria-label="Stage-1 live change">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-sm font-semibold">Stage-1 live change</h2>
+              <p className="text-xs text-muted-foreground">
+                {change.id} · {change.app} · remediator held · ConfigMap reads denied
+              </p>
+            </div>
+            <StatusPill tone={change.imageSource === "live-k8s" ? "success" : "info"}>
+              image {change.imageSource}
+            </StatusPill>
+            <StatusPill tone={change.configMapChanged ? "warning" : "success"}>
+              {change.configMap} {change.configMapChanged ? "changed" : "unchanged"} ({change.configMapSource ?? "sealed"})
+            </StatusPill>
+          </div>
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Image", change.image],
+              ["Synced at", change.syncedAt],
+              ["Evidence", change.evidenceId],
+              ["Hash", change.hash.slice(0, 16) + "…"],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+                <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{k}</dt>
+                <dd className="mt-0.5 truncate font-mono text-[12px]">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_14rem]">
         <ol className="relative space-y-0 border-l border-border pl-6">

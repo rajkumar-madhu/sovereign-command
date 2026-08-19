@@ -32,6 +32,12 @@ import {
 import type { TimelineStep } from "@/data/types";
 import { cn } from "@/lib/utils";
 import {
+  fetchLiveChange,
+  STAGE1_EXECUTION_ID,
+  STAGE1_INCIDENT_ID,
+  type LiveChange,
+} from "@/lib/stage1-api";
+import {
   DEFAULT_INCIDENT_RANGE,
   TimeRangeControl,
   filterLogLines,
@@ -345,7 +351,34 @@ function TimelineStepCard({
 
 function IncidentWorkspace() {
   const { incident } = Route.useLoaderData();
-  const allSteps = getIncidentTimeline(incident.id);
+  const seedSteps = getIncidentTimeline(incident.id);
+  const [liveChange, setLiveChange] = useState<LiveChange | null>(null);
+  useEffect(() => {
+    if (incident.id !== STAGE1_INCIDENT_ID) return;
+    let cancelled = false;
+    fetchLiveChange(STAGE1_EXECUTION_ID, "tn-nordic").then((live) => {
+      if (!cancelled && live?.change) setLiveChange(live.change);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [incident.id]);
+  const allSteps = useMemo(() => {
+    if (!liveChange) return seedSteps;
+    return seedSteps.map((s) =>
+      s.id === "clb-s4"
+        ? {
+            ...s,
+            detail: `Live image ${liveChange.image} (${liveChange.imageSource}) for ${liveChange.app}; ArgoCD ${liveChange.id} syncedAt ${liveChange.syncedAt}; ConfigMap ${liveChange.configMap} ${liveChange.configMapChanged ? "changed" : "unchanged"} (${liveChange.configMapSource ?? "sealed"} — ConfigMap reads denied).`,
+            evidence: [
+              `${liveChange.id} · ${liveChange.image}`,
+              `ConfigMap ${liveChange.configMap} ${liveChange.configMapChanged ? "changed" : "unchanged"}`,
+              `${liveChange.evidenceId} · ${liveChange.imageSource}`,
+            ],
+          }
+        : s,
+    );
+  }, [seedSteps, liveChange]);
   const execution = getExecutionByIncident(incident.id);
   const sealedRca = incident.status === "rca-ready" || incident.status === "closed";
   const defaultRange = useMemo(() => {
