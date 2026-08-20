@@ -26,6 +26,7 @@ export type PodMonitorEvent = {
 };
 
 const RESTART_WINDOW = 36;
+const HISTORY_CAP = 96;
 
 function formatClock(d: Date): string {
   return d.toLocaleTimeString(undefined, {
@@ -117,9 +118,14 @@ export function appendRestartPoint(
     ts: now,
     restarts,
   };
-  return [...series.slice(-(RESTART_WINDOW - 1)), point];
+  const withoutDup =
+    series.length && Math.abs(series[series.length - 1]!.ts - now) < 2_000
+      ? series.slice(0, -1)
+      : series;
+  return [...withoutDup, point].slice(-HISTORY_CAP);
 }
 
+/** Short in-session seed when no incident onset is known (~9 minutes). */
 export function seedRestartSeries(restarts: number, now = Date.now()): PodMonitorPoint[] {
   return Array.from({ length: RESTART_WINDOW }, (_, i) => {
     const ts = now - (RESTART_WINDOW - 1 - i) * 15_000;
@@ -132,6 +138,49 @@ export function seedRestartSeries(restarts: number, now = Date.now()): PodMonito
   });
 }
 
+/**
+ * Reconstruct restart growth from incident onset → now (or to a selected end).
+ * CrashLoop backoff grows roughly linearly in restart count over long windows.
+ */
+export function buildHistoricalRestartSeries(opts: {
+  restarts: number;
+  fromMs: number;
+  toMs: number;
+  points?: number;
+}): PodMonitorPoint[] {
+  const { restarts, fromMs, toMs } = opts;
+  const span = Math.max(1, toMs - fromMs);
+  const points = Math.min(HISTORY_CAP, Math.max(8, opts.points ?? 48));
+  return Array.from({ length: points }, (_, i) => {
+    const ratio = i / (points - 1);
+    const ts = Math.round(fromMs + span * ratio);
+    return {
+      t: formatClock(new Date(ts)),
+      ts,
+      restarts: Math.max(0, Math.round(restarts * ratio)),
+    };
+  });
+}
+
+export function filterSeriesByRange(
+  series: PodMonitorPoint[],
+  fromMs: number,
+  toMs: number,
+): PodMonitorPoint[] {
+  return series.filter((p) => p.ts >= fromMs && p.ts <= toMs);
+}
+
+export function mergeLiveIntoHistory(
+  history: PodMonitorPoint[],
+  live: PodMonitorPoint[],
+): PodMonitorPoint[] {
+  const byTs = new Map<number, PodMonitorPoint>();
+  for (const p of [...history, ...live]) {
+    byTs.set(p.ts, p);
+  }
+  return [...byTs.values()].sort((a, b) => a.ts - b.ts).slice(-HISTORY_CAP);
+}
+
 export function eventsFromPod(pod: LivePodStatus | null, now = Date.now()): PodMonitorEvent[] {
   if (!pod?.recentEvents?.length) return [];
   return pod.recentEvents.slice(0, 5).map((e, idx) => ({
@@ -140,6 +189,14 @@ export function eventsFromPod(pod: LivePodStatus | null, now = Date.now()): PodM
     label: `${e.type} · ${e.reason} · ${e.message}`.slice(0, 120),
     severity: e.type === "Warning" ? "critical" : "info",
   }));
+}
+
+export function filterEventsByRange(
+  events: PodMonitorEvent[],
+  fromMs: number,
+  toMs: number,
+): PodMonitorEvent[] {
+  return events.filter((e) => e.ts >= fromMs && e.ts <= toMs);
 }
 
 export const LIVE_POD_MONITOR_TICK_MS = 15_000;

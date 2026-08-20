@@ -444,6 +444,9 @@ function IncidentWorkspace() {
       day: "numeric",
       month: "short",
     });
+    const now = new Date();
+    const last6h = new Date(now.getTime() - 6 * 60 * 60_000);
+    const last24h = new Date(now.getTime() - 24 * 60 * 60_000);
     return [
       { id: "incident", label: "Incident window", range: defaultRange },
       {
@@ -459,8 +462,27 @@ function IncidentWorkspace() {
         label: `Full day ${dayLabel}`,
         range: { from: dayStart, to: dayEnd },
       },
+      ...(incident.id === STAGE1_INCIDENT_ID
+        ? [
+            {
+              id: "onset-now",
+              label: "Onset → now (history)",
+              range: { from: opened, to: now },
+            },
+            {
+              id: "last-24h",
+              label: "Last 24h",
+              range: { from: last24h, to: now },
+            },
+            {
+              id: "last-6h",
+              label: "Last 6h",
+              range: { from: last6h, to: now },
+            },
+          ]
+        : []),
     ];
-  }, [incident.opened, defaultRange]);
+  }, [incident.opened, incident.id, defaultRange]);
   const [range, setRange] = useState<TimeRange>(defaultRange);
   const [presetId, setPresetId] = useState("incident");
   useEffect(() => {
@@ -489,6 +511,10 @@ function IncidentWorkspace() {
   const liveMonitoring = useLivePodMonitoring(
     incident.tenantId,
     incident.id === STAGE1_INCIDENT_ID,
+    {
+      incidentOpenedIso: incident.opened,
+      range,
+    },
   );
 
   const openedLabel = useMemo(() => {
@@ -769,7 +795,12 @@ function IncidentWorkspace() {
       </section>
 
       {incident.id === STAGE1_INCIDENT_ID ? (
-        <LivePodMonitorPanel snapshot={liveMonitoring} />
+        <LivePodMonitorPanel
+          snapshot={liveMonitoring}
+          range={range}
+          customerName={customer?.name ?? customerName(incident.customerId)}
+          tenantName={tenant?.name ?? tenantName(incident.tenantId)}
+        />
       ) : null}
 
       <section className="ops-panel rounded-2xl p-5" aria-labelledby="timeline-title">
