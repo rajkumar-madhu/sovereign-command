@@ -25,6 +25,10 @@ import {
   STAGE1_INCIDENT_ID,
   stage1ApiConfigured,
 } from "@/lib/stage1-api";
+import {
+  formatPodContextHeader,
+  parseLivePodStatus,
+} from "@/lib/live-pod-context";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
 import {
@@ -253,8 +257,18 @@ function EvidenceViewer() {
   const isLoadGraph = artifact.name === "load-graph.json" || artifact.kind.includes("load graph");
   const filteredBody = useMemo(() => {
     if (isLoadGraph) return artifact.body;
+    if (artifact.id === "ev-clb-2" && liveOverlay) {
+      const pod = parseLivePodStatus(artifact.body);
+      if (pod) {
+        const header = formatPodContextHeader(pod, {
+          customerLabel: linkedIncident ? customerName(linkedIncident.customerId) : undefined,
+          tenantLabel: linkedIncident ? tenantName(linkedIncident.tenantId) : undefined,
+        });
+        return filterLogLines(`${header}\n\n${artifact.body}`, range);
+      }
+    }
     return filterLogLines(artifact.body, range);
-  }, [artifact.body, isLoadGraph, range]);
+  }, [artifact.body, artifact.id, isLoadGraph, liveOverlay, linkedIncident, range]);
 
   async function exportBundle() {
     if (!stage1ApiConfigured()) {

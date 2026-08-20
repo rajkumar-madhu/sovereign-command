@@ -145,6 +145,7 @@ export function ResourceIdentityChips({
     resource.hostname && { label: "host", value: resource.hostname },
     resource.ipAddress && { label: "ip", value: resource.ipAddress },
     resource.cluster && { label: "cluster", value: resource.cluster },
+    resource.nodeName && { label: "node", value: resource.nodeName },
   ].filter(Boolean) as { label: string; value: string }[];
 
   if (!chips.length) return null;
