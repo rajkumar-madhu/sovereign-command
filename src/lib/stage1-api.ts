@@ -1,4 +1,5 @@
-import type { AuditEntry, EvidenceArtifact, ExecutionTrace } from "@/data/types";
+import type { AuditEntry, EvidenceArtifact, ExecutionTrace, ResourceIdentity } from "@/data/types";
+import { mergeResourceIdentity, parseLivePodStatus } from "@/lib/live-pod-context";
 
 export const STAGE1_APPROVAL_ID = "apr-clb-01";
 export const STAGE1_EXECUTION_ID = "exec-clb-01";
@@ -213,8 +214,15 @@ export function toEvidenceArtifacts(
   events: LiveEvidenceArtefact[],
   seed: EvidenceArtifact[],
 ): EvidenceArtifact[] {
+  const podStatusBody = events.find((e) => e.id === "ev-clb-2")?.body;
+  const livePod = podStatusBody ? parseLivePodStatus(podStatusBody) : null;
+
   return events.map((e) => {
     const prior = seed.find((s) => s.id === e.id);
+    let resource: ResourceIdentity | undefined = prior?.resource;
+    if (e.id === "ev-clb-2" && livePod) {
+      resource = mergeResourceIdentity(prior?.resource, livePod);
+    }
     return {
       id: e.id,
       name: prior?.name ?? `${e.id}.txt`,
@@ -223,7 +231,7 @@ export function toEvidenceArtifacts(
       hash: e.hash,
       body: e.body,
       incidentId: e.incidentId,
-      resource: prior?.resource,
+      resource,
     };
   });
 }
