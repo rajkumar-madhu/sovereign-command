@@ -58,6 +58,8 @@ import {
 import {
   ResourceIdentityPanel,
 } from "@/components/ops/resource-identity-panel";
+import { LivePodMonitorPanel } from "@/components/ops/live-pod-monitor-panel";
+import { useLivePodMonitoring } from "@/hooks/use-live-pod-monitoring";
 
 export const Route = createFileRoute("/_shell/incidents/$incidentId")({
   loader: ({ params }) => {
@@ -484,6 +486,10 @@ function IncidentWorkspace() {
   const tenant = tenants.find((t) => t.id === incident.tenantId);
   const customer = customers.find((c) => c.id === incident.customerId);
   const report = getRcaReport(incident.id);
+  const liveMonitoring = useLivePodMonitoring(
+    incident.tenantId,
+    incident.id === STAGE1_INCIDENT_ID,
+  );
 
   const openedLabel = useMemo(() => {
     const d = new Date(incident.opened);
@@ -761,6 +767,10 @@ function IncidentWorkspace() {
           hint={incident.resources?.[0]?.region ?? "region n/a"}
         />
       </section>
+
+      {incident.id === STAGE1_INCIDENT_ID ? (
+        <LivePodMonitorPanel snapshot={liveMonitoring} />
+      ) : null}
 
       <section className="ops-panel rounded-2xl p-5" aria-labelledby="timeline-title">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

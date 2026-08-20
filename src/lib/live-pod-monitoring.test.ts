@@ -1,0 +1,51 @@
+import { describe, expect, test } from "bun:test";
+import {
+  appendRestartPoint,
+  derivePodMonitors,
+  eventsFromPod,
+  seedRestartSeries,
+} from "./live-pod-monitoring";
+import type { LivePodStatus } from "./live-pod-context";
+
+const samplePod: LivePodStatus = {
+  name: "payments-auth-7d9f8c6b4-xq2n1",
+  tenantId: "tn-nordic",
+  customerId: "cu-fsprod",
+  application: "payments-auth",
+  phase: "Running",
+  source: "live-k8s",
+  namespace: "tn-nordic",
+  cluster: "kind-wecrew",
+  nodeName: "wecrew-control-plane",
+  containerStatuses: [
+    { ready: false, restartCount: 516, state: { waiting: { reason: "CrashLoopBackOff" } } },
+  ],
+  recentEvents: [
+    {
+      type: "Warning",
+      reason: "BackOff",
+      message: "Back-off restarting failed container",
+      lastTimestamp: "2026-08-20T03:10:00Z",
+    },
+  ],
+};
+
+describe("live-pod-monitoring", () => {
+  test("derives alert monitors for CrashLoopBackOff", () => {
+    const monitors = derivePodMonitors(samplePod);
+    expect(monitors.find((m) => m.id === "mon-phase")?.state).toBe("alert");
+    expect(monitors.find((m) => m.id === "mon-restarts")?.state).toBe("alert");
+  });
+
+  test("builds restart series from polls", () => {
+    const seeded = seedRestartSeries(10);
+    const next = appendRestartPoint(seeded, 11);
+    expect(next.at(-1)?.restarts).toBe(11);
+  });
+
+  test("maps kube events to monitor feed", () => {
+    const events = eventsFromPod(samplePod);
+    expect(events[0]?.label).toContain("BackOff");
+    expect(events[0]?.severity).toBe("critical");
+  });
+});
