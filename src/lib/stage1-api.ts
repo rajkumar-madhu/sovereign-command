@@ -487,6 +487,38 @@ export async function fetchLivePolicy(
   }
 }
 
+export interface LiveSovereignControl {
+  remediator: "held";
+  wouldExecute: false;
+  stage1Hold: true;
+  executionId?: string;
+  tenantId: string;
+  autonomyLevel?: string;
+  killSwitch?: { tenantId: string; engaged: boolean; reason: string; remediator: "held" };
+  policy?: { action: string; decision: string; reason: string; killSwitchIdle: boolean };
+  approval?: LiveApproval | null;
+  snapshot?: null;
+}
+
+export async function fetchLiveSovereignControl(tenantId: string): Promise<LiveSovereignControl | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(
+      `${base}/sovereign-control?tenantId=${encodeURIComponent(tenantId)}`,
+      { signal: AbortSignal.timeout(2500) },
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || !("remediator" in body)) return null;
+    const payload = body as LiveSovereignControl;
+    if (payload.remediator !== "held") return null;
+    return { ...payload, wouldExecute: false, stage1Hold: true };
+  } catch {
+    return null;
+  }
+}
+
 type SeedRca = {
   incidentId: string;
   title: string;

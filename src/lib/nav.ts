@@ -67,6 +67,7 @@ export const navDomains: NavDomain[] = [
       { title: "Model Gateway", url: "/models", icon: Cpu },
       { title: "Tool & MCP Registry", url: "/tools", icon: Wrench },
       { title: "Policy Management", url: "/policies", icon: BadgeCheck },
+      { title: "Sovereign Control", url: "/sovereign-control", icon: ShieldAlert },
       { title: "Approval Queue", url: "/approvals", icon: BellRing },
       { title: "SLA Administration", url: "/sla-admin", icon: Timer },
       { title: "Audit & Compliance", url: "/audit", icon: Activity },
