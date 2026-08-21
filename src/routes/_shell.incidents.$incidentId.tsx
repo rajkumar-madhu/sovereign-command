@@ -427,12 +427,16 @@ function IncidentWorkspace() {
   const execution = getExecutionByIncident(incident.id);
   const sealedRca = incident.status === "rca-ready" || incident.status === "closed";
   const defaultRange = useMemo(() => {
+    if (incident.id === STAGE1_INCIDENT_ID) {
+      const now = new Date();
+      return { from: new Date(now.getTime() - 24 * 60 * 60_000), to: now };
+    }
     const opened = new Date(incident.opened);
     if (Number.isNaN(opened.getTime())) return DEFAULT_INCIDENT_RANGE;
     const from = new Date(opened.getTime() - 15 * 60_000);
     const to = new Date(opened.getTime() + 30 * 60_000);
     return { from, to };
-  }, [incident.opened]);
+  }, [incident.opened, incident.id]);
   const rangePresets = useMemo(() => {
     const opened = new Date(incident.opened);
     if (Number.isNaN(opened.getTime())) return undefined;
@@ -447,8 +451,12 @@ function IncidentWorkspace() {
     const now = new Date();
     const last6h = new Date(now.getTime() - 6 * 60 * 60_000);
     const last24h = new Date(now.getTime() - 24 * 60 * 60_000);
+    const incidentWindow = {
+      from: new Date(opened.getTime() - 15 * 60_000),
+      to: new Date(opened.getTime() + 30 * 60_000),
+    };
     return [
-      { id: "incident", label: "Incident window", range: defaultRange },
+      { id: "incident", label: "Incident window", range: incidentWindow },
       {
         id: "onset",
         label: "Onset ±10m",
@@ -482,12 +490,14 @@ function IncidentWorkspace() {
           ]
         : []),
     ];
-  }, [incident.opened, incident.id, defaultRange]);
+  }, [incident.opened, incident.id]);
   const [range, setRange] = useState<TimeRange>(defaultRange);
-  const [presetId, setPresetId] = useState("incident");
+  const [presetId, setPresetId] = useState(
+    incident.id === STAGE1_INCIDENT_ID ? "last-24h" : "incident",
+  );
   useEffect(() => {
     setRange(defaultRange);
-    setPresetId("incident");
+    setPresetId(incident.id === STAGE1_INCIDENT_ID ? "last-24h" : "incident");
   }, [incident.id, defaultRange]);
   const steps = useMemo(
     () =>
