@@ -495,6 +495,12 @@ function IncidentWorkspace() {
   const [presetId, setPresetId] = useState(
     incident.id === STAGE1_INCIDENT_ID ? "last-24h" : "incident",
   );
+  function applyMonitoringPreset(presetIdToApply: string) {
+    const preset = rangePresets?.find((p) => p.id === presetIdToApply);
+    if (!preset) return;
+    setRange(preset.range);
+    setPresetId(preset.id);
+  }
   useEffect(() => {
     setRange(defaultRange);
     setPresetId(incident.id === STAGE1_INCIDENT_ID ? "last-24h" : "incident");
@@ -732,6 +738,7 @@ function IncidentWorkspace() {
         value={range}
         presetId={presetId}
         presets={rangePresets}
+        hint="Filters timeline, logs, graphs, and workload monitoring"
         onChange={(next, id) => {
           setRange(next);
           setPresetId(id);
@@ -742,36 +749,38 @@ function IncidentWorkspace() {
         <ResourceIdentityPanel resources={mergedResources} />
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Status" value={incident.status} tone="info" />
-        <MetricCard
-          label="Application"
-          value={livePod?.application ?? incident.application ?? "—"}
-          hint={mergedResources?.[0]?.hostname ?? incident.environment}
-        />
-        <MetricCard
-          label="Worker node"
-          value={livePod?.nodeName ?? mergedResources?.[0]?.nodeName ?? "—"}
-          hint={
-            livePod?.hostIP
-              ? `host ${livePod.hostIP}`
-              : mergedResources?.[0]?.ipAddress
-                ? `IP ${mergedResources[0].ipAddress}`
-                : customerName(incident.customerId)
-          }
-        />
-        <MetricCard
-          label="Cluster"
-          value={livePod?.cluster ?? mergedResources?.[0]?.cluster ?? "—"}
-          hint={
-            livePod?.namespace
-              ? `ns ${livePod.namespace}`
-              : mergedResources?.[0]?.namespace
-                ? `ns ${mergedResources[0].namespace}`
-                : `Environment: ${incident.environment}`
-          }
-        />
-      </section>
+      {!(incident.id === STAGE1_INCIDENT_ID && liveMonitoring.pod) && (
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard label="Status" value={incident.status} tone="info" />
+          <MetricCard
+            label="Application"
+            value={livePod?.application ?? incident.application ?? "—"}
+            hint={mergedResources?.[0]?.hostname ?? incident.environment}
+          />
+          <MetricCard
+            label="Worker node"
+            value={livePod?.nodeName ?? mergedResources?.[0]?.nodeName ?? "—"}
+            hint={
+              livePod?.hostIP
+                ? `host ${livePod.hostIP}`
+                : mergedResources?.[0]?.ipAddress
+                  ? `IP ${mergedResources[0].ipAddress}`
+                  : customerName(incident.customerId)
+            }
+          />
+          <MetricCard
+            label="Cluster"
+            value={livePod?.cluster ?? mergedResources?.[0]?.cluster ?? "—"}
+            hint={
+              livePod?.namespace
+                ? `ns ${livePod.namespace}`
+                : mergedResources?.[0]?.namespace
+                  ? `ns ${mergedResources[0].namespace}`
+                  : `Environment: ${incident.environment}`
+            }
+          />
+        </section>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
@@ -810,6 +819,9 @@ function IncidentWorkspace() {
           range={range}
           customerName={customer?.name ?? customerName(incident.customerId)}
           tenantName={tenant?.name ?? tenantName(incident.tenantId)}
+          tenantId={incident.tenantId}
+          customerId={incident.customerId}
+          onPresetSelect={applyMonitoringPreset}
         />
       ) : null}
 

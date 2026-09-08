@@ -153,6 +153,7 @@ type TimeRangeControlProps = {
   compact?: boolean;
   /** Override default presets (e.g. per-incident window). */
   presets?: TimeRangePreset[];
+  hint?: string;
 };
 
 export function TimeRangeControl({
@@ -162,6 +163,7 @@ export function TimeRangeControl({
   className,
   compact,
   presets = TIME_RANGE_PRESETS,
+  hint,
 }: TimeRangeControlProps) {
   const [customFrom, setCustomFrom] = useState(toLocalInputValue(value.from));
   const [customTo, setCustomTo] = useState(toLocalInputValue(value.to));
@@ -193,7 +195,7 @@ export function TimeRangeControl({
         </div>
         {!compact && (
           <p className="text-xs text-muted-foreground">
-            Filters timeline, logs, and load graphs by time
+            {hint ?? "Filters timeline, logs, and load graphs by time"}
           </p>
         )}
       </div>
