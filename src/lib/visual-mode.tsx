@@ -28,20 +28,15 @@ function applyVisualMode(mode: VisualMode) {
   document.documentElement.setAttribute("data-visual-mode", mode);
 }
 
-function getInitialVisualMode(): VisualMode {
-  if (typeof window === "undefined") return "system";
-  const stored = window.localStorage.getItem(STORAGE_KEY) as VisualMode | null;
-  if (stored === "system" || stored === "topology" || stored === "blueprint") return stored;
-  return "system";
-}
-
 export function VisualModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<VisualMode>(getInitialVisualMode);
+  const [mode, setModeState] = useState<VisualMode>("system");
 
   useEffect(() => {
-    const current = getInitialVisualMode();
-    setModeState(current);
-    applyVisualMode(current);
+    const stored = window.localStorage.getItem(STORAGE_KEY) as VisualMode | null;
+    const preferred =
+      stored === "system" || stored === "topology" || stored === "blueprint" ? stored : "system";
+    setModeState(preferred);
+    applyVisualMode(preferred);
   }, []);
 
   const setMode = useCallback((next: VisualMode) => {
