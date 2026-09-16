@@ -8,7 +8,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 // Self-host: NITRO_PRESET=node-server bun run build
 // Default (Lovable / Cloudflare): cloudflare-module
-const nitroPreset = process.env.NITRO_PRESET?.trim() || undefined;
+const nitroPreset = process.env["NITRO_PRESET"]?.trim() || undefined;
 
 export default defineConfig({
   nitro: nitroPreset
