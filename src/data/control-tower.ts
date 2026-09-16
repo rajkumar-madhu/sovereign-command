@@ -143,14 +143,16 @@ export const crashLoopRca = {
       id: "clb-rej-1",
       claim: "Node OOM or memory pressure caused the crash loop.",
       artifacts: ["ev-clb-2"],
-      reason: "lastState.terminated.reason=Error exit=1; node MemoryPressure=False; OOMKilled not present.",
+      reason:
+        "lastState.terminated.reason=Error exit=1; node MemoryPressure=False; OOMKilled not present.",
       output: "OOMKilled=false",
     },
     {
       id: "clb-rej-2",
       claim: "Autonomous pod delete / restart without human approval.",
       artifacts: [],
-      reason: "Stage-1 autonomy is L2 investigate; production writes require approval (apr-clb-01).",
+      reason:
+        "Stage-1 autonomy is L2 investigate; production writes require approval (apr-clb-01).",
       output: "productionWriteRequired=true · console write=false",
     },
   ],
@@ -213,7 +215,8 @@ export const executionTraces: ExecutionTrace[] = [
         at: "2026-08-09T08:12:06Z",
         domain: "model",
         label: "Model Gateway · Sovereign Mode",
-        detail: "Routed to local Ollama llama-3.3-70b. External provider APIs denied by network policy.",
+        detail:
+          "Routed to local Ollama llama-3.3-70b. External provider APIs denied by network policy.",
         status: "ok",
         meta: { provider: "ollama", latencyMs: 286, tokens: 4200 },
       },
@@ -249,7 +252,8 @@ export const executionTraces: ExecutionTrace[] = [
         at: "2026-08-09T08:13:28Z",
         domain: "verification",
         label: "Validator Agent",
-        detail: "Independent validation: missing AUTH_JWKS_URI accepted; OOM rejected. Confidence 94%.",
+        detail:
+          "Independent validation: missing AUTH_JWKS_URI accepted; OOM rejected. Confidence 94%.",
         status: "ok",
         meta: { confidence: 94 },
       },
@@ -267,7 +271,8 @@ export const executionTraces: ExecutionTrace[] = [
         at: "2026-08-09T08:13:44Z",
         domain: "approval",
         label: "Approval queued",
-        detail: "apr-clb-01 pending Platform Engineering + Change Manager. No remediator write yet.",
+        detail:
+          "apr-clb-01 pending Platform Engineering + Change Manager. No remediator write yet.",
         status: "pending",
         meta: { approvalId: "apr-clb-01" },
       },
@@ -276,7 +281,8 @@ export const executionTraces: ExecutionTrace[] = [
         at: "2026-08-09T08:13:44Z",
         domain: "action",
         label: "Remediation held",
-        detail: "Deterministic workflow not started. Stage-1 exit: investigate + prove + decide only.",
+        detail:
+          "Deterministic workflow not started. Stage-1 exit: investigate + prove + decide only.",
         status: "blocked",
         meta: { engine: "StackStorm", started: "false" },
       },
