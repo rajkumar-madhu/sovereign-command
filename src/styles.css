@@ -5,22 +5,24 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system — Wecrew AgentOS colour fidelity
- * Sourced from https://agentos.wecrew.in/login (:root CSS variables).
- * Hex kept for exact match to live brand tokens.
+ * Design system — Interactive Technical Intelligence Platform
+ * Graphite canvas + editorial research terminal + control plane.
+ * Interaction grammar inspired by institutional research layouts
+ * (section numbering, sticky jump rails, visual modes, metric strips)
+ * without copying proprietary content.
  */
 
 @theme inline {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", "IBM Plex Sans", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-2xl: calc(var(--radius) + 6px);
+  --radius-3xl: calc(var(--radius) + 8px);
+  --radius-4xl: calc(var(--radius) + 10px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -64,107 +66,123 @@
   --color-brand-coral: var(--brand-coral);
   --color-brand-ink: var(--brand-ink);
   --color-brand-paper: var(--brand-paper);
+  --color-cyan: var(--cyan);
+  --color-amber-signal: var(--amber-signal);
 }
 
 :root {
-  --radius: 0.375rem;
+  --radius: 0.5rem; /* 8px — structured panels, not SaaS balloons */
 
-  /* Brand (live AgentOS) */
-  --brand-ink: #0e1116;
-  --brand-coral: #ff5b2e;
-  --brand-blue: #2b4cff;
-  --brand-green: #0f7a55;
-  --brand-paper: #f4f1ea;
-  --brand-paper-2: #ebe6dc;
+  /* Graphite canvas tokens */
+  --canvas: #080b0d;
+  --surface-01: #0d1114;
+  --surface-02: #11171b;
+  --surface-03: #161d22;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --text-primary: #f2f0e9;
+  --text-secondary: #a8afb3;
+  --text-muted: #6f787d;
 
-  --background: var(--brand-paper);
-  --foreground: var(--brand-ink);
-  --surface: #fffcf7;
-  --surface-strong: var(--brand-paper-2);
-  --card: #fffcf7;
-  --card-foreground: var(--brand-ink);
-  --popover: #fffcf7;
-  --popover-foreground: var(--brand-ink);
-  --primary: var(--brand-blue);
+  /* Accents — spare, professional */
+  --cyan: #3ec8d6;
+  --intelligent-blue: #4a7dff;
+  --amber-signal: #d4a017;
+  --brand-coral: #3ec8d6; /* map legacy coral slot → cyan accent */
+  --brand-ink: #080b0d;
+  --brand-blue: #4a7dff;
+  --brand-green: #2f9e7a;
+  --brand-paper: #f2f0e9;
+  --brand-paper-2: #e4e2da;
+
+  /* Light mode (secondary) — still graphite-adjacent paper */
+  --background: #f2f0e9;
+  --foreground: #0d1114;
+  --surface: #faf9f5;
+  --surface-strong: #e8e6df;
+  --card: #faf9f5;
+  --card-foreground: #0d1114;
+  --popover: #faf9f5;
+  --popover-foreground: #0d1114;
+  --primary: var(--intelligent-blue);
   --primary-foreground: #ffffff;
-  --secondary: var(--brand-paper-2);
-  --secondary-foreground: var(--brand-ink);
-  --muted: #e8e3d9;
-  --muted-foreground: #5c5a56;
-  --accent: #fde8e0;
-  --accent-foreground: #9a3412;
-  --destructive: #dc2626;
+  --secondary: #e8e6df;
+  --secondary-foreground: #0d1114;
+  --muted: #e4e2da;
+  --muted-foreground: #5c6469;
+  --accent: rgba(62, 200, 214, 0.12);
+  --accent-foreground: #0a6b74;
+  --destructive: #c43b4a;
   --destructive-foreground: #ffffff;
   --success: var(--brand-green);
   --success-foreground: #ffffff;
-  --warning: #d97706;
-  --warning-foreground: var(--brand-ink);
-  --info: var(--brand-blue);
-  --border: #ddd6c8;
-  --input: #d4cdc0;
-  --ring: var(--brand-blue);
-  --shadow-panel: 0 1px 2px rgb(14 17 22 / 6%), 0 12px 32px -18px rgb(14 17 22 / 16%);
+  --warning: var(--amber-signal);
+  --warning-foreground: #0d1114;
+  --info: var(--intelligent-blue);
+  --border: rgba(13, 17, 20, 0.12);
+  --input: rgba(13, 17, 20, 0.16);
+  --ring: var(--intelligent-blue);
+  --shadow-panel: 0 1px 0 rgba(13, 17, 20, 0.04);
 
-  --chart-1: var(--brand-blue);
+  --chart-1: var(--intelligent-blue);
   --chart-2: var(--brand-green);
-  --chart-3: var(--brand-coral);
-  --chart-4: #dc2626;
-  --chart-5: #7c3aed;
+  --chart-3: var(--cyan);
+  --chart-4: #c43b4a;
+  --chart-5: var(--amber-signal);
 
-  /* AgentOS keeps sidebar on brand-ink even in light mode */
-  --sidebar: var(--brand-ink);
-  --sidebar-foreground: #c8c4bc;
-  --sidebar-primary: var(--brand-coral);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1f28;
-  --sidebar-accent-foreground: #f4f1ea;
-  --sidebar-border: #252b36;
-  --sidebar-ring: var(--brand-coral);
+  --sidebar: #0d1114;
+  --sidebar-foreground: #a8afb3;
+  --sidebar-primary: var(--cyan);
+  --sidebar-primary-foreground: #080b0d;
+  --sidebar-accent: #161d22;
+  --sidebar-accent-foreground: #f2f0e9;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: var(--cyan);
 }
 
 .dark {
-  --background: var(--brand-ink);
-  --foreground: #f4f1ea;
-  --surface: #141820;
-  --surface-strong: #1a1f28;
-  --card: #1a1f28;
-  --card-foreground: #f4f1ea;
-  --popover: #1a1f28;
-  --popover-foreground: #f4f1ea;
-  --primary: #6b85ff;
-  --primary-foreground: #0e1116;
-  --secondary: #1a1f28;
-  --secondary-foreground: #f4f1ea;
-  --muted: #1a1f28;
-  --muted-foreground: #a8a49c;
-  --accent: #3a2218;
-  --accent-foreground: #ffc4b0;
-  --destructive: #f87171;
-  --destructive-foreground: #0e1116;
-  --success: #34d399;
-  --success-foreground: #0e1116;
-  --warning: #fbbf24;
-  --warning-foreground: #0e1116;
-  --info: #6b85ff;
-  --border: #252b36;
-  --input: #2a3140;
-  --ring: var(--brand-coral);
-  --shadow-panel: 0 1px 2px rgb(0 0 0 / 35%), 0 16px 40px -24px rgb(255 91 46 / 25%);
+  --background: var(--canvas);
+  --foreground: var(--text-primary);
+  --surface: var(--surface-01);
+  --surface-strong: var(--surface-02);
+  --card: var(--surface-02);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-03);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--intelligent-blue);
+  --primary-foreground: #f2f0e9;
+  --secondary: var(--surface-03);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-03);
+  --muted-foreground: var(--text-secondary);
+  --accent: rgba(62, 200, 214, 0.12);
+  --accent-foreground: var(--cyan);
+  --destructive: #e85a6a;
+  --destructive-foreground: #080b0d;
+  --success: #3ecf9a;
+  --success-foreground: #080b0d;
+  --warning: var(--amber-signal);
+  --warning-foreground: #080b0d;
+  --info: var(--intelligent-blue);
+  --border: var(--border-subtle);
+  --input: var(--border-medium);
+  --ring: var(--cyan);
+  --shadow-panel: none;
 
-  --chart-1: #6b85ff;
-  --chart-2: #34d399;
-  --chart-3: #ff5b2e;
-  --chart-4: #f87171;
-  --chart-5: #a78bfa;
+  --chart-1: #6b8cff;
+  --chart-2: #3ecf9a;
+  --chart-3: var(--cyan);
+  --chart-4: #e85a6a;
+  --chart-5: var(--amber-signal);
 
-  --sidebar: #0a0c10;
-  --sidebar-foreground: #c8c4bc;
-  --sidebar-primary: var(--brand-coral);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1f28;
-  --sidebar-accent-foreground: #f4f1ea;
-  --sidebar-border: #252b36;
-  --sidebar-ring: var(--brand-coral);
+  --sidebar: #06090b;
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--cyan);
+  --sidebar-primary-foreground: #080b0d;
+  --sidebar-accent: var(--surface-03);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--cyan);
 }
 
 @layer base {
@@ -178,9 +196,12 @@
 
   body {
     background-color: var(--color-background);
-    background-image: none;
     color: var(--color-foreground);
-    font-feature-settings: "ss01" on, "kern" on;
+    font-feature-settings:
+      "ss01" on,
+      "kern" on,
+      "tnum" on;
+    font-variant-numeric: tabular-nums;
   }
 
   h1,
@@ -189,18 +210,47 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+
+  code,
+  kbd,
+  .font-mono,
+  .tabular-tech {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-/* Login / command hero — AgentOS ink panel with coral + blue glows */
+/* ── Canvas layering: grid → ambient → surfaces ── */
 @layer utilities {
-  .silicon-circuit {
-    background-color: var(--brand-ink);
+  .tech-canvas {
+    background-color: var(--canvas);
     background-image:
-      linear-gradient(rgb(200 196 188 / 0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(200 196 188 / 0.07) 1px, transparent 1px),
-      radial-gradient(circle at 18% 22%, rgb(255 91 46 / 0.35), transparent 42%),
-      radial-gradient(circle at 82% 78%, rgb(43 76 255 / 0.32), transparent 48%),
-      linear-gradient(145deg, #141820, var(--brand-ink));
+      linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+      radial-gradient(ellipse 80% 50% at 15% 0%, rgba(74, 125, 255, 0.09), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 85% 100%, rgba(62, 200, 214, 0.07), transparent 50%),
+      linear-gradient(180deg, #0a0e11, var(--canvas));
+    background-size:
+      48px 48px,
+      48px 48px,
+      100% 100%,
+      100% 100%,
+      100% 100%;
+  }
+
+  .dark .tech-canvas,
+  .tech-canvas {
+    /* same token path; class usable on light landing when forced dark */
+  }
+
+  .silicon-circuit {
+    background-color: var(--surface-01);
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 18% 22%, rgba(62, 200, 214, 0.14), transparent 42%),
+      radial-gradient(circle at 82% 78%, rgba(74, 125, 255, 0.12), transparent 48%),
+      linear-gradient(145deg, var(--surface-02), var(--canvas));
     background-size:
       28px 28px,
       28px 28px,
@@ -211,35 +261,53 @@
 
   .silicon-die-glow {
     box-shadow:
-      0 0 0 1px rgb(255 91 46 / 0.45),
-      0 0 28px rgb(255 91 46 / 0.28),
-      inset 0 1px 0 rgb(255 255 255 / 10%);
+      0 0 0 1px rgba(62, 200, 214, 0.35),
+      0 0 24px rgba(62, 200, 214, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
   .ops-panel {
-    background: linear-gradient(165deg, rgb(255 252 247 / 0.98), rgb(244 241 234 / 0.92));
-    box-shadow: var(--shadow-panel);
-    border: 1px solid var(--border);
-    backdrop-filter: blur(8px);
+    background: var(--surface-01);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    box-shadow: none;
   }
 
   .dark .ops-panel {
-    background: linear-gradient(165deg, rgb(26 31 40 / 0.95), rgb(20 24 32 / 0.9));
-    border-color: var(--border);
-    box-shadow: var(--shadow-panel);
+    background: var(--surface-01);
+    border-color: var(--border-subtle);
+  }
+
+  :root:not(.dark) .ops-panel {
+    background: #faf9f5;
+    border-color: rgba(13, 17, 20, 0.1);
+  }
+
+  .tech-panel {
+    background: var(--surface-01);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+  }
+
+  .tech-panel-raised {
+    background: var(--surface-02);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
   }
 
   .silicon-rail {
     background-image:
-      linear-gradient(180deg, #141820, var(--brand-ink)),
-      linear-gradient(rgb(255 91 46 / 0.08) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 20px;
+      linear-gradient(180deg, var(--surface-01), var(--canvas)),
+      linear-gradient(rgba(62, 200, 214, 0.06) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      100% 20px;
   }
 
   .dark .silicon-rail {
     background-image:
-      linear-gradient(180deg, #0a0c10, #050608),
-      linear-gradient(rgb(255 91 46 / 0.1) 1px, transparent 1px);
+      linear-gradient(180deg, #06090b, #040608),
+      linear-gradient(rgba(62, 200, 214, 0.08) 1px, transparent 1px);
   }
 
   .command-pulse {
@@ -248,14 +316,77 @@
 
   .inspector-panel {
     background-image:
-      radial-gradient(420px 220px at 100% 0%, rgb(255 91 46 / 0.12), transparent 55%),
-      linear-gradient(180deg, rgb(26 31 40 / 0.55), transparent 30%);
+      radial-gradient(420px 220px at 100% 0%, rgba(62, 200, 214, 0.08), transparent 55%),
+      linear-gradient(180deg, rgba(22, 29, 34, 0.55), transparent 30%);
   }
 
   .dark .inspector-panel {
     background-image:
-      radial-gradient(420px 220px at 100% 0%, rgb(255 91 46 / 0.16), transparent 55%),
-      linear-gradient(180deg, rgb(20 24 32 / 0.65), transparent 30%);
+      radial-gradient(420px 220px at 100% 0%, rgba(62, 200, 214, 0.1), transparent 55%),
+      linear-gradient(180deg, rgba(17, 23, 27, 0.65), transparent 30%);
+  }
+
+  /* Editorial section kicker */
+  .sec-no {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+
+  .sec-no::before {
+    content: "";
+    flex: 0 0 22px;
+    height: 2px;
+    background: var(--cyan);
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+
+  .tech-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Visual modes tint the canvas subtly */
+  [data-visual-mode="system"] {
+    --mode-tint: transparent;
+  }
+
+  [data-visual-mode="topology"] {
+    --mode-tint: rgba(74, 125, 255, 0.04);
+  }
+
+  [data-visual-mode="blueprint"] {
+    --mode-tint: rgba(212, 160, 23, 0.035);
+  }
+
+  .mode-surface {
+    background-image: linear-gradient(var(--mode-tint, transparent), var(--mode-tint, transparent));
+  }
+
+  [data-visual-mode="blueprint"] .ops-panel,
+  [data-visual-mode="blueprint"] .tech-panel {
+    border-style: dashed;
+    border-color: rgba(212, 160, 23, 0.22);
+  }
+
+  [data-visual-mode="topology"] .ops-panel,
+  [data-visual-mode="topology"] .tech-panel {
+    border-color: rgba(74, 125, 255, 0.2);
   }
 
   .animate-circuit-pulse {
@@ -293,6 +424,16 @@
   .wl-cta-rise {
     animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
+
+  .live-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--success);
+    box-shadow: 0 0 0 0 rgba(62, 207, 154, 0.5);
+    animation: live-pulse 1.8s ease-out infinite;
+  }
 }
 
 @keyframes circuit-pulse {
@@ -313,7 +454,7 @@
       0 0,
       0 0,
       0 0;
-    filter: brightness(1.06);
+    filter: brightness(1.04);
   }
 }
 
@@ -321,13 +462,13 @@
   0%,
   100% {
     box-shadow:
-      0 0 0 1px rgb(255 91 46 / 0.35),
-      0 0 20px rgb(255 91 46 / 0.2);
+      0 0 0 1px rgba(62, 200, 214, 0.28),
+      0 0 16px rgba(62, 200, 214, 0.1);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgb(255 91 46 / 0.6),
-      0 0 40px rgb(255 91 46 / 0.35);
+      0 0 0 1px rgba(62, 200, 214, 0.5),
+      0 0 28px rgba(62, 200, 214, 0.18);
   }
 }
 
@@ -363,6 +504,18 @@
   }
 }
 
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(62, 207, 154, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(62, 207, 154, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(62, 207, 154, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-circuit-pulse,
   .animate-die-breathe,
@@ -371,7 +524,8 @@
   .wl-hero-preview,
   .wl-preview-float,
   .wl-tour-panel,
-  .wl-cta-rise {
+  .wl-cta-rise,
+  .live-dot {
     animation: none;
   }
 }
