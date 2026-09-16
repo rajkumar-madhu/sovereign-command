@@ -25,17 +25,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
-import {
-  DualSidebarExpandTrigger,
-  DualSidebarMobileTrigger,
-} from "@/components/ops/dual-sidebar";
+import { DualSidebarExpandTrigger, DualSidebarMobileTrigger } from "@/components/ops/dual-sidebar";
 import { InspectorToggle } from "@/components/ops/right-inspector";
+import { VisualModeSwitch } from "@/lib/visual-mode";
 import { useOps, tenantCustomers } from "@/lib/ops-context";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
@@ -119,10 +113,7 @@ export function TopBar({
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={ops.environment}
-            onValueChange={(v) => ops.setEnvironment(v as EnvName)}
-          >
+          <Select value={ops.environment} onValueChange={(v) => ops.setEnvironment(v as EnvName)}>
             <SelectTrigger className="h-9 w-[130px]" aria-label="Select environment">
               <SelectValue />
             </SelectTrigger>
@@ -147,6 +138,7 @@ export function TopBar({
           <span className="truncate">Search agents, incidents…</span>
         </Button>
 
+        <VisualModeSwitch className="hidden md:inline-flex" />
         <InspectorToggle />
 
         <Popover>
@@ -171,7 +163,11 @@ export function TopBar({
               </p>
             </div>
             {alertItems.length > 0 && (
-              <div className="border-b border-border bg-destructive/5" role="status" aria-live="polite">
+              <div
+                className="border-b border-border bg-destructive/5"
+                role="status"
+                aria-live="polite"
+              >
                 <p className="flex items-center gap-1.5 px-3 pt-2 text-xs font-medium text-destructive">
                   <AlarmClock className="size-3.5" aria-hidden="true" /> Approval SLA alerts
                 </p>
@@ -184,7 +180,9 @@ export function TopBar({
                           {formatCountdown(item.remainingMinutes)}
                         </span>
                       </div>
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.approval.request}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                        {item.approval.request}
+                      </p>
                     </li>
                   ))}
                 </ul>

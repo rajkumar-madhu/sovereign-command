@@ -6,6 +6,7 @@ import { TopBar } from "@/components/ops/top-bar";
 import { InspectorProvider, useInspector } from "@/lib/inspector-context";
 import { OpsProvider } from "@/lib/ops-context";
 import { ThemeProvider } from "@/lib/theme";
+import { VisualModeProvider } from "@/lib/visual-mode";
 import { ShellChromeProvider, useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalEscalationEngine, useApprovalSlaAlerts } from "@/lib/use-approval-sla";
 import { cn } from "@/lib/utils";
@@ -17,11 +18,13 @@ export const Route = createFileRoute("/_shell")({
 function ShellLayout() {
   return (
     <ThemeProvider>
-      <OpsProvider>
-        <InspectorProvider>
-          <ShellWithFocusSync />
-        </InspectorProvider>
-      </OpsProvider>
+      <VisualModeProvider>
+        <OpsProvider>
+          <InspectorProvider>
+            <ShellWithFocusSync />
+          </InspectorProvider>
+        </OpsProvider>
+      </VisualModeProvider>
     </ThemeProvider>
   );
 }
@@ -76,7 +79,9 @@ function ShellChrome() {
         <main
           className={cn(
             "w-full flex-1 space-y-6 py-5 animate-rise-in",
-            focusMode ? "mx-0 max-w-none px-4 md:px-8 lg:px-10" : "mx-auto max-w-[1600px] px-3 md:px-6",
+            focusMode
+              ? "mx-0 max-w-none px-4 md:px-8 lg:px-10"
+              : "mx-auto max-w-[1600px] px-3 md:px-6",
           )}
         >
           <Outlet />

@@ -17,15 +17,21 @@ function applyTheme(theme: ThemeMode) {
   root.dataset["theme"] = theme;
 }
 
+/* Graphite intelligence platform defaults to dark canvas */
+function getInitialTheme(): ThemeMode {
+  if (typeof window === "undefined") return "dark";
+  const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
+  if (stored === "dark" || stored === "light") return stored;
+  return "dark";
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  /* Graphite intelligence platform defaults to dark canvas */
-  const [theme, setThemeState] = useState<ThemeMode>("dark");
+  const [theme, setThemeState] = useState<ThemeMode>(getInitialTheme);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    const preferred = stored === "dark" || stored === "light" ? stored : "dark";
-    setThemeState(preferred);
-    applyTheme(preferred);
+    const current = getInitialTheme();
+    setThemeState(current);
+    applyTheme(current);
   }, []);
 
   function setTheme(next: ThemeMode) {

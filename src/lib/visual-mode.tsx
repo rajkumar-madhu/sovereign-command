@@ -24,23 +24,30 @@ const LABELS: Record<VisualMode, string> = {
   blueprint: "Blueprint",
 };
 
+function applyVisualMode(mode: VisualMode) {
+  document.documentElement.setAttribute("data-visual-mode", mode);
+}
+
+function getInitialVisualMode(): VisualMode {
+  if (typeof window === "undefined") return "system";
+  const stored = window.localStorage.getItem(STORAGE_KEY) as VisualMode | null;
+  if (stored === "system" || stored === "topology" || stored === "blueprint") return stored;
+  return "system";
+}
+
 export function VisualModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<VisualMode>("system");
+  const [mode, setModeState] = useState<VisualMode>(getInitialVisualMode);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as VisualMode | null;
-    if (stored === "system" || stored === "topology" || stored === "blueprint") {
-      setModeState(stored);
-      document.documentElement.dataset["visualMode"] = stored;
-    } else {
-      document.documentElement.dataset["visualMode"] = "system";
-    }
+    const current = getInitialVisualMode();
+    setModeState(current);
+    applyVisualMode(current);
   }, []);
 
   const setMode = useCallback((next: VisualMode) => {
     setModeState(next);
     window.localStorage.setItem(STORAGE_KEY, next);
-    document.documentElement.dataset["visualMode"] = next;
+    applyVisualMode(next);
   }, []);
 
   const value = useMemo(() => ({ mode, setMode }), [mode, setMode]);
