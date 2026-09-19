@@ -7,16 +7,13 @@ import {
   AuthDivider,
   AuthFeatures,
   AuthField,
+  AuthPasswordField,
   AuthShell,
   AuthSpinner,
   AuthSubmit,
 } from "@/components/auth/auth-shell";
 import { isOperatorEmail, MIN_PASSWORD_LENGTH } from "@/data/operator-allowlist";
-import {
-  createDemoSession,
-  createOperatorSession,
-  setSession,
-} from "@/lib/session";
+import { createDemoSession, createOperatorSession, setSession } from "@/lib/session";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -57,9 +54,7 @@ function SignInPage() {
       return;
     }
     if (!isOperatorEmail(email)) {
-      setError(
-        "This email is not on the operator allowlist. Contact your platform administrator.",
-      );
+      setError("This email is not on the operator allowlist. Contact your platform administrator.");
       return;
     }
     setBusy(true);
@@ -120,15 +115,22 @@ function SignInPage() {
             autoComplete="email"
             required
           />
-          <AuthField
+          <AuthPasswordField
             label="Password"
-            type="password"
             value={password}
             onChange={setPassword}
             placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
             autoComplete="current-password"
             required
           />
+          <div className="-mt-1 mb-1 flex justify-end">
+            <a
+              href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20password%20reset"
+              className="text-[12.5px] font-medium text-[#5c5a56] hover:text-brand-coral hover:underline"
+            >
+              Need a reset?
+            </a>
+          </div>
           <AuthSubmit disabled={busy || !email || !password} variant="secondary">
             {busy ? <AuthSpinner /> : "Sign in with credentials"}
             {!busy && <ArrowRight className="size-4" aria-hidden />}

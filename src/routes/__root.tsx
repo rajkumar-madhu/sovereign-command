@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -101,18 +102,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Wecrew Ops · sovereign.ops — read-only multi-tenant agent operations for regulated hybrid infrastructure.",
+          "Wecrew Ops · sovereign.wecrew.in — read-only multi-tenant agent operations for regulated hybrid infrastructure.",
       },
       { name: "author", content: "Wecrew Ops" },
       { property: "og:title", content: "Wecrew Ops" },
       {
         property: "og:description",
-        content: "Vendor-neutral agent operations command centre at sovereign.ops.wecrew.in.",
+        content: "Vendor-neutral agent operations command centre at sovereign.wecrew.in.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
+      { property: "og:image", content: "https://sovereign.wecrew.in/og-wecrew-ops.jpg" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
+      { name: "twitter:image", content: "https://sovereign.wecrew.in/og-wecrew-ops.jpg" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -163,6 +164,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <Toaster richColors closeButton position="top-right" />
     </QueryClientProvider>
   );
 }
