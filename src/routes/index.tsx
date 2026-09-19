@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Siren,
 } from "lucide-react";
+import { StartDemoButton } from "@/components/auth/start-demo-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -22,25 +23,27 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Wecrew Ops · sovereign.ops — command centre, passports, policy, evidence-backed RCA. Read-only. Self-hosted on your cluster.",
+          "Wecrew Ops · sovereign.wecrew.in — command centre, passports, policy, evidence-backed RCA. Read-only. Self-hosted on your cluster.",
       },
       { property: "og:title", content: "Wecrew Ops" },
       {
         property: "og:description",
-        content: "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
+        content:
+          "Command every agent estate from one secure operations plane at sovereign.wecrew.in.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://sovereign.ops.wecrew.in/" },
-      { property: "og:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
+      { property: "og:url", content: "https://sovereign.wecrew.in/" },
+      { property: "og:image", content: "https://sovereign.wecrew.in/og-wecrew-ops.jpg" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Wecrew Ops" },
       {
         name: "twitter:description",
-        content: "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
+        content:
+          "Command every agent estate from one secure operations plane at sovereign.wecrew.in.",
       },
-      { name: "twitter:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
+      { name: "twitter:image", content: "https://sovereign.wecrew.in/og-wecrew-ops.jpg" },
     ],
   }),
   component: LandingPage,
@@ -206,7 +209,10 @@ function LandingPage() {
               Wecrew <em className="not-italic text-brand-coral">Ops</em>
             </span>
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex" aria-label="Primary">
+          <nav
+            className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex"
+            aria-label="Primary"
+          >
             <a href="#product" className="hover:text-[#1c1c1c]">
               Product
             </a>
@@ -245,31 +251,39 @@ function LandingPage() {
         <section className="border-b border-[#e8e6e0]">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
             <div className="wl-hero-copy space-y-6">
-              <p className="text-sm font-medium text-brand-coral">
-                Secure agent operations for enterprise teams
+              <p className="font-display text-[clamp(2rem,5vw,3.25rem)] font-semibold leading-none tracking-tight text-[#1c1c1c]">
+                Wecrew <em className="not-italic text-brand-coral">Ops</em>
               </p>
-              <h1 className="font-display text-[clamp(2.25rem,4.5vw,3.5rem)] font-semibold leading-[1.08] tracking-tight text-[#1c1c1c]">
+              <p className="text-sm font-medium text-[#5c5a56]">
+                Secure agent operations for enterprise teams ·{" "}
+                <span className="font-mono text-[12px] tracking-wide text-brand-coral">
+                  sovereign.wecrew.in
+                </span>
+              </p>
+              <h1 className="font-display text-[clamp(1.65rem,3.2vw,2.35rem)] font-semibold leading-[1.15] tracking-tight text-[#1c1c1c]">
                 Your agent estate.{" "}
                 <span className="text-[#5c5a56]">One intelligent command plane.</span>
               </h1>
               <p className="max-w-xl text-[15px] leading-relaxed text-[#5c5a56] md:text-base">
-                Connect fleets, passports, incidents, and telemetry to a read-only operations OS that
-                shows what agents are doing, what they are allowed to do, and why something broke —
-                with evidence you can take to audit.
+                Connect fleets, passports, incidents, and telemetry to a read-only operations OS
+                that shows what agents are doing, what they are allowed to do, and why something
+                broke — with evidence you can take to audit.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-brand-coral text-white hover:bg-brand-coral/90"
+                >
                   <Link to="/signup">
-                    Start using Wecrew Ops
+                    Sign up
                     <ArrowRight className="size-4" aria-hidden />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="border-[#d4cdc0] bg-white">
-                  <Link to="/docs">Read the docs</Link>
+                  <Link to="/login">Sign in</Link>
                 </Button>
-                <Button asChild size="lg" variant="ghost" className="text-[#1c1c1c]">
-                  <Link to="/command">View product demo</Link>
-                </Button>
+                <StartDemoButton className="text-[#1c1c1c]" />
               </div>
               <ul className="space-y-2.5 pt-2 text-sm text-[#5c5a56]">
                 {[
@@ -291,7 +305,7 @@ function LandingPage() {
               aria-label="Animated preview of Wecrew Ops Command Centre"
             >
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-[11px]">
-                <span className="font-mono text-white/55">sovereign.ops.wecrew.in</span>
+                <span className="font-mono text-white/55">sovereign.wecrew.in</span>
                 <span className="inline-flex items-center gap-1.5 text-brand-coral">
                   <span className="size-1.5 animate-pulse rounded-full bg-brand-coral" />
                   Live
@@ -300,7 +314,9 @@ function LandingPage() {
               <div className="space-y-3 p-4 text-[13px]">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">You</p>
-                  <p className="mt-1 text-white/90">Which agents are degraded after the 14:00 release?</p>
+                  <p className="mt-1 text-white/90">
+                    Which agents are degraded after the 14:00 release?
+                  </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.07] p-3">
                   <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-brand-coral">
@@ -317,13 +333,14 @@ function LandingPage() {
                     </span>
                     <div className="space-y-2">
                       <p className="leading-relaxed text-white/90">
-                        Three agents degraded; P1 inc-4821 still open. Signature expiry on Planner-01
-                        is the top risk — restore pool sizing per runbook §3.1 before escalating.
+                        Three agents degraded; P1 inc-4821 still open. Signature expiry on
+                        Planner-01 is the top risk — restore pool sizing per runbook §3.1 before
+                        escalating.
                       </p>
                       <ul className="space-y-1 text-[12px] text-white/55">
                         <li>
-                          <strong className="text-white/80">checkout-runbook.pdf</strong> · §3.1 Latency
-                          triage
+                          <strong className="text-white/80">checkout-runbook.pdf</strong> · §3.1
+                          Latency triage
                         </li>
                         <li>
                           <strong className="text-white/80">CHG-2291</strong> · Release record
@@ -352,7 +369,9 @@ function LandingPage() {
               </div>
               <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 text-[10px]">
                 <span className="rounded-md bg-white/10 px-2 py-1 backdrop-blur">Read-only</span>
-                <span className="rounded-md bg-white/10 px-2 py-1 backdrop-blur">3 sources cited</span>
+                <span className="rounded-md bg-white/10 px-2 py-1 backdrop-blur">
+                  3 sources cited
+                </span>
               </div>
             </div>
           </div>
@@ -408,9 +427,15 @@ function LandingPage() {
                 </button>
               ))}
             </div>
-            <div role="tabpanel" key={active.id} className="wl-tour-panel grid gap-8 lg:grid-cols-2 lg:items-start">
+            <div
+              role="tabpanel"
+              key={active.id}
+              className="wl-tour-panel grid gap-8 lg:grid-cols-2 lg:items-start"
+            >
               <div className="space-y-4">
-                <h3 className="font-display text-2xl font-semibold tracking-tight">{active.title}</h3>
+                <h3 className="font-display text-2xl font-semibold tracking-tight">
+                  {active.title}
+                </h3>
                 <p className="text-[#5c5a56]">{active.body}</p>
                 <div className="space-y-3 rounded-2xl border border-[#ddd6c8] bg-white p-4">
                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#5c5a56]">
@@ -481,8 +506,8 @@ function LandingPage() {
                 From scattered runtimes to one answer
               </h2>
               <p className="text-[#5c5a56]">
-                Connect, index, operate, govern. The operations layer stays inside your deployment at
-                every step.
+                Connect, index, operate, govern. The operations layer stays inside your deployment
+                at every step.
               </p>
             </div>
             <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -549,7 +574,10 @@ function LandingPage() {
                     ["Admin", "Tenants, budgets, policy binds"],
                     ["Owner", "Full control plane configuration"],
                   ].map(([role, desc]) => (
-                    <li key={role} className="flex items-start justify-between gap-3 border-b border-[#ebe6dc] pb-3 last:border-0">
+                    <li
+                      key={role}
+                      className="flex items-start justify-between gap-3 border-b border-[#ebe6dc] pb-3 last:border-0"
+                    >
                       <span className="font-medium text-[#1c1c1c]">{role}</span>
                       <span className="text-right text-[#5c5a56]">{desc}</span>
                     </li>
@@ -558,10 +586,19 @@ function LandingPage() {
               </div>
               <ul className="grid gap-4 sm:grid-cols-2">
                 {[
-                  ["Read-only console", "No shell, cluster-admin, secret reads, or autonomous remediations."],
-                  ["Private deployment", "Kubernetes manifests on your cluster — same pattern as Copilot."],
+                  [
+                    "Read-only console",
+                    "No shell, cluster-admin, secret reads, or autonomous remediations.",
+                  ],
+                  [
+                    "Private deployment",
+                    "Kubernetes manifests on your cluster — same pattern as Copilot.",
+                  ],
                   ["Audit trail", "Authentication and investigation events recorded for review."],
-                  ["Evidence transparency", "Artefacts are hash-verified; RCA cites what was collected."],
+                  [
+                    "Evidence transparency",
+                    "Artefacts are hash-verified; RCA cites what was collected.",
+                  ],
                   ["TLS in transit", "Public endpoints terminate with managed certificates."],
                   ["Scoped credentials", "Secrets stay in your store — never pasted into the UI."],
                 ].map(([title, body]) => (
@@ -586,7 +623,11 @@ function LandingPage() {
               intelligent command plane.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
+              <Button
+                asChild
+                size="lg"
+                className="bg-brand-coral text-white hover:bg-brand-coral/90"
+              >
                 <Link to="/signup">Get started</Link>
               </Button>
               <Button
@@ -595,7 +636,9 @@ function LandingPage() {
                 variant="outline"
                 className="border-white/20 bg-transparent text-white hover:bg-white/10"
               >
-                <a href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20enquiry">Talk to our team</a>
+                <a href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20enquiry">
+                  Talk to our team
+                </a>
               </Button>
             </div>
             <div className="space-y-1 text-sm text-white/65">
@@ -644,7 +687,7 @@ function LandingPage() {
                   +91 91767 72077
                 </a>
                 <span className="mx-2 text-[#d4cdc0]">·</span>
-                <span className="font-mono text-xs">sovereign.ops.wecrew.in</span>
+                <span className="font-mono text-xs">sovereign.wecrew.in</span>
               </p>
             </div>
           </div>

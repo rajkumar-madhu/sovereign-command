@@ -7,16 +7,13 @@ import {
   AuthDivider,
   AuthFeatures,
   AuthField,
+  AuthPasswordField,
   AuthShell,
   AuthSpinner,
   AuthSubmit,
 } from "@/components/auth/auth-shell";
 import { isOperatorEmail, MIN_PASSWORD_LENGTH } from "@/data/operator-allowlist";
-import {
-  createDemoSession,
-  createOperatorSession,
-  setSession,
-} from "@/lib/session";
+import { createDemoSession, createOperatorSession, setSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/signup")({
@@ -87,9 +84,7 @@ function SignUpPage() {
       return;
     }
     if (!isOperatorEmail(form.email)) {
-      setError(
-        "This email is not on the operator allowlist. Contact your platform administrator.",
-      );
+      setError("This email is not on the operator allowlist. Contact your platform administrator.");
       return;
     }
     setBusy(true);
@@ -168,9 +163,8 @@ function SignUpPage() {
             autoComplete="email"
             required
           />
-          <AuthField
+          <AuthPasswordField
             label="Password"
-            type="password"
             value={form.password}
             onChange={(v) => set("password", v)}
             placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}

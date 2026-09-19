@@ -1,26 +1,30 @@
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function AuthBrand({
   tone = "dark",
   className,
+  linkToHome = true,
 }: {
   tone?: "dark" | "light";
   className?: string;
+  linkToHome?: boolean;
 }) {
   const light = tone === "light";
-  return (
-    <div className={cn("relative z-10 flex items-center gap-2.5", className)}>
+  const mark = (
+    <>
       <span
         className={cn(
           "relative grid place-items-center rounded-[11px]",
-          light ? "size-9 shadow-[0_4px_12px_rgba(255,91,46,0.22)]" : "size-[38px] shadow-[0_6px_18px_rgba(255,91,46,0.3)]",
+          light
+            ? "size-9 shadow-[0_4px_12px_rgba(255,91,46,0.22)]"
+            : "size-[38px] shadow-[0_6px_18px_rgba(255,91,46,0.3)]",
         )}
         style={{
-          background:
-            "conic-gradient(from 210deg,#ff5b2e,#2b4cff,#0f7a55,#c9a227,#ff5b2e)",
+          background: "conic-gradient(from 210deg,#ff5b2e,#2b4cff,#0f7a55,#c9a227,#ff5b2e)",
         }}
       >
         <span
@@ -53,10 +57,27 @@ export function AuthBrand({
             light ? "text-[10px] text-[#8a8680]" : "text-[10px] text-[#6f6a62]",
           )}
         >
-          sovereign.ops · agent operations
+          sovereign.wecrew.in · agent operations
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  if (!linkToHome) {
+    return <div className={cn("relative z-10 flex items-center gap-2.5", className)}>{mark}</div>;
+  }
+
+  return (
+    <Link
+      to="/"
+      className={cn(
+        "relative z-10 flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand-coral/50",
+        className,
+      )}
+      aria-label="Wecrew Ops home"
+    >
+      {mark}
+    </Link>
   );
 }
 
@@ -94,8 +115,7 @@ export function AuthShell({
             backgroundImage:
               "linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px)",
             backgroundSize: "56px 56px",
-            maskImage:
-              "radial-gradient(ellipse 80% 70% at 50% 40%,black 30%,transparent 85%)",
+            maskImage: "radial-gradient(ellipse 80% 70% at 50% 40%,black 30%,transparent 85%)",
             WebkitMaskImage:
               "radial-gradient(ellipse 80% 70% at 50% 40%,black 30%,transparent 85%)",
           }}
@@ -127,9 +147,7 @@ export function AuthShell({
         <div className="w-full max-w-[440px] animate-in fade-in slide-in-from-bottom-3 duration-400 pb-10">
           {/* Compact brand when the dark product panel is hidden (< lg) */}
           <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
-            <Link to="/" className="min-w-0">
-              <AuthBrand tone="light" />
-            </Link>
+            <AuthBrand tone="light" className="min-w-0" />
             <Link
               to="/docs"
               className="shrink-0 font-mono text-[11px] tracking-[0.08em] text-[#5c5a56] uppercase hover:text-brand-coral"
@@ -177,6 +195,9 @@ export function AuthBackLink() {
   );
 }
 
+const fieldInputClass =
+  "w-full rounded-lg border border-[#ddd6c8] bg-white px-3.5 py-3 text-[14.5px] text-[#1c1c1c] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[#8a8680] focus:border-brand-coral focus:bg-[#fffaf7] focus:shadow-[0_0_0_3px_rgba(255,91,46,0.12)]";
+
 export function AuthField({
   label,
   type = "text",
@@ -204,8 +225,54 @@ export function AuthField({
         placeholder={placeholder}
         autoComplete={autoComplete}
         required={required}
-        className="w-full rounded-lg border border-[#ddd6c8] bg-white px-3.5 py-3 text-[14.5px] text-[#1c1c1c] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[#8a8680] focus:border-brand-coral focus:bg-[#fffaf7] focus:shadow-[0_0_0_3px_rgba(255,91,46,0.12)]"
+        className={fieldInputClass}
       />
+    </label>
+  );
+}
+
+export function AuthPasswordField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  autoComplete = "current-password",
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
+  required?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <label className="mb-4 block">
+      <span className="mb-1.5 block text-[13px] font-medium text-[#1c1c1c]">{label}</span>
+      <span className="relative block">
+        <input
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          required={required}
+          className={cn(fieldInputClass, "pr-11")}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded-md p-1.5 text-[#8a8680] transition-colors hover:bg-[#f7f7f4] hover:text-[#1c1c1c]"
+          aria-label={visible ? "Hide password" : "Show password"}
+        >
+          {visible ? (
+            <EyeOff className="size-4" aria-hidden />
+          ) : (
+            <Eye className="size-4" aria-hidden />
+          )}
+        </button>
+      </span>
     </label>
   );
 }
@@ -228,10 +295,8 @@ export function AuthSubmit({
   const styles = {
     primary:
       "border-[#0e1116] bg-[#0e1116] text-[#f7f7f4] hover:border-brand-coral hover:bg-brand-coral hover:text-white",
-    coral:
-      "border-brand-coral bg-brand-coral text-white hover:bg-brand-coral/90",
-    secondary:
-      "border-[#ddd6c8] bg-white text-[#1c1c1c] hover:border-[#0e1116] hover:bg-[#f7f7f4]",
+    coral: "border-brand-coral bg-brand-coral text-white hover:bg-brand-coral/90",
+    secondary: "border-[#ddd6c8] bg-white text-[#1c1c1c] hover:border-[#0e1116] hover:bg-[#f7f7f4]",
   }[variant];
 
   return (
@@ -254,7 +319,9 @@ export function AuthDivider({ label = "Or email" }: { label?: string }) {
   return (
     <div className="my-5 flex items-center gap-3" role="separator" aria-label={label}>
       <span className="h-px flex-1 bg-[#e8e6e0]" />
-      <span className="font-mono text-[10px] tracking-[0.14em] text-[#8a8680] uppercase">{label}</span>
+      <span className="font-mono text-[10px] tracking-[0.14em] text-[#8a8680] uppercase">
+        {label}
+      </span>
       <span className="h-px flex-1 bg-[#e8e6e0]" />
     </div>
   );
