@@ -4,8 +4,65 @@ import { sessionFromRequest } from "./ops-auth";
 
 export const STAGE1_PROXY_PREFIX = "/stage1-api";
 
-export const STAGE1_ALLOWED_PATH =
-  /^\/(health|cluster\/(?:snapshot|logs)\?tenantId=[A-Za-z0-9_-]+(?:&namespace=[A-Za-z0-9._-]+)?(?:&pod=[A-Za-z0-9._-]+)?|cluster\/metrics\?tenantId=[A-Za-z0-9_-]+(?:&window=[0-9]+[mhd])?(?:&series=[A-Za-z0-9_,]+)?|executions\/exec-clb-01)$/;
+const ALLOWED_PATHS = new Set([
+  "/health",
+  "/cluster/snapshot",
+  "/cluster/logs",
+  "/cluster/metrics",
+  "/executions/exec-clb-01",
+]);
+
+const LOG_PARAMS = new Set(["tenantId", "namespace", "pod", "backend", "window", "q"]);
+const METRICS_PARAMS = new Set(["tenantId", "window", "series"]);
+const SNAPSHOT_PARAMS = new Set(["tenantId"]);
+
+function paramsAllowed(pathname: string, searchParams: URLSearchParams): boolean {
+  const keys = [...searchParams.keys()];
+  if (pathname === "/health" || pathname === "/executions/exec-clb-01") {
+    return keys.length === 0;
+  }
+  if (pathname === "/cluster/snapshot") {
+    return keys.every((k) => SNAPSHOT_PARAMS.has(k)) && searchParams.has("tenantId");
+  }
+  if (pathname === "/cluster/logs") {
+    if (!searchParams.has("tenantId")) return false;
+    if (!keys.every((k) => LOG_PARAMS.has(k))) return false;
+    const backend = searchParams.get("backend");
+    if (backend && !/^(es|k8s|auto)$/.test(backend)) return false;
+    const window = searchParams.get("window");
+    if (window && !/^[0-9]+[mhd]$/.test(window)) return false;
+    const q = searchParams.get("q");
+    if (q && !/^[A-Za-z0-9._\-\s:/]{0,120}$/.test(q)) return false;
+    const ns = searchParams.get("namespace");
+    const pod = searchParams.get("pod");
+    if (ns && !/^[A-Za-z0-9._-]+$/.test(ns)) return false;
+    if (pod && !/^[A-Za-z0-9._-]+$/.test(pod)) return false;
+    return true;
+  }
+  if (pathname === "/cluster/metrics") {
+    if (!searchParams.has("tenantId")) return false;
+    if (!keys.every((k) => METRICS_PARAMS.has(k))) return false;
+    const window = searchParams.get("window");
+    if (window && !/^[0-9]+[mhd]$/.test(window)) return false;
+    const series = searchParams.get("series");
+    if (series && !/^[A-Za-z0-9_,]+$/.test(series)) return false;
+    return true;
+  }
+  return false;
+}
+
+/** Kept for tests — true when the rewritten Stage-1 path is allowlisted. */
+export const STAGE1_ALLOWED_PATH = {
+  test(path: string): boolean {
+    try {
+      const url = new URL(path, "http://stage1.local");
+      if (!ALLOWED_PATHS.has(url.pathname)) return false;
+      return paramsAllowed(url.pathname, url.searchParams);
+    } catch {
+      return false;
+    }
+  },
+};
 
 export function stage1Upstream(): string {
   return (process.env.STAGE1_API_URL ?? "http://127.0.0.1:8091").replace(/\/$/, "");
@@ -22,7 +79,11 @@ export function scopedStage1Path(path: string, tenantId: string): string | null 
   const url = new URL(path, "http://stage1.local");
   const requested = url.searchParams.get("tenantId");
   if (requested && requested !== tenantId) return null;
-  if (requested) return `${url.pathname}${url.search}`;
+  if (requested) {
+    return STAGE1_ALLOWED_PATH.test(`${url.pathname}${url.search}`)
+      ? `${url.pathname}${url.search}`
+      : null;
+  }
   if (url.pathname === "/health" || url.pathname === "/executions/exec-clb-01") {
     return `${url.pathname}${url.search}`;
   }

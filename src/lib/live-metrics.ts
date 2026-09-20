@@ -80,6 +80,9 @@ export type MetricSample = {
   mysqlUp: number | null;
   redisUp: number | null;
   targetsUp: number | null;
+  postgresConnections: number | null;
+  mysqlConnections: number | null;
+  redisMemoryMiB: number | null;
   promLive: boolean;
 };
 
@@ -141,13 +144,13 @@ export const METRIC_CATALOG: MetricDef[] = [
   { id: "api.p95", label: "P95", category: "API", unit: "ms", live: false, color: "#94a3b8" },
   { id: "api.p99", label: "P99", category: "API", unit: "ms", live: false, color: "#94a3b8" },
   { id: "api.timeout", label: "Timeout rate", category: "API", unit: "%", live: false, color: "#94a3b8" },
-  { id: "db.connections", label: "Connections", category: "Database", unit: "conn", live: false, color: "#94a3b8" },
+  { id: "db.connections", label: "Connections", category: "Database", unit: "conn", live: true, color: "#0f7a55" },
   { id: "db.query_latency", label: "Query latency", category: "Database", unit: "ms", live: false, color: "#94a3b8" },
   { id: "db.slow_queries", label: "Slow queries", category: "Database", unit: "count", live: false, color: "#94a3b8" },
   { id: "db.locks", label: "Locks", category: "Database", unit: "count", live: false, color: "#94a3b8" },
   { id: "db.postgres", label: "Postgres up", category: "Database", unit: "up", live: true, color: "#0f7a55" },
   { id: "db.mysql", label: "MySQL up", category: "Database", unit: "up", live: true, color: "#2b4cff" },
-  { id: "redis.memory", label: "Memory", category: "Redis", unit: "MB", live: false, color: "#94a3b8" },
+  { id: "redis.memory", label: "Memory", category: "Redis", unit: "MB", live: true, color: "#2b4cff" },
   { id: "redis.hit_rate", label: "Hit rate", category: "Redis", unit: "%", live: false, color: "#94a3b8" },
   { id: "redis.up", label: "Redis up", category: "Redis", unit: "up", live: true, color: "#d97706" },
   { id: "mq.depth", label: "Queue depth", category: "RabbitMQ", unit: "msg", live: false, color: "#94a3b8" },
@@ -183,13 +186,13 @@ const SAMPLE_KEYS: Record<MetricId, keyof MetricSample | null> = {
   "api.p95": null,
   "api.p99": null,
   "api.timeout": null,
-  "db.connections": null,
+  "db.connections": "postgresConnections",
   "db.query_latency": null,
   "db.slow_queries": null,
   "db.locks": null,
   "db.postgres": "postgresUp",
   "db.mysql": "mysqlUp",
-  "redis.memory": null,
+  "redis.memory": "redisMemoryMiB",
   "redis.hit_rate": null,
   "redis.up": "redisUp",
   "mq.depth": null,
@@ -232,6 +235,9 @@ export function sampleFromSnapshot(
     redisUp: number | null;
     targetsUp: number | null;
     restarts1h: number | null;
+    postgresConnections: number | null;
+    mysqlConnections: number | null;
+    redisMemoryBytes: number | null;
     live: boolean;
   } | null,
 ): MetricSample | null {
@@ -251,6 +257,14 @@ export function sampleFromSnapshot(
   const cpuCores =
     prom?.cpuCores != null && Number.isFinite(prom.cpuCores)
       ? Math.round(prom.cpuCores * 100) / 100
+      : null;
+  const redisMemoryMiB =
+    prom?.redisMemoryBytes != null && Number.isFinite(prom.redisMemoryBytes)
+      ? Math.round((prom.redisMemoryBytes / (1024 * 1024)) * 100) / 100
+      : null;
+  const postgresConnections =
+    prom?.postgresConnections != null && Number.isFinite(prom.postgresConnections)
+      ? Math.round(prom.postgresConnections)
       : null;
   return {
     ts,
@@ -272,6 +286,12 @@ export function sampleFromSnapshot(
     mysqlUp: prom?.mysqlUp ?? null,
     redisUp: prom?.redisUp ?? null,
     targetsUp: prom?.targetsUp ?? null,
+    postgresConnections,
+    mysqlConnections:
+      prom?.mysqlConnections != null && Number.isFinite(prom.mysqlConnections)
+        ? Math.round(prom.mysqlConnections)
+        : null,
+    redisMemoryMiB,
     promLive: Boolean(prom?.live),
   };
 }
