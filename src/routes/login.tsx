@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, FileSearch, Gauge, Lock, ShieldCheck } from "lucide-react";
+import { ArrowRight, FileSearch, Gauge, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   AuthBackLink,
-  AuthDivider,
   AuthFeatures,
   AuthField,
   AuthShell,
@@ -12,11 +11,9 @@ import {
   AuthSubmit,
 } from "@/components/auth/auth-shell";
 import { isOperatorEmail, MIN_PASSWORD_LENGTH } from "@/data/operator-allowlist";
-import {
-  createDemoSession,
-  createOperatorSession,
-  setSession,
-} from "@/lib/session";
+import { bindTenantAccess } from "@/lib/auth-client";
+import { rememberOperator } from "@/lib/ops-identity";
+import { createOperatorSession, setSession } from "@/lib/session";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -36,18 +33,11 @@ function SignInPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function enterDemo() {
-    setSession(createDemoSession());
-    toast.success("Demo session established", {
-      description: "Scope: Nordic Federated Bank · production (read-only)",
-    });
-    void navigate({ to: "/command" });
-  }
-
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (!email.includes("@") || password.length < MIN_PASSWORD_LENGTH) {
@@ -62,15 +52,26 @@ function SignInPage() {
       );
       return;
     }
+    rememberOperator(email);
     setBusy(true);
-    window.setTimeout(() => {
-      setSession(createOperatorSession(email));
+    setSession(createOperatorSession(email));
+    if (token.trim()) {
+      const fail = await bindTenantAccess(email, token.trim());
       setBusy(false);
-      toast.success("Read-only session established", {
-        description: "Scope: Nordic Federated Bank · production",
+      if (fail) {
+        setError(fail);
+        return;
+      }
+      toast.success("Tenant token bound", {
+        description: "Live fetch is scoped to that tenant only.",
       });
-      void navigate({ to: "/command" });
-    }, 700);
+    } else {
+      setBusy(false);
+      toast.message("Account opened without a tenant token", {
+        description: "Cluster data stays closed until you bind a token in Settings.",
+      });
+    }
+    void navigate({ to: "/command" });
   }
 
   return (
@@ -85,22 +86,14 @@ function SignInPage() {
       }
       footer="Self-hosted · vendor neutral · multi-tenant"
       panel={
-        <form onSubmit={submit} noValidate>
+        <form onSubmit={(e) => void submit(e)} noValidate>
           <AuthBackLink />
           <h2 className="font-display mb-1.5 text-[2rem] font-semibold tracking-tight text-[#1c1c1c] sm:text-[2.25rem]">
             Sign in
           </h2>
           <p className="mb-6 text-[14.5px] leading-relaxed text-[#5c5a56]">
-            Use your operator credentials or continue with the product demo.
+            A user account is not cluster access. Bind a tenant token to fetch that tenant only.
           </p>
-
-          <AuthSubmit type="button" variant="coral" onClick={enterDemo}>
-            <ShieldCheck className="size-4" aria-hidden />
-            Continue with product demo
-            <ArrowRight className="size-4" aria-hidden />
-          </AuthSubmit>
-
-          <AuthDivider label="Or email" />
 
           {error && (
             <div
@@ -129,9 +122,17 @@ function SignInPage() {
             autoComplete="current-password"
             required
           />
-          <AuthSubmit disabled={busy || !email || !password} variant="secondary">
-            {busy ? <AuthSpinner /> : "Sign in with credentials"}
-            {!busy && <ArrowRight className="size-4" aria-hidden />}
+          <AuthField
+            label="Tenant access token"
+            type="password"
+            value={token}
+            onChange={setToken}
+            placeholder="Required for live cluster data"
+            autoComplete="off"
+          />
+          <AuthSubmit disabled={busy || !email || !password} variant="coral">
+            {busy ? <AuthSpinner /> : "Sign in"}
+            {!busy && <ArrowRight className="size-4" aria-hidden="true" />}
           </AuthSubmit>
 
           <p className="mt-5 text-center text-[13px] text-[#5c5a56]">
@@ -141,8 +142,8 @@ function SignInPage() {
             </Link>
           </p>
           <p className="mt-4 text-center text-[12px] leading-relaxed text-[#8a8680]">
-            Access is limited to allowlisted operators. Contact your platform administrator for
-            provisioning.
+            Tokens are issued per tenant by the platform operator. They do not grant shell,
+            secrets, or remediation.
           </p>
         </form>
       }

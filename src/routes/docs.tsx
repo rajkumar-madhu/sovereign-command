@@ -1,14 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Bot,
-  Check,
-  FileSearch,
-  Gauge,
-  Lock,
-  ShieldCheck,
-  Siren,
-} from "lucide-react";
+import { ArrowRight, Bot, Check, FileSearch, Gauge, Lock, ShieldCheck, Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/docs")({
@@ -23,7 +14,8 @@ export const Route = createFileRoute("/docs")({
       { property: "og:title", content: "Intro to Wecrew Ops · Docs" },
       {
         property: "og:description",
-        content: "Start here: operate agent estates with passports, investigations, and audit-ready evidence.",
+        content:
+          "Start here: operate agent estates with passports, investigations, and audit-ready evidence.",
       },
       { property: "og:url", content: "https://sovereign.ops.wecrew.in/docs" },
       { property: "og:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
@@ -124,7 +116,10 @@ function DocsIntroPage() {
               Wecrew <em className="not-italic text-brand-coral">Ops</em>
             </span>
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex" aria-label="Primary">
+          <nav
+            className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex"
+            aria-label="Primary"
+          >
             <Link to="/" className="hover:text-[#1c1c1c]">
               Product
             </Link>
@@ -172,12 +167,16 @@ function DocsIntroPage() {
               </h1>
               <p className="max-w-xl text-[15px] leading-relaxed text-[#5c5a56] md:text-base">
                 A vendor-neutral, multi-tenant,{" "}
-                <strong className="font-medium text-[#1c1c1c]">read-only</strong> agent operations plane
-                for regulated hybrid infrastructure — what agents are doing, what they may do, and why
-                something broke, with evidence you can take to audit.
+                <strong className="font-medium text-[#1c1c1c]">read-only</strong> agent operations
+                plane for regulated hybrid infrastructure — what agents are doing, what they may do,
+                and why something broke, with evidence you can take to audit.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-brand-coral text-white hover:bg-brand-coral/90"
+                >
                   <Link to="/command">
                     Open the console
                     <ArrowRight className="size-4" aria-hidden />
@@ -229,7 +228,9 @@ function DocsIntroPage() {
                   ))}
                 </nav>
                 <div className="rounded-xl border border-white/10 bg-white/[0.07] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">Live surfaces</p>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">
+                    Live surfaces
+                  </p>
                   <ul className="mt-2 space-y-1.5 text-[12px] text-white/65">
                     {surfaces.map(([title]) => (
                       <li key={title} className="flex items-center gap-2">
@@ -273,7 +274,9 @@ function DocsIntroPage() {
             <div className="mt-10 grid gap-8 lg:grid-cols-2">
               <article className="space-y-4 border-t border-[#e8e6e0] pt-6">
                 <p className="font-mono text-sm text-brand-coral">01</p>
-                <h3 className="font-display text-xl font-semibold tracking-tight">Product console</h3>
+                <h3 className="font-display text-xl font-semibold tracking-tight">
+                  Product console
+                </h3>
                 <p className="text-sm leading-relaxed text-[#5c5a56]">
                   Hosted UI at sovereign.ops / agents.ops with demo seed and read-only sessions.
                   Best for evaluation, training, and stakeholder walkthroughs.
@@ -288,10 +291,12 @@ function DocsIntroPage() {
               </article>
               <article className="space-y-4 border-t border-[#e8e6e0] pt-6">
                 <p className="font-mono text-sm text-brand-coral">02</p>
-                <h3 className="font-display text-xl font-semibold tracking-tight">Self-hosted estate</h3>
+                <h3 className="font-display text-xl font-semibold tracking-tight">
+                  Self-hosted estate
+                </h3>
                 <p className="text-sm leading-relaxed text-[#5c5a56]">
-                  Same application image on your Kind / K3s cluster behind Traefik or ingress. Best for
-                  regulated estates that must keep agent ops data on-prem.
+                  Same application image on your Kind / K3s cluster behind Traefik or ingress. Best
+                  for regulated estates that must keep agent ops data on-prem.
                 </p>
                 <a
                   href="https://github.com/rajkumar-madhu/sovereign-command"
@@ -323,7 +328,9 @@ function DocsIntroPage() {
               {pathSteps.map((step) => (
                 <li key={step.n} className="flex flex-col space-y-2">
                   <p className="font-mono text-sm text-brand-coral">{step.n}</p>
-                  <h3 className="font-display text-lg font-semibold tracking-tight">{step.title}</h3>
+                  <h3 className="font-display text-lg font-semibold tracking-tight">
+                    {step.title}
+                  </h3>
                   <p className="flex-1 text-sm leading-relaxed text-[#5c5a56]">{step.body}</p>
                   {"params" in step ? (
                     <Link
@@ -365,8 +372,8 @@ function DocsIntroPage() {
               <li className="space-y-3 border-t border-[#e8e6e0] pt-6">
                 <h3 className="font-display text-lg font-semibold tracking-tight">Product demo</h3>
                 <p className="text-sm leading-relaxed text-[#5c5a56]">
-                  Walk the live console with seeded Nordic Federated Bank production scope — no cluster
-                  required.
+                  Walk the live console with seeded Nordic Federated Bank production scope — no
+                  cluster required.
                 </p>
                 <Link
                   to="/command"
@@ -377,7 +384,9 @@ function DocsIntroPage() {
                 </Link>
               </li>
               <li className="space-y-3 border-t border-[#e8e6e0] pt-6">
-                <h3 className="font-display text-lg font-semibold tracking-tight">Self-hosted deploy</h3>
+                <h3 className="font-display text-lg font-semibold tracking-tight">
+                  Self-hosted deploy
+                </h3>
                 <p className="text-sm leading-relaxed text-[#5c5a56]">
                   Run the same UI on your Kind / K3s estate. Data stays inside your network.
                 </p>
@@ -417,8 +426,8 @@ function DocsIntroPage() {
                 What operators use Wecrew Ops for
               </h2>
               <p className="text-[#5c5a56]">
-                Observability, passports, governance, and investigation — not a dashboard bolted onto a
-                chat window.
+                Observability, passports, governance, and investigation — not a dashboard bolted
+                onto a chat window.
               </p>
             </div>
             <ul className="mt-10 grid gap-8 sm:grid-cols-3">
@@ -465,18 +474,25 @@ function DocsIntroPage() {
         </section>
 
         {/* Support / CTA — matches landing dark band */}
-        <section id="support" className="scroll-mt-24 border-b border-[#e8e6e0] bg-[#0e1116] text-[#f7f7f4]">
+        <section
+          id="support"
+          className="scroll-mt-24 border-b border-[#e8e6e0] bg-[#0e1116] text-[#f7f7f4]"
+        >
           <div className="wl-cta-rise mx-auto max-w-3xl space-y-6 px-4 py-20 text-center md:px-6">
             <p className="text-sm font-medium text-brand-coral">Support</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
               Questions about residency, rollout, or the console?
             </h2>
             <p className="text-white/65">
-              Talk to the Wecrew Ops team, or return to the product overview for solutions and security
-              posture.
+              Talk to the Wecrew Ops team, or return to the product overview for solutions and
+              security posture.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
+              <Button
+                asChild
+                size="lg"
+                className="bg-brand-coral text-white hover:bg-brand-coral/90"
+              >
                 <a href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20docs">Talk to our team</a>
               </Button>
               <Button

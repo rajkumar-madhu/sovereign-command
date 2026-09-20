@@ -53,12 +53,12 @@ curl -s https://agentos.wecrew.in/login | rg -o '<title>[^<]+</title>'
 
 ## Visual difference (expected)
 
-| | agentos.wecrew.in | agents.ops / sovereign.ops |
-|---|---|---|
-| Product title | Mission Control — Wecrew DevOps Agent OS | Global Command Centre · Sovereign Agentic Operations OS |
-| Author meta | Wecrew | Sovereign |
-| Shell | Agent OS persona home | Dual-sidebar command centre + inspector |
-| Assets | `/assets/styles-SHcJ_U70.css` (Agent OS build) | Sovereign Command hashed CSS (e.g. `styles-CLJuPi2e.css`) |
+|               | agentos.wecrew.in                              | agents.ops / sovereign.ops                                |
+| ------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| Product title | Mission Control — Wecrew DevOps Agent OS       | Global Command Centre · Sovereign Agentic Operations OS   |
+| Author meta   | Wecrew                                         | Sovereign                                                 |
+| Shell         | Agent OS persona home                          | Dual-sidebar command centre + inspector                   |
+| Assets        | `/assets/styles-SHcJ_U70.css` (Agent OS build) | Sovereign Command hashed CSS (e.g. `styles-CLJuPi2e.css`) |
 
 ## Safety
 

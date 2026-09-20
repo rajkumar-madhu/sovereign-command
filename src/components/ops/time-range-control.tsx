@@ -90,7 +90,10 @@ export function inTimeRange(ts: Date | number | null | undefined, range: TimeRan
 
 /** Resolve clock strings like "06:32" or "06:38:09" onto a day (UTC). */
 export function resolveClockOnDay(dayYmd: string, clock: string): Date | null {
-  const parts = clock.trim().split(":").map((p) => Number(p));
+  const parts = clock
+    .trim()
+    .split(":")
+    .map((p) => Number(p));
   if (parts.length < 2 || parts.some((n) => Number.isNaN(n))) return null;
   const [hh, mm, ss = 0] = parts;
   const iso = `${dayYmd}T${pad(hh!)}:${pad(mm!)}:${pad(ss!)}Z`;
@@ -152,7 +155,7 @@ type TimeRangeControlProps = {
   className?: string;
   compact?: boolean;
   /** Override default presets (e.g. per-incident window). */
-  presets?: TimeRangePreset[];
+  presets?: TimeRangePreset[] | undefined;
   hint?: string;
 };
 
@@ -179,10 +182,7 @@ export function TimeRangeControl({
 
   return (
     <div
-      className={cn(
-        "rounded-2xl border border-border/80 bg-surface/70 p-4",
-        className,
-      )}
+      className={cn("rounded-2xl border border-border/80 bg-surface/70 p-4", className)}
       aria-label="Time range"
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -221,7 +221,9 @@ export function TimeRangeControl({
           type="button"
           size="sm"
           variant={presetId === "custom" ? "default" : "outline"}
-          className={presetId === "custom" ? "bg-brand-coral text-white hover:bg-brand-coral/90" : ""}
+          className={
+            presetId === "custom" ? "bg-brand-coral text-white hover:bg-brand-coral/90" : ""
+          }
           onClick={() => onChange(value, "custom")}
         >
           Custom date
@@ -230,7 +232,10 @@ export function TimeRangeControl({
 
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <div className="space-y-1.5">
-          <Label htmlFor="range-from" className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <Label
+            htmlFor="range-from"
+            className="text-[11px] uppercase tracking-wide text-muted-foreground"
+          >
             From
           </Label>
           <Input
@@ -251,7 +256,10 @@ export function TimeRangeControl({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="range-to" className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <Label
+            htmlFor="range-to"
+            className="text-[11px] uppercase tracking-wide text-muted-foreground"
+          >
             To
           </Label>
           <Input

@@ -9,6 +9,7 @@ import {
   Cpu,
   FileSearch,
   Gauge,
+  Logs,
   Radar,
   ScrollText,
   Settings,
@@ -41,6 +42,7 @@ export const navDomains: NavDomain[] = [
     icon: Gauge,
     items: [
       { title: "Command Centre", url: "/command", icon: Gauge },
+      { title: "Metrics Explorer", url: "/monitor", icon: Activity },
       { title: "Customers", url: "/customers", icon: Building2 },
       { title: "Agent Registry", url: "/agents", icon: Bot },
     ],
@@ -53,6 +55,7 @@ export const navDomains: NavDomain[] = [
       { title: "Investigations", url: "/investigations", icon: Radar },
       { title: "Incident Workspace", url: "/incidents/inc-clb-01", icon: Siren },
       { title: "Evidence Viewer", url: "/evidence", icon: FileSearch },
+      { title: "Logs Explorer", url: "/logs", icon: Logs },
       { title: "RCA Report", url: "/rca", icon: ScrollText },
       { title: "AI Control Tower", url: "/control-tower", icon: TowerControl },
     ],

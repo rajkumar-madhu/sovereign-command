@@ -15,13 +15,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
 import { agentName, tenantName } from "@/data/seed";
 import type { Policy } from "@/data/types";
+import { isLiveCluster, snapshotAgeLabel } from "@/lib/live-ops";
 import {
   fetchLivePolicy,
   STAGE1_EXECUTION_ID,
@@ -43,7 +57,8 @@ export const Route = createFileRoute("/_shell/policies")({
       { property: "og:title", content: "Policy Management · Wecrew Ops" },
       {
         property: "og:description",
-        content: "Simulate, edit and enforce approval, deny and time-window policies for agent intents.",
+        content:
+          "Simulate, edit and enforce approval, deny and time-window policies for agent intents.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -62,33 +77,20 @@ const effectTone = {
 } as const;
 
 const INTENTS = [
-  { id: "db.restart", label: "Restart database replica", policyId: "POL-001" },
-  { id: "firewall.change", label: "Modify firewall rule", policyId: "POL-002" },
-  { id: "k8s.delete", label: "Delete Kubernetes pod", policyId: "POL-003" },
-  { id: "metrics.read", label: "Query Prometheus metrics", policyId: "POL-004" },
-  { id: "config.write", label: "Write gateway config (trading hours)", policyId: "POL-005" },
+  { id: "secrets.read", label: "Read Kubernetes Secret", policyId: "POL-RO-001" },
+  { id: "k8s.delete", label: "Delete Kubernetes pod", policyId: "POL-RO-002" },
+  { id: "remediate.restart", label: "Restart CrashLoopBackOff pod", policyId: "POL-RO-003" },
+  { id: "inventory.read", label: "List cluster inventory", policyId: "POL-RO-004" },
 ];
 
-function useLiveEvalRate(base: number) {
-  const [n, setN] = useState(base);
+function useNowMs() {
+  const [now, setNow] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setN((v) => Math.max(40, Math.min(980, Math.round(v + (Math.random() - 0.45) * 28))));
-    }, 1900);
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
-  return n;
-}
-
-function useLiveQueueAge(baseSec: number) {
-  const [sec, setSec] = useState(baseSec);
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setSec((v) => Math.max(12, Math.min(900, Math.round(v + (Math.random() - 0.35) * 18))));
-    }, 2100);
-    return () => window.clearInterval(id);
-  }, []);
-  return sec;
+  return now;
 }
 
 function PolicyManagement() {
@@ -101,20 +103,24 @@ function PolicyManagement() {
   useEffect(() => {
     if (!stage1ApiConfigured()) return;
     let cancelled = false;
-    fetchLivePolicy(STAGE1_EXECUTION_ID, "tn-nordic").then((live) => {
-      if (!cancelled) setLivePolicy(live);
+    fetchLivePolicy(STAGE1_EXECUTION_ID, "tn-nordic").then((result) => {
+      if (!cancelled) setLivePolicy(result);
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const nowMs = useNowMs();
+  const snap = ops.clusterSnapshot;
+  const live = isLiveCluster(snap);
   const active = ops.policies.filter((p) => p.enabled).length;
   const denyRules = ops.policies.filter((p) => p.effect === "deny" && p.enabled).length;
   const gated = ops.policies.filter((p) => p.effect === "require-approval" && p.enabled).length;
   const pending = ops.approvals.filter((a) => a.status === "pending");
-  const liveEvals = useLiveEvalRate(186);
-  const liveQueueAge = useLiveQueueAge(142);
+  const attention = (snap?.counts.notReady ?? 0) + (snap?.counts.crashLoop ?? 0);
+  const namespaces = snap?.counts.namespaces ?? 0;
+  const snapshotAge = snapshotAgeLabel(snap?.generatedAt, nowMs);
 
   const simulation = useMemo(() => {
     const selected = INTENTS.find((i) => i.id === intent)!;
@@ -134,7 +140,11 @@ function PolicyManagement() {
         tone: "warning",
         note: `Dual control by ${policy.approvers.join(" + ") || "named approvers"}.`,
       },
-      allow: { decision: "allowed", tone: "success", note: "Read-only intent permitted without approval." },
+      allow: {
+        decision: "allowed",
+        tone: "success",
+        note: "Read-only intent permitted without approval.",
+      },
       "time-window": {
         decision: "denied in window",
         tone: "danger",
@@ -165,22 +175,19 @@ function PolicyManagement() {
     });
   }
 
-  const queueAgeLabel =
-    liveQueueAge >= 60 ? `${Math.floor(liveQueueAge / 60)}m ${liveQueueAge % 60}s` : `${liveQueueAge}s`;
-
   return (
     <div className="space-y-6">
       <section
         aria-label="Policy management pulse"
-        className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
+        className="command-pulse relative overflow-hidden rounded-2xl border border-white/10"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div className="pointer-events-none absolute inset-0 silicon-circuit" aria-hidden="true" />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
         />
-        <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
-          <div className="max-w-xl space-y-3">
+        <div className="relative z-10 flex flex-col gap-6 p-5 lg:p-8">
+          <div className="max-w-3xl space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
                 Govern · guardrails
@@ -189,19 +196,24 @@ function PolicyManagement() {
                 <StatusPill tone="info">live Stage-1</StatusPill>
               )}
             </div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-[#f4f1ea] md:text-4xl">
               Policy Management
             </h1>
-            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Guardrails that decide whether an agent intent is allowed, gated behind dual control,
-              or denied. Edits apply to this simulation session only.
+            <p className="text-sm leading-relaxed text-[#f4f1ea]/75">
+              Sovereign read-only rules for the connected Finspot-dev cluster. Secret reads, writes
+              and remediator execution stay denied. Session edits never leave this browser.
             </p>
-            <StatusPill tone="success" className="w-fit bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground">
+            <StatusPill
+              tone={live ? "success" : "warning"}
+              className="w-fit bg-[#f4f1ea]/10 text-[#f4f1ea]"
+            >
               <BadgeCheck className="mr-1 size-3.5" aria-hidden="true" />
-              {active} of {ops.policies.length} rules active
+              {live
+                ? `${snap.cluster} · ${active} of ${ops.policies.length} rules active`
+                : "Waiting for live cluster snapshot"}
             </StatusPill>
           </div>
-          <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {[
               { label: "Active", value: active, hint: "enforced" },
               {
@@ -209,39 +221,37 @@ function PolicyManagement() {
                 value: denyRules,
                 hint: "block",
                 hot: denyRules > 0,
-                icon: true,
               },
-              { label: "Approval gates", value: gated, hint: "dual-ctrl" },
+              { label: "Approval gates", value: gated, hint: "held" },
               {
-                label: "Pending",
-                value: pending.length,
-                hint: "queue",
-                hot: pending.length > 0,
+                label: "Attention",
+                value: attention,
+                hint: "not-ready",
+                hot: attention > 0,
+                live: true,
               },
               {
-                label: "Evals / min",
-                value: liveEvals,
+                label: "Namespaces",
+                value: namespaces,
                 hint: "live",
                 live: true,
               },
               {
-                label: "Queue age",
-                value: queueAgeLabel,
-                hint: "live p50",
+                label: "Snapshot age",
+                value: snapshotAge,
+                hint: live ? "k8s poll" : "offline",
                 live: true,
               },
             ].map((s) => (
               <div
                 key={s.label}
-                className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur"
+                className="rounded-xl border border-white/12 bg-[#141820]/80 px-3 py-2.5"
               >
-                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
-                  {s.label}
-                </p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[#f4f1ea]/55">{s.label}</p>
                 <p
                   className={cn(
                     "font-display mt-1 text-2xl font-semibold tabular-nums",
-                    s.hot ? "text-destructive" : "text-sidebar-accent-foreground",
+                    s.hot ? "text-[#ff5b2e]" : "text-[#f4f1ea]",
                   )}
                 >
                   {s.live && (
@@ -249,7 +259,7 @@ function PolicyManagement() {
                   )}
                   {s.value}
                 </p>
-                <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
+                <p className="mt-0.5 font-mono text-[10px] text-[#f4f1ea]/45">{s.hint}</p>
               </div>
             ))}
           </div>
@@ -258,7 +268,7 @@ function PolicyManagement() {
 
       <PageHeader
         title="Rules & simulation"
-        description="Toggle enforcement, edit effects, and dry-run candidate intents against the rule set."
+        description="Toggle enforcement, edit effects, and dry-run candidate intents against the live Finspot-dev rule set."
         crumbs={[{ label: "Govern", to: "/command" }, { label: "Policy Management" }]}
       />
       <SafetyBanner />
@@ -270,7 +280,8 @@ function PolicyManagement() {
             <div className="min-w-0 flex-1">
               <h2 className="font-display text-sm font-semibold">Stage-1 live evaluation</h2>
               <p className="text-xs text-muted-foreground">
-                exec-clb-01 · tn-nordic · remediator held · wouldExecute {String(livePolicy.wouldExecute)}
+                exec-clb-01 · tn-nordic · remediator held · wouldExecute{" "}
+                {String(livePolicy.wouldExecute)}
               </p>
             </div>
             <StatusPill tone="success">kill switch idle</StatusPill>
@@ -359,7 +370,8 @@ function PolicyManagement() {
                       onCheckedChange={(next) => {
                         ops.togglePolicy(p.id);
                         toast.success(`${p.id} ${next ? "enforced" : "disabled"}`, {
-                          description: "Simulated policy change; production enforcement is unchanged.",
+                          description:
+                            "Simulated policy change; production enforcement is unchanged.",
                         });
                       }}
                     />
@@ -425,12 +437,10 @@ function PolicyManagement() {
             <div className="min-w-0 flex-1">
               <h2 className="font-display text-sm font-semibold">Approval queue</h2>
               <p className="text-xs text-muted-foreground">
-                Dual-control decisions raised by policy gates · live age {queueAgeLabel}
+                Dual-control decisions raised by policy gates · snapshot {snapshotAge}
               </p>
             </div>
-            {pending.length > 0 && (
-              <StatusPill tone="warning">{pending.length} pending</StatusPill>
-            )}
+            {pending.length > 0 && <StatusPill tone="warning">{pending.length} pending</StatusPill>}
           </div>
           <SafetyBanner compact />
           <div className="mt-3 space-y-2">

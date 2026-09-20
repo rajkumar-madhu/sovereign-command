@@ -5,17 +5,30 @@ import { Building2, KeyRound, Settings2, ShieldCheck, Wallet } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
+import { TenantAccessCard } from "@/components/ops/tenant-access-card";
 import { StatusPill } from "@/components/ops/status-badge";
 import { useOps } from "@/lib/ops-context";
-import { tenants } from "@/data/seed";
 import type { EnvName } from "@/data/types";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +44,8 @@ export const Route = createFileRoute("/_shell/settings")({
       { property: "og:title", content: "Settings · Wecrew Ops" },
       {
         property: "og:description",
-        content: "Configure default environments, budget guardrails and RBAC for each tenant workspace.",
+        content:
+          "Configure default environments, budget guardrails and RBAC for each tenant workspace.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -149,7 +163,7 @@ function useLiveSessionCount(base: number) {
 }
 
 function SettingsPage() {
-  const { tenantId, setTenantId, budgets, setBudget } = useOps();
+  const { tenantId, setTenantId, budgets, setBudget, tenants } = useOps();
   const [prefs, setPrefs] = useState<Record<string, EnvPrefs>>({});
   const [roles, setRoles] = useState<RoleRow[]>(initialRoles);
   const [warnPct, setWarnPct] = useState(75);
@@ -157,7 +171,15 @@ function SettingsPage() {
   const [maxStepsDefault, setMaxStepsDefault] = useState("24");
   const [tokenCeiling, setTokenCeiling] = useState("2500000");
 
-  const tenant = tenants.find((t) => t.id === tenantId) ?? tenants[0]!;
+  const tenant = tenants.find((t) => t.id === tenantId) ?? tenants[0] ?? {
+    id: "unscoped",
+    name: "Unscoped",
+    region: "n/a",
+    residency: "n/a",
+    customers: 0,
+    clusters: 0,
+    agents: 0,
+  };
   const current: EnvPrefs = prefs[tenant.id] ?? {
     defaultEnv: "production",
     investigationEnv: "production",
@@ -201,7 +223,10 @@ function SettingsPage() {
         aria-label="Settings pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-primary/28 blur-3xl"
           aria-hidden="true"
@@ -215,8 +240,8 @@ function SettingsPage() {
               Settings
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Environment defaults, budget guardrails and RBAC for each tenant workspace. All changes
-              are simulated in-session and written to the audit trail.
+              Environment defaults, budget guardrails and RBAC for each tenant workspace. All
+              changes are simulated in-session and written to the audit trail.
             </p>
             <Button
               className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
@@ -266,7 +291,9 @@ function SettingsPage() {
                   )}
                   {s.value}
                   {s.unit ? (
-                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
+                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">
+                      {s.unit}
+                    </span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
@@ -282,6 +309,7 @@ function SettingsPage() {
         crumbs={[{ label: "Govern", to: "/command" }, { label: "Settings" }]}
       />
       <SafetyBanner compact />
+      <TenantAccessCard />
 
       <section className="ops-panel rounded-2xl p-5" aria-label="Tenant scope">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -294,16 +322,23 @@ function SettingsPage() {
               </p>
             </div>
           </div>
-          <Select value={tenant.id} onValueChange={setTenantId}>
-            <SelectTrigger className="w-full bg-surface sm:w-72" aria-label="Select tenant workspace">
+          <Select value={tenant.id} onValueChange={setTenantId} disabled={!tenants.length}>
+            <SelectTrigger
+              className="w-full bg-surface sm:w-72"
+              aria-label="Select tenant workspace"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {tenants.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name} · {t.residency}
-                </SelectItem>
-              ))}
+              {tenants.length === 0 ? (
+                <SelectItem value="unscoped">No tenant bound</SelectItem>
+              ) : (
+                tenants.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name} · {t.residency}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -317,7 +352,10 @@ function SettingsPage() {
         </TabsList>
 
         <TabsContent value="environments" className="mt-0">
-          <section className="ops-panel overflow-hidden rounded-2xl" aria-label="Environment preferences">
+          <section
+            className="ops-panel overflow-hidden rounded-2xl"
+            aria-label="Environment preferences"
+          >
             <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
               <Settings2 className="size-4 text-brand-coral" aria-hidden="true" />
               <div>
@@ -382,9 +420,7 @@ function SettingsPage() {
                     max={2555}
                     className="bg-surface"
                     value={current.evidenceRetentionDays}
-                    onChange={(e) =>
-                      patchPrefs({ evidenceRetentionDays: Number(e.target.value) })
-                    }
+                    onChange={(e) => patchPrefs({ evidenceRetentionDays: Number(e.target.value) })}
                   />
                   <p className="text-xs text-muted-foreground">
                     Residency: {tenant.residency} · {tenant.region}. Minimum 90 days for regulated
@@ -503,7 +539,9 @@ function SettingsPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="warn-threshold">Warning threshold</Label>
-                    <span className="font-display text-lg font-semibold tabular-nums">{warnPct}%</span>
+                    <span className="font-display text-lg font-semibold tabular-nums">
+                      {warnPct}%
+                    </span>
                   </div>
                   <Slider
                     id="warn-threshold"
@@ -585,7 +623,10 @@ function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="access" className="mt-0">
-          <section className="ops-panel overflow-hidden rounded-2xl" aria-label="Role-based access control">
+          <section
+            className="ops-panel overflow-hidden rounded-2xl"
+            aria-label="Role-based access control"
+          >
             <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
               <KeyRound className="size-4 text-brand-coral" aria-hidden="true" />
               <div className="min-w-0 flex-1">
@@ -634,7 +675,9 @@ function SettingsPage() {
                             ))}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">{r.members}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">
+                          {r.members}
+                        </TableCell>
                         <TableCell className="text-center">
                           <Switch
                             checked={r.canApprove}

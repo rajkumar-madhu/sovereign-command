@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   LIVE_TELEMETRY_TICK_MS,
   appendTelemetryPoint,
+  createInitialEvents,
   createInitialSeries,
   deriveMonitors,
   nextLiveEvent,
@@ -23,10 +24,8 @@ const EVENT_CAP = 8;
 
 export function useLiveTelemetry(enabled = true): LiveTelemetrySnapshot {
   const [series, setSeries] = useState<TelemetryPoint[]>(() => createInitialSeries());
-  const [events, setEvents] = useState<LiveEvent[]>(() =>
-    Array.from({ length: 4 }, () => nextLiveEvent(Date.now() - Math.random() * 12_000)),
-  );
-  const [updatedAt, setUpdatedAt] = useState(() => Date.now());
+  const [events, setEvents] = useState<LiveEvent[]>(createInitialEvents);
+  const [updatedAt, setUpdatedAt] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;

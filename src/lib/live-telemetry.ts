@@ -35,6 +35,7 @@ export type LiveEvent = {
 
 const WINDOW = 36;
 const TICK_MS = 1500;
+export const INITIAL_TELEMETRY_TS = Date.UTC(2026, 7, 9, 8, 15, 0);
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
@@ -57,18 +58,22 @@ function seedPoint(now: Date, i: number): TelemetryPoint {
   const ts = now.getTime() - (WINDOW - 1 - i) * TICK_MS;
   const d = new Date(ts);
   const phase = i / WINDOW;
+  const noise = (channel: number) => {
+    const value = Math.sin((i + 1) * (channel + 11) * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+  };
   return {
     t: formatClock(d),
     ts,
-    cpu: clamp(42 + Math.sin(phase * Math.PI * 2) * 12 + Math.random() * 6, 18, 92),
-    latencyMs: clamp(180 + Math.cos(phase * Math.PI * 2) * 40 + Math.random() * 25, 80, 520),
-    errorRate: clamp(0.4 + Math.sin(phase * 4) * 0.3 + Math.random() * 0.35, 0.05, 4.2),
-    throughput: clamp(820 + Math.sin(phase * Math.PI) * 140 + Math.random() * 60, 400, 1400),
-    agentBusy: clamp(58 + Math.cos(phase * 3) * 15 + Math.random() * 8, 20, 95),
+    cpu: clamp(42 + Math.sin(phase * Math.PI * 2) * 12 + noise(1) * 6, 18, 92),
+    latencyMs: clamp(180 + Math.cos(phase * Math.PI * 2) * 40 + noise(2) * 25, 80, 520),
+    errorRate: clamp(0.4 + Math.sin(phase * 4) * 0.3 + noise(3) * 0.35, 0.05, 4.2),
+    throughput: clamp(820 + Math.sin(phase * Math.PI) * 140 + noise(4) * 60, 400, 1400),
+    agentBusy: clamp(58 + Math.cos(phase * 3) * 15 + noise(5) * 8, 20, 95),
   };
 }
 
-export function createInitialSeries(now = new Date()): TelemetryPoint[] {
+export function createInitialSeries(now = new Date(INITIAL_TELEMETRY_TS)): TelemetryPoint[] {
   return Array.from({ length: WINDOW }, (_, i) => seedPoint(now, i));
 }
 
@@ -85,7 +90,10 @@ export function nextTelemetryPoint(prev: TelemetryPoint): TelemetryPoint {
   };
 }
 
-export function appendTelemetryPoint(series: TelemetryPoint[], point: TelemetryPoint): TelemetryPoint[] {
+export function appendTelemetryPoint(
+  series: TelemetryPoint[],
+  point: TelemetryPoint,
+): TelemetryPoint[] {
   return [...series.slice(-(WINDOW - 1)), point];
 }
 
@@ -122,7 +130,7 @@ export function deriveMonitors(latest: TelemetryPoint): LiveMonitor[] {
     latest.latencyMs >= 400 ? "alert" : latest.latencyMs >= 280 ? "warn" : "ok";
   const errState: MonitorState =
     latest.errorRate >= 2.5 ? "alert" : latest.errorRate >= 1.2 ? "warn" : "ok";
-  const lagSec = clamp(0.6 + (latest.latencyMs / 400) * 1.4 + Math.random() * 0.3, 0.4, 4.5);
+  const lagSec = clamp(0.6 + (latest.latencyMs / 400) * 1.4, 0.4, 4.5);
   const pipeState: MonitorState = lagSec >= 3 ? "alert" : lagSec >= 2 ? "warn" : "ok";
 
   const values = [
@@ -162,6 +170,15 @@ export function nextLiveEvent(now = Date.now()): LiveEvent {
     label: pick.label,
     severity: pick.severity,
   };
+}
+
+export function createInitialEvents(): LiveEvent[] {
+  return EVENT_TEMPLATES.slice(0, 4).map((template, index) => ({
+    id: `evt-initial-${index + 1}`,
+    ts: INITIAL_TELEMETRY_TS - index * 3_000,
+    label: template.label,
+    severity: template.severity,
+  }));
 }
 
 export const LIVE_TELEMETRY_TICK_MS = TICK_MS;

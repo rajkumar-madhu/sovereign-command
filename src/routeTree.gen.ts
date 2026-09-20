@@ -20,7 +20,9 @@ import { Route as ShellCommandRouteImport } from './routes/_shell.command'
 import { Route as ShellCostRouteImport } from './routes/_shell.cost'
 import { Route as ShellEvidenceRouteImport } from './routes/_shell.evidence'
 import { Route as ShellInvestigationsRouteImport } from './routes/_shell.investigations'
+import { Route as ShellLogsRouteImport } from './routes/_shell.logs'
 import { Route as ShellModelsRouteImport } from './routes/_shell.models'
+import { Route as ShellMonitorRouteImport } from './routes/_shell.monitor'
 import { Route as ShellPoliciesRouteImport } from './routes/_shell.policies'
 import { Route as ShellRcaRouteImport } from './routes/_shell.rca'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
@@ -92,9 +94,19 @@ const ShellInvestigationsRoute = ShellInvestigationsRouteImport.update({
   path: '/investigations',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellLogsRoute = ShellLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellModelsRoute = ShellModelsRouteImport.update({
   id: '/models',
   path: '/models',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellMonitorRoute = ShellMonitorRouteImport.update({
+  id: '/monitor',
+  path: '/monitor',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellPoliciesRoute = ShellPoliciesRouteImport.update({
@@ -192,7 +204,9 @@ export interface FileRoutesByFullPath {
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
+  '/logs': typeof ShellLogsRoute
   '/models': typeof ShellModelsRoute
+  '/monitor': typeof ShellMonitorRoute
   '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
   '/settings': typeof ShellSettingsRoute
@@ -221,7 +235,9 @@ export interface FileRoutesByTo {
   '/cost': typeof ShellCostRoute
   '/evidence': typeof ShellEvidenceRoute
   '/investigations': typeof ShellInvestigationsRoute
+  '/logs': typeof ShellLogsRoute
   '/models': typeof ShellModelsRoute
+  '/monitor': typeof ShellMonitorRoute
   '/policies': typeof ShellPoliciesRoute
   '/rca': typeof ShellRcaRoute
   '/settings': typeof ShellSettingsRoute
@@ -252,7 +268,9 @@ export interface FileRoutesById {
   '/_shell/cost': typeof ShellCostRoute
   '/_shell/evidence': typeof ShellEvidenceRoute
   '/_shell/investigations': typeof ShellInvestigationsRoute
+  '/_shell/logs': typeof ShellLogsRoute
   '/_shell/models': typeof ShellModelsRoute
+  '/_shell/monitor': typeof ShellMonitorRoute
   '/_shell/policies': typeof ShellPoliciesRoute
   '/_shell/rca': typeof ShellRcaRoute
   '/_shell/settings': typeof ShellSettingsRoute
@@ -283,7 +301,9 @@ export interface FileRouteTypes {
     | '/cost'
     | '/evidence'
     | '/investigations'
+    | '/logs'
     | '/models'
+    | '/monitor'
     | '/policies'
     | '/rca'
     | '/settings'
@@ -312,7 +332,9 @@ export interface FileRouteTypes {
     | '/cost'
     | '/evidence'
     | '/investigations'
+    | '/logs'
     | '/models'
+    | '/monitor'
     | '/policies'
     | '/rca'
     | '/settings'
@@ -342,7 +364,9 @@ export interface FileRouteTypes {
     | '/_shell/cost'
     | '/_shell/evidence'
     | '/_shell/investigations'
+    | '/_shell/logs'
     | '/_shell/models'
+    | '/_shell/monitor'
     | '/_shell/policies'
     | '/_shell/rca'
     | '/_shell/settings'
@@ -449,11 +473,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellInvestigationsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/logs': {
+      id: '/_shell/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof ShellLogsRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/models': {
       id: '/_shell/models'
       path: '/models'
       fullPath: '/models'
       preLoaderRoute: typeof ShellModelsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/monitor': {
+      id: '/_shell/monitor'
+      path: '/monitor'
+      fullPath: '/monitor'
+      preLoaderRoute: typeof ShellMonitorRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/policies': {
@@ -578,7 +616,9 @@ interface ShellRouteChildren {
   ShellCostRoute: typeof ShellCostRoute
   ShellEvidenceRoute: typeof ShellEvidenceRoute
   ShellInvestigationsRoute: typeof ShellInvestigationsRoute
+  ShellLogsRoute: typeof ShellLogsRoute
   ShellModelsRoute: typeof ShellModelsRoute
+  ShellMonitorRoute: typeof ShellMonitorRoute
   ShellPoliciesRoute: typeof ShellPoliciesRoute
   ShellRcaRoute: typeof ShellRcaRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
@@ -602,7 +642,9 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellCostRoute: ShellCostRoute,
   ShellEvidenceRoute: ShellEvidenceRoute,
   ShellInvestigationsRoute: ShellInvestigationsRoute,
+  ShellLogsRoute: ShellLogsRoute,
   ShellModelsRoute: ShellModelsRoute,
+  ShellMonitorRoute: ShellMonitorRoute,
   ShellPoliciesRoute: ShellPoliciesRoute,
   ShellRcaRoute: ShellRcaRoute,
   ShellSettingsRoute: ShellSettingsRoute,

@@ -18,18 +18,18 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
-import {
-  costByAgentKind,
-  costByIncident,
-  costByModel,
-  costByTenant,
-  spendTrend,
-  tenants,
-} from "@/data/seed";
+import { costByAgentKind, costByIncident, costByModel, spendTrend } from "@/data/seed";
 import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
 
@@ -54,8 +54,10 @@ export const Route = createFileRoute("/_shell/cost")({
   component: TokenAndCost,
 });
 
+const LIVE_TENANT_COST = [{ name: "Finspot-dev", tokens: 0, cost: 0 }];
+
 const DIMENSIONS = [
-  { key: "tenant", label: "By tenant", data: costByTenant },
+  { key: "tenant", label: "By tenant", data: LIVE_TENANT_COST },
   { key: "model", label: "By model", data: costByModel },
   { key: "agent", label: "By agent class", data: costByAgentKind },
   { key: "incident", label: "By incident", data: costByIncident },
@@ -80,13 +82,13 @@ function TokenAndCost() {
   const [warnAt, setWarnAt] = useState(75);
   const [hardStopAt, setHardStopAt] = useState(95);
 
-  const monthlyCost = useMemo(() => costByTenant.reduce((s, r) => s + r.cost, 0), []);
-  const monthlyTokens = useMemo(() => costByTenant.reduce((s, r) => s + r.tokens, 0), []);
+  const monthlyCost = 0;
+  const monthlyTokens = 0;
   const waste = useMemo(() => spendTrend.reduce((s, d) => s + d.waste, 0), []);
   const wastePct = ((waste / spendTrend.reduce((s, d) => s + d.cost, 0)) * 100).toFixed(1);
   const totalBudget = useMemo(
-    () => tenants.reduce((s, t) => s + (ops.budgets[t.id] ?? 0), 0),
-    [ops.budgets],
+    () => ops.tenants.reduce((s, t) => s + (ops.budgets[t.id] ?? 0), 0),
+    [ops.budgets, ops.tenants],
   );
   const remaining = totalBudget - monthlyCost;
   const { burn, tpm } = useLiveBurn(2.4);
@@ -99,7 +101,10 @@ function TokenAndCost() {
         aria-label="Token and cost pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
@@ -250,7 +255,11 @@ function TokenAndCost() {
                   <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={[...d.data]} margin={{ left: 4, right: 8, top: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="var(--border)"
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="name"
                           tick={{ fontSize: 11 }}
@@ -364,8 +373,8 @@ function TokenAndCost() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tenants.map((t, i) => {
-                const row = costByTenant[i]!;
+              {ops.tenants.map((t) => {
+                const row = { tokens: 0, cost: 0 };
                 const budget = ops.budgets[t.id] ?? 0;
                 const pct = budget > 0 ? Math.min(100, (row.cost / budget) * 100) : 0;
                 const tone = pct >= hardStopAt ? "danger" : pct >= warnAt ? "warning" : "success";

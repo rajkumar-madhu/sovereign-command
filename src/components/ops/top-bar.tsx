@@ -31,11 +31,13 @@ import { DualSidebarExpandTrigger, DualSidebarMobileTrigger } from "@/components
 import { InspectorToggle } from "@/components/ops/right-inspector";
 import { VisualModeSwitch } from "@/lib/visual-mode";
 import { useOps, tenantCustomers } from "@/lib/ops-context";
+import { operatorDisplayName } from "@/lib/ops-identity";
+import { useOpsSession } from "@/lib/ops-session";
 import { clearSession } from "@/lib/session";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
 import { formatCountdown, slaLabel, slaTone } from "@/lib/approval-sla";
-import { agents, incidents, securityEvents, tenants } from "@/data/seed";
+import { agents, incidents } from "@/data/seed";
 import type { EnvName } from "@/data/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -74,9 +76,20 @@ export function TopBar({
 }) {
   const navigate = useNavigate();
   const ops = useOps();
+  const session = useOpsSession();
+  const operatorEmail = session.session?.email || session.identityEmail;
+  const operatorName = operatorDisplayName(operatorEmail);
   const [searchOpen, setSearchOpen] = useState(false);
-  const custs = useMemo(() => tenantCustomers(ops.tenantId), [ops.tenantId]);
-  const notifications = securityEvents.slice(0, 5);
+  const custs = useMemo(
+    () => tenantCustomers(ops.tenantId, ops.customers),
+    [ops.tenantId, ops.customers],
+  );
+  const notifications = (ops.clusterSnapshot?.warningEvents ?? []).slice(0, 5).map((ev, idx) => ({
+    id: `evt-${idx}`,
+    category: ev.reason,
+    severity: "P3" as const,
+    detail: `${ev.namespace} · ${ev.object}`,
+  }));
   const pending = ops.approvals.filter((a) => a.status === "pending").length;
   const sla = useApprovalSlaFeed();
   const alertItems = [...sla.breached, ...sla.atRisk];
@@ -84,29 +97,37 @@ export function TopBar({
 
   return (
     <header className="sticky top-0 z-30 flex flex-col gap-2 border-b border-border/80 bg-background/80 px-3 py-2 backdrop-blur-md md:flex-row md:items-center md:gap-3 md:px-4">
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <DualSidebarMobileTrigger onOpen={onOpenMobileNav} />
         <DualSidebarExpandTrigger secondaryOpen={secondaryOpen} onToggle={onToggleSecondary} />
         <FocusModeToggle />
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={ops.tenantId} onValueChange={ops.setTenantId}>
-            <SelectTrigger className="h-9 w-[190px]" aria-label="Select tenant">
-              <SelectValue />
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+          <Select
+            value={ops.tenantId || "unscoped"}
+            onValueChange={ops.setTenantId}
+            disabled={!ops.tenants.length}
+          >
+            <SelectTrigger className="h-9 w-full min-w-0 sm:w-[190px]" aria-label="Select tenant">
+              <SelectValue placeholder="No tenant bound" />
             </SelectTrigger>
             <SelectContent>
-              {tenants.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name}
-                </SelectItem>
-              ))}
+              {ops.tenants.length === 0 ? (
+                <SelectItem value="unscoped">No tenant bound</SelectItem>
+              ) : (
+                ops.tenants.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           <Select value={ops.customerId} onValueChange={ops.setCustomerId}>
-            <SelectTrigger className="h-9 w-[190px]" aria-label="Select customer">
+            <SelectTrigger className="h-9 w-full min-w-0 sm:w-[190px]" aria-label="Select customer">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All customers</SelectItem>
+              <SelectItem value="all">All namespaces</SelectItem>
               {custs.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -115,7 +136,10 @@ export function TopBar({
             </SelectContent>
           </Select>
           <Select value={ops.environment} onValueChange={(v) => ops.setEnvironment(v as EnvName)}>
-            <SelectTrigger className="h-9 w-[130px]" aria-label="Select environment">
+            <SelectTrigger
+              className="h-9 w-full min-w-0 sm:w-[130px]"
+              aria-label="Select environment"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -129,7 +153,7 @@ export function TopBar({
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-end gap-2">
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
         <Button
           variant="outline"
           className="h-9 w-full justify-start gap-2 text-muted-foreground md:w-64"
@@ -219,13 +243,17 @@ export function TopBar({
               <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <UserRound className="size-3.5" aria-hidden="true" />
               </span>
-              <span className="hidden text-sm sm:inline">I. Halvorsen</span>
+              <span className="hidden text-sm sm:inline">{operatorName}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
-              <span className="block text-sm">Ingrid Halvorsen</span>
-              <span className="block text-xs text-muted-foreground">Platform SRE · read-only</span>
+              <span className="block text-sm">{operatorName}</span>
+              <span className="block text-xs text-muted-foreground">
+                {session.session
+                  ? `${session.session.tenantId} · token bound`
+                  : operatorEmail || "No tenant token"}
+              </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -237,9 +265,11 @@ export function TopBar({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                clearSession();
-                toast.success("Signed out of the read-only session");
-                void navigate({ to: "/login" });
+                void session.signOut().then(() => {
+                  clearSession();
+                  toast.success("Signed out of the operator session");
+                  void navigate({ to: "/login" });
+                });
               }}
             >
               <LogOut className="size-4" aria-hidden="true" /> Sign out

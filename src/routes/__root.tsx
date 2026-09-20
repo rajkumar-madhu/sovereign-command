@@ -143,7 +143,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("sovereign-theme");var d=t!=="light";document.documentElement.classList.toggle("dark",d);document.documentElement.dataset.theme=d?"dark":"light";var v=localStorage.getItem("sovereign-visual-mode");if(v)document.documentElement.setAttribute("data-visual-mode",v);}catch(e){}`,
+            __html: `(function(){try{var t=localStorage.getItem("sovereign-theme");if(t!=="dark"&&t!=="light"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.classList.toggle("dark",t==="dark");document.documentElement.dataset.theme=t;var v=localStorage.getItem("sovereign-visual-mode");if(v)document.documentElement.setAttribute("data-visual-mode",v);}catch(e){}})();`,
           }}
         />
       </head>

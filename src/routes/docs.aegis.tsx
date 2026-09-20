@@ -15,7 +15,8 @@ export const Route = createFileRoute("/docs/aegis")({
       { property: "og:title", content: "WeCrew AEGIS™ Product Freeze · Docs" },
       {
         property: "og:description",
-        content: "Freeze the product family: Command Center, Agent OS, Control Tower, evidence-backed RCA, sovereign local AI.",
+        content:
+          "Freeze the product family: Command Center, Agent OS, Control Tower, evidence-backed RCA, sovereign local AI.",
       },
       { property: "og:url", content: "https://sovereign.ops.wecrew.in/docs/aegis" },
     ],
@@ -90,19 +91,23 @@ function DocsAegisPage() {
         />
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-14 md:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
           <div className="space-y-6">
-            <p className="text-sm font-medium text-brand-coral">Product architecture · v4.0 freeze</p>
+            <p className="text-sm font-medium text-brand-coral">
+              Product architecture · v4.0 freeze
+            </p>
             <h1 className="font-display text-[clamp(2.1rem,4.2vw,3.1rem)] font-semibold leading-[1.08] tracking-tight text-[#1c1c1c]">
               WeCrew AEGIS™
-              <span className="mt-2 block text-[#5c5a56]">
-                Sovereign Autonomous Operations OS
-              </span>
+              <span className="mt-2 block text-[#5c5a56]">Sovereign Autonomous Operations OS</span>
             </h1>
             <p className="max-w-xl text-[15px] leading-relaxed text-[#5c5a56] md:text-base">
               Freeze the product family now. Sell one platform with modular apps — not 18 unrelated
               dashboards. Inference stays inside the customer trust boundary in Sovereign Mode.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
+              <Button
+                asChild
+                size="lg"
+                className="bg-brand-coral text-white hover:bg-brand-coral/90"
+              >
                 <Link to="/demo/vertical-slice">
                   Stage-1 vertical slice
                   <ArrowRight className="size-4" aria-hidden />
@@ -155,9 +160,9 @@ function DocsAegisPage() {
           </h2>
           <blockquote className="mt-6 border-l-2 border-brand-coral pl-5 text-[15px] leading-relaxed text-[#5c5a56] md:text-base">
             “WeCrew is a Sovereign Autonomous Operations OS that understands the technology estate,
-            predicts and detects failures, investigates incidents with governed AI agents, proves RCA
-            with evidence, safely remediates within policy, and continuously learns — entirely inside
-            the customer trust boundary.”
+            predicts and detects failures, investigates incidents with governed AI agents, proves
+            RCA with evidence, safely remediates within policy, and continuously learns — entirely
+            inside the customer trust boundary.”
           </blockquote>
         </div>
       </section>
@@ -169,15 +174,12 @@ function DocsAegisPage() {
             Final product family
           </h2>
           <p className="mt-3 max-w-2xl text-sm text-[#5c5a56]">
-            Distinct applications, one operating model. Start with ITSM + AlertMind; attach Agent OS,
-            Control Tower, AgentSecOps and governed remediation without replacing the platform.
+            Distinct applications, one operating model. Start with ITSM + AlertMind; attach Agent
+            OS, Control Tower, AgentSecOps and governed remediation without replacing the platform.
           </p>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
             {modules.map(([name, mission]) => (
-              <li
-                key={name}
-                className="rounded-xl border border-[#e8e6e0] bg-[#f7f7f4] px-4 py-3"
-              >
+              <li key={name} className="rounded-xl border border-[#e8e6e0] bg-[#f7f7f4] px-4 py-3">
                 <p className="text-sm font-semibold text-[#1c1c1c]">{name}</p>
                 <p className="mt-1 text-sm text-[#5c5a56]">{mission}</p>
               </li>
@@ -261,8 +263,8 @@ function DocsAegisPage() {
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-[#5c5a56]">
             <strong className="font-medium text-[#1c1c1c]">sovereign.ops</strong> is the Command
-            Center / Agent OS experience layer: passports, investigations, evidence-backed RCA,
-            SOC, model/tool registries, approvals, and now AI Control Tower plus the Stage-1
+            Center / Agent OS experience layer: passports, investigations, evidence-backed RCA, SOC,
+            model/tool registries, approvals, and now AI Control Tower plus the Stage-1
             CrashLoopBackOff vertical slice. ITSM remains the service-management system of record
             elsewhere. Control Tower, OpsGraph, and governed remediations deepen in Stages 3–4.
           </p>

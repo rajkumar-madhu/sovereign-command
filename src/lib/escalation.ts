@@ -19,27 +19,51 @@ export interface Approver {
 export const APPROVER_ROSTER: Record<string, { primary: Approver; backup: Approver }> = {
   "DBA On-call": {
     primary: { name: "L. Petrova", role: "DBA On-call", channel: "PagerDuty · db-oncall" },
-    backup: { name: "M. Okafor", role: "DBA On-call (backup)", channel: "PagerDuty · db-secondary" },
+    backup: {
+      name: "M. Okafor",
+      role: "DBA On-call (backup)",
+      channel: "PagerDuty · db-secondary",
+    },
   },
   "Service Owner": {
     primary: { name: "R. Lindqvist", role: "Service Owner", channel: "Teams · svc-owners" },
-    backup: { name: "A. Duarte", role: "Deputy Service Owner", channel: "Teams · svc-owners-backup" },
+    backup: {
+      name: "A. Duarte",
+      role: "Deputy Service Owner",
+      channel: "Teams · svc-owners-backup",
+    },
   },
   "Network Operations": {
     primary: { name: "T. Bergmann", role: "Network Operations", channel: "PagerDuty · netops" },
-    backup: { name: "S. Ahmed", role: "Network Operations (backup)", channel: "PagerDuty · netops-secondary" },
+    backup: {
+      name: "S. Ahmed",
+      role: "Network Operations (backup)",
+      channel: "PagerDuty · netops-secondary",
+    },
   },
   "Security Engineering": {
     primary: { name: "K. Moreau", role: "Security Engineering", channel: "PagerDuty · secops" },
-    backup: { name: "J. Weber", role: "Security Engineering (backup)", channel: "PagerDuty · secops-secondary" },
+    backup: {
+      name: "J. Weber",
+      role: "Security Engineering (backup)",
+      channel: "PagerDuty · secops-secondary",
+    },
   },
   FinOps: {
     primary: { name: "H. Nakamura", role: "FinOps", channel: "Email · finops-approvals" },
     backup: { name: "C. Ellis", role: "FinOps (backup)", channel: "Teams · finops-escalation" },
   },
   "Platform Engineering": {
-    primary: { name: "I. Halvorsen", role: "Platform Engineering", channel: "PagerDuty · platform" },
-    backup: { name: "D. Rossi", role: "Platform Engineering (backup)", channel: "PagerDuty · platform-secondary" },
+    primary: {
+      name: "I. Halvorsen",
+      role: "Platform Engineering",
+      channel: "PagerDuty · platform",
+    },
+    backup: {
+      name: "D. Rossi",
+      role: "Platform Engineering (backup)",
+      channel: "PagerDuty · platform-secondary",
+    },
   },
 };
 
@@ -53,7 +77,11 @@ function rosterFor(role: string) {
   return (
     APPROVER_ROSTER[role] ?? {
       primary: { name: "Rota holder", role, channel: "PagerDuty · general-approvals" },
-      backup: { name: "Rota deputy", role: `${role} (backup)`, channel: "PagerDuty · general-secondary" },
+      backup: {
+        name: "Rota deputy",
+        role: `${role} (backup)`,
+        channel: "PagerDuty · general-secondary",
+      },
     }
   );
 }
@@ -80,7 +108,11 @@ export interface EscalationEvent {
 }
 
 export function tierLabel(tier: EscalationTier): string {
-  return tier === "primary" ? "Primary rota" : tier === "backup" ? "Backup approvers" : "Duty manager";
+  return tier === "primary"
+    ? "Primary rota"
+    : tier === "backup"
+      ? "Backup approvers"
+      : "Duty manager";
 }
 
 export function tierTone(tier: EscalationTier): "info" | "warning" | "danger" {

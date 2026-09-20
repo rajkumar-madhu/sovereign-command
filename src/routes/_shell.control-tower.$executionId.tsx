@@ -4,35 +4,16 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
-import {
-  agentName,
-  customerName,
-  getExecutionTrace,
-  tenantName,
-} from "@/data/seed";
+import { agentName, customerName, tenantName } from "@/data/seed";
 import type { ExecutionHop, ExecutionTrace, TraceDomain } from "@/data/types";
-import {
-  fetchLiveChange,
-  fetchLiveExecution,
-  STAGE1_EXECUTION_ID,
-  type LiveChange,
-} from "@/lib/stage1-api";
+import { fetchExecutionTrace } from "@/lib/stage1-client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/control-tower/$executionId")({
-  loader: async ({ params }): Promise<{
-    trace: ExecutionTrace;
-    source: "stage1" | "seed";
-    change: LiveChange | null;
-  }> => {
-    const live = await fetchLiveExecution(params.executionId);
-    const changeResult =
-      params.executionId === STAGE1_EXECUTION_ID
-        ? await fetchLiveChange(STAGE1_EXECUTION_ID, "tn-nordic")
-        : null;
-    const trace = live ?? getExecutionTrace(params.executionId);
-    if (!trace) throw notFound();
-    return { trace, source: live ? "stage1" : "seed", change: changeResult?.change ?? null };
+  loader: async ({ params }): Promise<{ trace: ExecutionTrace }> => {
+    const live = await fetchExecutionTrace(params.executionId);
+    if (!live) throw notFound();
+    return { trace: live };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -78,16 +59,15 @@ function hopTone(status: ExecutionHop["status"]) {
 }
 
 function ControlTowerDetail() {
-  const { trace, source, change } = Route.useLoaderData() as {
-    trace: ExecutionTrace;
-    source: "stage1" | "seed";
-    change: LiveChange | null;
-  };
+  const { trace } = Route.useLoaderData() as { trace: ExecutionTrace };
 
   return (
     <div className="space-y-6">
       <section className="command-pulse relative overflow-hidden rounded-2xl border border-border/70">
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.45]" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.45]"
+          aria-hidden
+        />
         <div className="relative z-10 space-y-4 p-5 md:p-6">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
@@ -97,7 +77,7 @@ function ControlTowerDetail() {
               tone={
                 trace.status === "complete"
                   ? "success"
-                  : trace.status === "awaiting-approval" || trace.status === "held"
+                  : trace.status === "awaiting-approval"
                     ? "warning"
                     : "info"
               }
@@ -105,11 +85,6 @@ function ControlTowerDetail() {
               {trace.status}
             </StatusPill>
             <StatusPill tone="info">{trace.autonomyLevel}</StatusPill>
-            {source === "stage1" ? (
-              <StatusPill tone="success">live Stage-1</StatusPill>
-            ) : trace.id === "exec-clb-01" ? (
-              <StatusPill tone="info">seed fixture</StatusPill>
-            ) : null}
           </div>
           <h1 className="font-display font-mono text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
             {trace.id}
@@ -126,8 +101,13 @@ function ControlTowerDetail() {
               ["Audit corr", trace.auditCorrelationId],
               ["Approval", trace.approvalId ?? "—"],
             ].map(([k, v]) => (
-              <div key={k} className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2">
-                <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">{k}</dt>
+              <div
+                key={k}
+                className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2"
+              >
+                <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">
+                  {k}
+                </dt>
                 <dd className="mt-0.5 truncate font-mono text-[12px] text-sidebar-accent-foreground">
                   {v}
                 </dd>
@@ -135,7 +115,11 @@ function ControlTowerDetail() {
             ))}
           </dl>
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button asChild variant="outline" className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground">
+            <Button
+              asChild
+              variant="outline"
+              className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground"
+            >
               <Link to="/control-tower">
                 <ArrowLeft className="size-4" aria-hidden />
                 All executions
@@ -171,38 +155,6 @@ function ControlTowerDetail() {
       />
 
       <SafetyBanner />
-
-      {change && (
-        <section className="ops-panel rounded-2xl p-5" aria-label="Stage-1 live change">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display text-sm font-semibold">Stage-1 live change</h2>
-              <p className="text-xs text-muted-foreground">
-                {change.id} · {change.app} · remediator held · ConfigMap reads denied
-              </p>
-            </div>
-            <StatusPill tone={change.imageSource === "live-k8s" ? "success" : "info"}>
-              image {change.imageSource}
-            </StatusPill>
-            <StatusPill tone={change.configMapChanged ? "warning" : "success"}>
-              {change.configMap} {change.configMapChanged ? "changed" : "unchanged"} ({change.configMapSource ?? "sealed"})
-            </StatusPill>
-          </div>
-          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              ["Image", change.image],
-              ["Synced at", change.syncedAt],
-              ["Evidence", change.evidenceId],
-              ["Hash", change.hash.slice(0, 16) + "…"],
-            ].map(([k, v]) => (
-              <div key={k} className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-                <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{k}</dt>
-                <dd className="mt-0.5 truncate font-mono text-[12px]">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_14rem]">
         <ol className="relative space-y-0 border-l border-border pl-6">
@@ -261,15 +213,15 @@ function ControlTowerDetail() {
           </ol>
           <div className="border-t border-border pt-3 text-xs text-muted-foreground">
             <p>
-              Tokens <span className="font-mono text-foreground">{trace.tokens.toLocaleString()}</span>
+              Tokens{" "}
+              <span className="font-mono text-foreground">{trace.tokens.toLocaleString()}</span>
             </p>
             <p className="mt-1">
               Cost <span className="font-mono text-foreground">${trace.costUsd.toFixed(2)}</span>
             </p>
             {trace.confidence != null && (
               <p className="mt-1">
-                Confidence{" "}
-                <span className="font-mono text-foreground">{trace.confidence}%</span>
+                Confidence <span className="font-mono text-foreground">{trace.confidence}%</span>
               </p>
             )}
           </div>
