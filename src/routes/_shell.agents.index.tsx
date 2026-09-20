@@ -3,8 +3,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpDown, Bot, PanelRightOpen, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForScore, toneForStatus } from "@/components/ops/status-badge";
@@ -27,7 +40,8 @@ export const Route = createFileRoute("/_shell/agents/")({
       { property: "og:title", content: "Agent Registry · Wecrew Ops" },
       {
         property: "og:description",
-        content: "Trust score, autonomy, model, tenant, environment and owner for every registered agent.",
+        content:
+          "Trust score, autonomy, model, tenant, environment and owner for every registered agent.",
       },
     ],
   }),
@@ -74,7 +88,17 @@ function AgentRegistry() {
           : String(av).localeCompare(String(bv));
       return asc ? cmp : -cmp;
     });
-  }, [query, status, kind, sort, asc, ops.agentStates, ops.tenantId, ops.customerId, ops.environment]);
+  }, [
+    query,
+    status,
+    kind,
+    sort,
+    asc,
+    ops.agentStates,
+    ops.tenantId,
+    ops.customerId,
+    ops.environment,
+  ]);
 
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const current = Math.min(page, pages);
@@ -95,7 +119,10 @@ function AgentRegistry() {
         aria-label="Fleet pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-48 rounded-full bg-brand-coral/25 blur-3xl"
           aria-hidden="true"
@@ -315,7 +342,9 @@ function AgentRegistry() {
                           >
                             {a.name}
                           </Link>
-                          <p className="text-xs text-muted-foreground">{customerName(a.customerId)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {customerName(a.customerId)}
+                          </p>
                         </TableCell>
                         <TableCell>
                           <StatusPill tone={toneForStatus(st)}>{st}</StatusPill>

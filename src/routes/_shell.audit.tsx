@@ -4,8 +4,21 @@ import { toast } from "sonner";
 import { Activity, FileCheck2, Filter, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForStatus } from "@/components/ops/status-badge";
@@ -67,10 +80,7 @@ function AuditCompliance() {
   const [page, setPage] = useState(1);
 
   const users = useMemo(() => Array.from(new Set(auditLog.map((a) => a.user))).sort(), []);
-  const auditAgents = useMemo(
-    () => Array.from(new Set(auditLog.map((a) => a.agentId))).sort(),
-    [],
-  );
+  const auditAgents = useMemo(() => Array.from(new Set(auditLog.map((a) => a.agentId))).sort(), []);
   const tools = useMemo(() => Array.from(new Set(auditLog.map((a) => a.tool))).length, []);
 
   const rows = useMemo(() => {
@@ -123,7 +133,10 @@ function AuditCompliance() {
         aria-label="Audit pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-primary/28 blur-3xl"
           aria-hidden="true"
@@ -195,7 +208,9 @@ function AuditCompliance() {
                   )}
                   {s.value}
                   {s.unit ? (
-                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
+                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">
+                      {s.unit}
+                    </span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
@@ -366,7 +381,9 @@ function AuditCompliance() {
                         <TableCell className="text-sm whitespace-nowrap">
                           {tenantName(a.tenantId)}
                         </TableCell>
-                        <TableCell className="font-mono text-xs whitespace-nowrap">{a.tool}</TableCell>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">
+                          {a.tool}
+                        </TableCell>
                         <TableCell className="text-sm">{a.action}</TableCell>
                         <TableCell>
                           <StatusPill tone={toneForStatus(a.decision)}>{a.decision}</StatusPill>

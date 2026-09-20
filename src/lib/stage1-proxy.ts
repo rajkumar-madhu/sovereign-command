@@ -5,7 +5,7 @@ import { sessionFromRequest } from "./ops-auth";
 export const STAGE1_PROXY_PREFIX = "/stage1-api";
 
 export const STAGE1_ALLOWED_PATH =
-  /^\/(health|cluster\/(?:snapshot|logs)\?tenantId=[A-Za-z0-9_-]+(?:&namespace=[A-Za-z0-9._-]+)?(?:&pod=[A-Za-z0-9._-]+)?|executions\/exec-clb-01)$/;
+  /^\/(health|cluster\/(?:snapshot|logs)\?tenantId=[A-Za-z0-9_-]+(?:&namespace=[A-Za-z0-9._-]+)?(?:&pod=[A-Za-z0-9._-]+)?|cluster\/metrics\?tenantId=[A-Za-z0-9_-]+(?:&window=[0-9]+[mhd])?(?:&series=[A-Za-z0-9_,]+)?|executions\/exec-clb-01)$/;
 
 export function stage1Upstream(): string {
   return (process.env.STAGE1_API_URL ?? "http://127.0.0.1:8091").replace(/\/$/, "");

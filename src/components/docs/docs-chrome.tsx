@@ -28,7 +28,10 @@ export function DocsChrome({
               Wecrew <em className="not-italic text-brand-coral">Ops</em>
             </span>
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex" aria-label="Primary">
+          <nav
+            className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex"
+            aria-label="Primary"
+          >
             <Link to="/" className="hover:text-[#1c1c1c]">
               Product
             </Link>

@@ -40,9 +40,7 @@ import {
   inTimeRange,
   type TimeRange,
 } from "@/components/ops/time-range-control";
-import {
-  ResourceIdentityPanel,
-} from "@/components/ops/resource-identity-panel";
+import { ResourceIdentityPanel } from "@/components/ops/resource-identity-panel";
 
 export const Route = createFileRoute("/_shell/incidents/$incidentId")({
   loader: ({ params }) => {
@@ -113,10 +111,7 @@ function useElapsed(openedIso: string) {
 }
 
 function StepLoadGraph({ step, range }: { step: TimelineStep; range: TimeRange }) {
-  const series = useMemo(
-    () => filterSeriesByClock(step.series, range),
-    [step.series, range],
-  );
+  const series = useMemo(() => filterSeriesByClock(step.series, range), [step.series, range]);
   if (!step.series?.length) return null;
   if (!series.length) {
     return (
@@ -143,7 +138,9 @@ function StepLoadGraph({ step, range }: { step: TimelineStep; range: TimeRange }
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="t" tick={{ fontSize: 10 }} />
               <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={32} />
-              {hasPull && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={28} />}
+              {hasPull && (
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={28} />
+              )}
               <Tooltip
                 contentStyle={{
                   fontSize: 12,
@@ -239,10 +236,7 @@ function TimelineStepCard({
   range: TimeRange;
 }) {
   const when = formatStepAt(step.at);
-  const filteredLogs = useMemo(
-    () => filterLogLines(step.logs, range),
-    [step.logs, range],
-  );
+  const filteredLogs = useMemo(() => filterLogLines(step.logs, range), [step.logs, range]);
   return (
     <li className="relative border-l border-border pl-5">
       <span
@@ -322,11 +316,7 @@ function TimelineStepCard({
                 return (
                   <li key={e}>
                     {artifactId ? (
-                      <Link
-                        to="/evidence"
-                        search={{ artifact: artifactId }}
-                        className={chipClass}
-                      >
+                      <Link to="/evidence" search={{ artifact: artifactId }} className={chipClass}>
                         {e}
                       </Link>
                     ) : (
@@ -423,7 +413,10 @@ function IncidentWorkspace() {
         aria-label="Incident pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className={cn(
             "pointer-events-none absolute -right-10 -top-14 size-52 rounded-full blur-3xl",
@@ -517,7 +510,10 @@ function IncidentWorkspace() {
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
+              <Button
+                asChild
+                className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
+              >
                 <Link to="/evidence">
                   <FileSearch className="size-4" aria-hidden="true" />
                   Evidence viewer
@@ -529,10 +525,7 @@ function IncidentWorkspace() {
                   variant="outline"
                   className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
                 >
-                  <Link
-                    to="/control-tower/$executionId"
-                    params={{ executionId: execution.id }}
-                  >
+                  <Link to="/control-tower/$executionId" params={{ executionId: execution.id }}>
                     <Radar className="size-4" aria-hidden="true" />
                     AI Control Tower
                   </Link>
@@ -620,9 +613,7 @@ function IncidentWorkspace() {
         }}
       />
 
-      {incident.resources?.length ? (
-        <ResourceIdentityPanel resources={incident.resources} />
-      ) : null}
+      {incident.resources?.length ? <ResourceIdentityPanel resources={incident.resources} /> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Status" value={incident.status} tone="info" />
@@ -700,9 +691,7 @@ function IncidentWorkspace() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() =>
-                setExpanded(Object.fromEntries(steps.map((s) => [s.id, true])))
-              }
+              onClick={() => setExpanded(Object.fromEntries(steps.map((s) => [s.id, true])))}
             >
               Expand all
             </Button>
@@ -713,8 +702,8 @@ function IncidentWorkspace() {
         </div>
         {steps.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-            No timeline steps in {formatRangeLabel(range)}. Widen the history window or choose
-            Full day.
+            No timeline steps in {formatRangeLabel(range)}. Widen the history window or choose Full
+            day.
           </p>
         ) : (
           <ol className="space-y-5">
@@ -724,9 +713,7 @@ function IncidentWorkspace() {
                 step={s}
                 range={range}
                 open={Boolean(expanded[s.id])}
-                onToggle={() =>
-                  setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))
-                }
+                onToggle={() => setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))}
               />
             ))}
           </ol>

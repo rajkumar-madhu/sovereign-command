@@ -19,6 +19,19 @@ describe("rewriteStage1Path", () => {
     expect(scopedStage1Path("/health", "finspot-dev")).toBe("/health");
   });
 
+  it("allows metrics with tenantId and optional window", () => {
+    expect(rewriteStage1Path("/stage1-api/cluster/metrics", "?tenantId=finspot-dev")).toBe(
+      "/cluster/metrics?tenantId=finspot-dev",
+    );
+    expect(
+      rewriteStage1Path(
+        "/stage1-api/cluster/metrics",
+        "?tenantId=finspot-dev&window=15m&series=cpuCores,memBytes",
+      ),
+    ).toBe("/cluster/metrics?tenantId=finspot-dev&window=15m&series=cpuCores,memBytes");
+    expect(rewriteStage1Path("/stage1-api/cluster/metrics", "?tenantId=finspot-dev&query=up")).toBeNull();
+  });
+
   it("rejects exec, secrets, and foreign hosts", () => {
     expect(rewriteStage1Path("/stage1-api/cluster/snapshot", "?tenantId=finspot-dev&extra=1")).toBeNull();
     expect(rewriteStage1Path("/stage1-api/run", "")).toBeNull();

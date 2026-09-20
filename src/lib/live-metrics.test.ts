@@ -53,8 +53,24 @@ describe("live-metrics", () => {
     expect(sample?.warnings).toBe(1);
     expect(sampleValue(sample!, "k8s.pods")).toBe(1);
     expect(sampleValue(sample!, "api.rps")).toBeNull();
-    expect(METRIC_CATALOG.filter((m) => m.live).every((m) => m.category === "Kubernetes")).toBe(true);
+    expect(METRIC_CATALOG.some((m) => m.id === "k8s.cpu" && m.live)).toBe(true);
+    expect(METRIC_CATALOG.some((m) => m.id === "db.postgres" && m.live)).toBe(true);
     expect(METRIC_CATALOG.some((m) => m.id === "api.http_5xx" && !m.live)).toBe(true);
+    const withProm = sampleFromSnapshot(snapshot(), 0, {
+      live: true,
+      cpuCores: 1.25,
+      memBytes: 2 * 1024 * 1024 * 1024,
+      postgresUp: 1,
+      mysqlUp: 1,
+      redisUp: 1,
+      targetsUp: 20,
+      restarts1h: 3,
+    });
+    expect(withProm?.cpuCores).toBe(1.25);
+    expect(withProm?.memGiB).toBe(2);
+    expect(withProm?.postgresUp).toBe(1);
+    expect(withProm?.restarts).toBe(3);
+    expect(sampleValue(withProm!, "k8s.cpu")).toBe(1.25);
   });
 
   it("fails closed when the snapshot is unavailable", () => {

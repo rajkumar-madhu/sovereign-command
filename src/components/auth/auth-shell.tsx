@@ -16,11 +16,12 @@ export function AuthBrand({
       <span
         className={cn(
           "relative grid place-items-center rounded-[11px]",
-          light ? "size-9 shadow-[0_4px_12px_rgba(255,91,46,0.22)]" : "size-[38px] shadow-[0_6px_18px_rgba(255,91,46,0.3)]",
+          light
+            ? "size-9 shadow-[0_4px_12px_rgba(255,91,46,0.22)]"
+            : "size-[38px] shadow-[0_6px_18px_rgba(255,91,46,0.3)]",
         )}
         style={{
-          background:
-            "conic-gradient(from 210deg,#ff5b2e,#2b4cff,#0f7a55,#c9a227,#ff5b2e)",
+          background: "conic-gradient(from 210deg,#ff5b2e,#2b4cff,#0f7a55,#c9a227,#ff5b2e)",
         }}
       >
         <span
@@ -94,8 +95,7 @@ export function AuthShell({
             backgroundImage:
               "linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px)",
             backgroundSize: "56px 56px",
-            maskImage:
-              "radial-gradient(ellipse 80% 70% at 50% 40%,black 30%,transparent 85%)",
+            maskImage: "radial-gradient(ellipse 80% 70% at 50% 40%,black 30%,transparent 85%)",
             WebkitMaskImage:
               "radial-gradient(ellipse 80% 70% at 50% 40%,black 30%,transparent 85%)",
           }}
@@ -228,10 +228,8 @@ export function AuthSubmit({
   const styles = {
     primary:
       "border-[#0e1116] bg-[#0e1116] text-[#f7f7f4] hover:border-brand-coral hover:bg-brand-coral hover:text-white",
-    coral:
-      "border-brand-coral bg-brand-coral text-white hover:bg-brand-coral/90",
-    secondary:
-      "border-[#ddd6c8] bg-white text-[#1c1c1c] hover:border-[#0e1116] hover:bg-[#f7f7f4]",
+    coral: "border-brand-coral bg-brand-coral text-white hover:bg-brand-coral/90",
+    secondary: "border-[#ddd6c8] bg-white text-[#1c1c1c] hover:border-[#0e1116] hover:bg-[#f7f7f4]",
   }[variant];
 
   return (
@@ -254,7 +252,9 @@ export function AuthDivider({ label = "Or email" }: { label?: string }) {
   return (
     <div className="my-5 flex items-center gap-3" role="separator" aria-label={label}>
       <span className="h-px flex-1 bg-[#e8e6e0]" />
-      <span className="font-mono text-[10px] tracking-[0.14em] text-[#8a8680] uppercase">{label}</span>
+      <span className="font-mono text-[10px] tracking-[0.14em] text-[#8a8680] uppercase">
+        {label}
+      </span>
       <span className="h-px flex-1 bg-[#e8e6e0]" />
     </div>
   );

@@ -5,6 +5,7 @@ Build a stakeholder-ready full-stack TypeScript SaaS MVP called Sovereign Agenti
 Create these working pages with realistic seed data and local interactions: Login; Global Command Centre; Customer Management and Customer Detail; Agent Registry; Agent Detail with Overview, Passport, Capabilities, Tools, Models, Executions, Security Events, Cost, Audit tabs; Investigations; Incident Workspace; Evidence Viewer; RCA Report; Agent Security SOC; Token & Cost; Model Gateway; Tool & MCP Registry; Policy Management; Audit & Compliance; Settings.
 
 Priority pages and features:
+
 1. Command Centre metrics for tenants, customers, clusters, nodes, agents, high-risk agents, P1/P2 incidents, SLA risks, prompt injections, pending approvals, monthly tokens/cost, health heatmap, incident timeline, recurring incidents, provider health.
 2. Agent Registry table with search/filter/sort/pagination and seed agents: Supervisor, Kubernetes, Linux, Network, Database, Application, Security, Planner, Execution, Verification. Show status, trust score, autonomy, model, tenant, environment, owner, last active.
 3. Agent Passport showing signed identity, tenant, environment, owner, allowed tools, blocked actions, autonomy, max steps, token/cost budgets, expiry, signature status, plus suspend/quarantine/kill simulations.

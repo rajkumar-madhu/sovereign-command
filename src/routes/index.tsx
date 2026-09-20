@@ -27,7 +27,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Wecrew Ops" },
       {
         property: "og:description",
-        content: "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
+        content:
+          "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://sovereign.ops.wecrew.in/" },
@@ -38,7 +39,8 @@ export const Route = createFileRoute("/")({
       { name: "twitter:title", content: "Wecrew Ops" },
       {
         name: "twitter:description",
-        content: "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
+        content:
+          "Command every agent estate from one secure operations plane at sovereign.ops.wecrew.in.",
       },
       { name: "twitter:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
     ],
@@ -206,7 +208,10 @@ function LandingPage() {
               Wecrew <em className="not-italic text-brand-coral">Ops</em>
             </span>
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex" aria-label="Primary">
+          <nav
+            className="hidden items-center gap-5 text-sm text-[#5c5a56] lg:flex"
+            aria-label="Primary"
+          >
             <a href="#product" className="hover:text-[#1c1c1c]">
               Product
             </a>
@@ -253,12 +258,16 @@ function LandingPage() {
                 <span className="text-[#5c5a56]">One intelligent command plane.</span>
               </h1>
               <p className="max-w-xl text-[15px] leading-relaxed text-[#5c5a56] md:text-base">
-                Connect fleets, passports, incidents, and telemetry to a read-only operations OS that
-                shows what agents are doing, what they are allowed to do, and why something broke —
-                with evidence you can take to audit.
+                Connect fleets, passports, incidents, and telemetry to a read-only operations OS
+                that shows what agents are doing, what they are allowed to do, and why something
+                broke — with evidence you can take to audit.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-brand-coral text-white hover:bg-brand-coral/90"
+                >
                   <Link to="/signup">
                     Start using Wecrew Ops
                     <ArrowRight className="size-4" aria-hidden />
@@ -300,7 +309,9 @@ function LandingPage() {
               <div className="space-y-3 p-4 text-[13px]">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">You</p>
-                  <p className="mt-1 text-white/90">Which agents are degraded after the 14:00 release?</p>
+                  <p className="mt-1 text-white/90">
+                    Which agents are degraded after the 14:00 release?
+                  </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.07] p-3">
                   <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-brand-coral">
@@ -317,13 +328,14 @@ function LandingPage() {
                     </span>
                     <div className="space-y-2">
                       <p className="leading-relaxed text-white/90">
-                        Three agents degraded; P1 inc-4821 still open. Signature expiry on Planner-01
-                        is the top risk — restore pool sizing per runbook §3.1 before escalating.
+                        Three agents degraded; P1 inc-4821 still open. Signature expiry on
+                        Planner-01 is the top risk — restore pool sizing per runbook §3.1 before
+                        escalating.
                       </p>
                       <ul className="space-y-1 text-[12px] text-white/55">
                         <li>
-                          <strong className="text-white/80">checkout-runbook.pdf</strong> · §3.1 Latency
-                          triage
+                          <strong className="text-white/80">checkout-runbook.pdf</strong> · §3.1
+                          Latency triage
                         </li>
                         <li>
                           <strong className="text-white/80">CHG-2291</strong> · Release record
@@ -352,7 +364,9 @@ function LandingPage() {
               </div>
               <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 text-[10px]">
                 <span className="rounded-md bg-white/10 px-2 py-1 backdrop-blur">Read-only</span>
-                <span className="rounded-md bg-white/10 px-2 py-1 backdrop-blur">3 sources cited</span>
+                <span className="rounded-md bg-white/10 px-2 py-1 backdrop-blur">
+                  3 sources cited
+                </span>
               </div>
             </div>
           </div>
@@ -408,9 +422,15 @@ function LandingPage() {
                 </button>
               ))}
             </div>
-            <div role="tabpanel" key={active.id} className="wl-tour-panel grid gap-8 lg:grid-cols-2 lg:items-start">
+            <div
+              role="tabpanel"
+              key={active.id}
+              className="wl-tour-panel grid gap-8 lg:grid-cols-2 lg:items-start"
+            >
               <div className="space-y-4">
-                <h3 className="font-display text-2xl font-semibold tracking-tight">{active.title}</h3>
+                <h3 className="font-display text-2xl font-semibold tracking-tight">
+                  {active.title}
+                </h3>
                 <p className="text-[#5c5a56]">{active.body}</p>
                 <div className="space-y-3 rounded-2xl border border-[#ddd6c8] bg-white p-4">
                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#5c5a56]">
@@ -481,8 +501,8 @@ function LandingPage() {
                 From scattered runtimes to one answer
               </h2>
               <p className="text-[#5c5a56]">
-                Connect, index, operate, govern. The operations layer stays inside your deployment at
-                every step.
+                Connect, index, operate, govern. The operations layer stays inside your deployment
+                at every step.
               </p>
             </div>
             <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -549,7 +569,10 @@ function LandingPage() {
                     ["Admin", "Tenants, budgets, policy binds"],
                     ["Owner", "Full control plane configuration"],
                   ].map(([role, desc]) => (
-                    <li key={role} className="flex items-start justify-between gap-3 border-b border-[#ebe6dc] pb-3 last:border-0">
+                    <li
+                      key={role}
+                      className="flex items-start justify-between gap-3 border-b border-[#ebe6dc] pb-3 last:border-0"
+                    >
                       <span className="font-medium text-[#1c1c1c]">{role}</span>
                       <span className="text-right text-[#5c5a56]">{desc}</span>
                     </li>
@@ -558,10 +581,19 @@ function LandingPage() {
               </div>
               <ul className="grid gap-4 sm:grid-cols-2">
                 {[
-                  ["Read-only console", "No shell, cluster-admin, secret reads, or autonomous remediations."],
-                  ["Private deployment", "Kubernetes manifests on your cluster — same pattern as Copilot."],
+                  [
+                    "Read-only console",
+                    "No shell, cluster-admin, secret reads, or autonomous remediations.",
+                  ],
+                  [
+                    "Private deployment",
+                    "Kubernetes manifests on your cluster — same pattern as Copilot.",
+                  ],
                   ["Audit trail", "Authentication and investigation events recorded for review."],
-                  ["Evidence transparency", "Artefacts are hash-verified; RCA cites what was collected."],
+                  [
+                    "Evidence transparency",
+                    "Artefacts are hash-verified; RCA cites what was collected.",
+                  ],
                   ["TLS in transit", "Public endpoints terminate with managed certificates."],
                   ["Scoped credentials", "Secrets stay in your store — never pasted into the UI."],
                 ].map(([title, body]) => (
@@ -586,7 +618,11 @@ function LandingPage() {
               intelligent command plane.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg" className="bg-brand-coral text-white hover:bg-brand-coral/90">
+              <Button
+                asChild
+                size="lg"
+                className="bg-brand-coral text-white hover:bg-brand-coral/90"
+              >
                 <Link to="/signup">Get started</Link>
               </Button>
               <Button
@@ -595,7 +631,9 @@ function LandingPage() {
                 variant="outline"
                 className="border-white/20 bg-transparent text-white hover:bg-white/10"
               >
-                <a href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20enquiry">Talk to our team</a>
+                <a href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20enquiry">
+                  Talk to our team
+                </a>
               </Button>
             </div>
             <div className="space-y-1 text-sm text-white/65">

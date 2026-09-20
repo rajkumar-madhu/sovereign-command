@@ -77,7 +77,15 @@ export function evaluateApprovalSla(
   const consumedPct = Math.min(100, (elapsedMinutes / targetMinutes) * 100);
   const state: SlaState =
     remainingMinutes <= 0 ? "breached" : consumedPct >= config.atRiskPct ? "at-risk" : "on-track";
-  return { approval, targetMinutes, elapsedMinutes, remainingMinutes, consumedPct, state, overridden };
+  return {
+    approval,
+    targetMinutes,
+    elapsedMinutes,
+    remainingMinutes,
+    consumedPct,
+    state,
+    overridden,
+  };
 }
 
 export function slaTone(state: SlaState): "danger" | "warning" | "success" {
@@ -94,14 +102,16 @@ export function validateSlaMinutes(raw: string): string | null {
   if (!trimmed) return "Enter a value in minutes.";
   if (!/^\d+$/.test(trimmed)) return "Use whole minutes only (digits, no decimals).";
   const value = Number(trimmed);
-  if (value < SLA_MINUTES_MIN) return `Minimum is ${SLA_MINUTES_MIN} minutes — approvers need time to respond.`;
+  if (value < SLA_MINUTES_MIN)
+    return `Minimum is ${SLA_MINUTES_MIN} minutes — approvers need time to respond.`;
   if (value > SLA_MINUTES_MAX) return `Maximum is ${SLA_MINUTES_MAX} minutes (24h).`;
   return null;
 }
 
 /** Ensures escalation ordering: critical <= high <= medium <= low. */
 export function validateRiskOrdering(defaults: Record<RiskLevel, number>): string | null {
-  if (defaults.critical > defaults.high) return "Critical window must be at or below the high window.";
+  if (defaults.critical > defaults.high)
+    return "Critical window must be at or below the high window.";
   if (defaults.high > defaults.medium) return "High window must be at or below the medium window.";
   if (defaults.medium > defaults.low) return "Medium window must be at or below the low window.";
   return null;

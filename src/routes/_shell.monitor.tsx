@@ -39,6 +39,7 @@ import {
 } from "@/lib/live-metrics";
 import { isLiveCluster, snapshotAgeLabel } from "@/lib/live-ops";
 import { useOps } from "@/lib/ops-context";
+import { useOpsSession } from "@/lib/ops-session";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/_shell/monitor")({
       {
         name: "description",
         content:
-          "Live and session-historical Kubernetes inventory metrics from the existing Finspot-dev snapshot.",
+          "Live Kubernetes inventory plus allowlisted Prometheus metrics from Finspot-dev. HTTP app series stay empty until exporters exist.",
       },
     ],
   }),
@@ -222,16 +223,27 @@ function ChartBlock({
 
 function MetricsExplorer() {
   const ops = useOps();
+  const { session } = useOpsSession();
   const { focusMode, setFocusMode } = useShellChrome();
   const live = isLiveCluster(ops.clusterSnapshot);
-  const history = useMetricsHistory(ops.clusterSnapshot);
+  const { history, prom } = useMetricsHistory(
+    ops.clusterSnapshot,
+    session?.tenantId ?? "",
+    Boolean(session),
+  );
+  const promLive = prom?.source === "live-prometheus";
   const [preset, setPreset] = useState("live");
   const [refreshId, setRefreshId] = useState<(typeof REFRESH_OPTIONS)[number]["id"]>("15s");
   const refreshMs = REFRESH_OPTIONS.find((r) => r.id === refreshId)?.ms ?? 15_000;
   const nowMs = useNowMs(refreshMs === 0 ? 0 : Math.min(refreshMs, 5_000));
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [selected, setSelected] = useState<MetricId[]>(["k8s.pods", "k8s.not_ready", "k8s.warnings"]);
+  const [selected, setSelected] = useState<MetricId[]>([
+    "k8s.pods",
+    "k8s.cpu",
+    "k8s.mem",
+    "db.postgres",
+  ]);
   const [query, setQuery] = useState("");
   const [viz, setViz] = useState<Viz>("line");
   const [layout, setLayout] = useState<Layout>("overlay");
@@ -239,7 +251,18 @@ function MetricsExplorer() {
   const [selectedTs, setSelectedTs] = useState<number | null>(null);
   const age = snapshotAgeLabel(ops.clusterSnapshot?.generatedAt, nowMs);
   const cluster = clusterLabel(ops.clusterSnapshot);
-  const latest = sampleFromSnapshot(ops.clusterSnapshot, nowMs);
+  const latest =
+    history[history.length - 1] ??
+    sampleFromSnapshot(ops.clusterSnapshot, nowMs, {
+      live: promLive,
+      cpuCores: prom?.values.cpuCores ?? null,
+      memBytes: prom?.values.memBytes ?? null,
+      postgresUp: prom?.values.postgresUp ?? null,
+      mysqlUp: prom?.values.mysqlUp ?? null,
+      redisUp: prom?.values.redisUp ?? null,
+      targetsUp: prom?.values.targetsUp ?? null,
+      restarts1h: prom?.values.restarts1h ?? null,
+    });
   const kpis = liveKpis(latest, live);
   const nsHealth = namespaceHealth(ops.clusterSnapshot);
 
@@ -296,8 +319,9 @@ function MetricsExplorer() {
                 Metrics Explorer
               </h1>
               <p className="text-sm leading-relaxed text-[#f4f1ea]/75">
-                Live graphs from the existing Finspot-dev kubectl snapshot. HTTP, DB, Redis, and
-                traces stay empty — they are not invented.
+                Live Kubernetes inventory plus allowlisted Prometheus (CPU, memory, DB/Redis pod
+                up, scrape targets). HTTP / MQ series stay empty until exporters exist — they are
+                not invented.
               </p>
               <StatusPill
                 tone={live ? (latest && latest.notReady > 0 ? "warning" : "success") : "warning"}
@@ -411,8 +435,11 @@ function MetricsExplorer() {
             ))}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Snapshot poll stays 15s from Stage-1. Faster refresh only updates the clock, not invented
-            points.
+            {promLive
+              ? `LIVE · prometheus · ${prom?.values.targetsUp ?? "—"} targets · updated ${age} ago`
+              : live
+                ? `LIVE · inventory only · prometheus offline · ${age}`
+                : "OFFLINE · bind a tenant token and keep Stage-1 + Prometheus reachable"}
           </p>
         </div>
       </section>
@@ -453,8 +480,9 @@ function MetricsExplorer() {
         </div>
         {series.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No live samples in this window. Stage-1 must return source=live-k8s. Longer ranges stay
-            empty until more polls accumulate — Prometheus is not on this slice.
+            Empty until live-k8s samples arrive. Prometheus fills CPU / memory / DB-up when
+            STAGE1_PROMETHEUS_URL is set on Stage-1. HTTP RPS stays unavailable without app
+            exporters.
           </p>
         ) : layout === "split" ? (
           <div className="space-y-4">
@@ -659,8 +687,9 @@ Stage-1  ${live ? "healthy" : "critical"}
           9–12. Correlation
         </h2>
         <p className="text-sm text-muted-foreground">
-          Traces, Prometheus baselines, and deployment markers are not collected. Selecting a sample
-          time opens Logs → Evidence → RCA for the same Finspot-dev window.
+          Allowlisted Prometheus queries are live for CPU, memory, scrape targets, and
+          Postgres/MySQL/Redis pod-up. App HTTP baselines need exporters. Selecting a sample time
+          opens Logs → Evidence → RCA for the same Finspot-dev window.
         </p>
         <p className="font-mono text-xs">
           Compare / baseline / HTTP heatmap: unavailable. Group by {groupBy}. Aggregate: latest

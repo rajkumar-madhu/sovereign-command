@@ -83,8 +83,7 @@ export function ShellChromeProvider({
     if (!hydrated) return;
     const prev = prevPathRef.current;
     prevPathRef.current = pathname;
-    const enteringDetail =
-      isDetailReadingRoute(pathname) && !isDetailReadingRoute(prev);
+    const enteringDetail = isDetailReadingRoute(pathname) && !isDetailReadingRoute(prev);
     if (enteringDetail) {
       setFocusModeState(true);
       setNavExpandedState(false);

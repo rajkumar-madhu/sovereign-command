@@ -21,6 +21,8 @@ export type MetricId =
   | "k8s.namespaces"
   | "k8s.warnings"
   | "k8s.estate"
+  | "k8s.cpu"
+  | "k8s.mem"
   | "app.request_rate"
   | "app.error_rate"
   | "app.latency_p95"
@@ -38,12 +40,16 @@ export type MetricId =
   | "db.query_latency"
   | "db.slow_queries"
   | "db.locks"
+  | "db.postgres"
+  | "db.mysql"
   | "redis.memory"
   | "redis.hit_rate"
+  | "redis.up"
   | "mq.depth"
   | "mq.publish"
   | "net.bandwidth"
-  | "net.packet_loss";
+  | "net.packet_loss"
+  | "prom.targets";
 
 export type MetricDef = {
   id: MetricId;
@@ -68,6 +74,13 @@ export type MetricSample = {
   namespaces: number;
   warnings: number;
   estate: number;
+  cpuCores: number | null;
+  memGiB: number | null;
+  postgresUp: number | null;
+  mysqlUp: number | null;
+  redisUp: number | null;
+  targetsUp: number | null;
+  promLive: boolean;
 };
 
 export type TimePreset = {
@@ -113,6 +126,8 @@ export const METRIC_CATALOG: MetricDef[] = [
   { id: "k8s.namespaces", label: "Namespaces", category: "Kubernetes", unit: "ns", live: true, color: "#2b4cff" },
   { id: "k8s.warnings", label: "Warning events", category: "Kubernetes", unit: "events", live: true, color: "#d97706" },
   { id: "k8s.estate", label: "Estate score", category: "Kubernetes", unit: "%", live: true, color: "#0f7a55" },
+  { id: "k8s.cpu", label: "CPU cores", category: "Kubernetes", unit: "cores", live: true, color: "#2b4cff" },
+  { id: "k8s.mem", label: "Memory", category: "Kubernetes", unit: "GiB", live: true, color: "#0f7a55" },
   { id: "app.request_rate", label: "Request rate", category: "Application", unit: "/sec", live: false, color: "#94a3b8" },
   { id: "app.error_rate", label: "Error rate", category: "Application", unit: "%", live: false, color: "#94a3b8" },
   { id: "app.latency_p95", label: "Response time", category: "Application", unit: "ms", live: false, color: "#94a3b8" },
@@ -130,12 +145,16 @@ export const METRIC_CATALOG: MetricDef[] = [
   { id: "db.query_latency", label: "Query latency", category: "Database", unit: "ms", live: false, color: "#94a3b8" },
   { id: "db.slow_queries", label: "Slow queries", category: "Database", unit: "count", live: false, color: "#94a3b8" },
   { id: "db.locks", label: "Locks", category: "Database", unit: "count", live: false, color: "#94a3b8" },
+  { id: "db.postgres", label: "Postgres up", category: "Database", unit: "up", live: true, color: "#0f7a55" },
+  { id: "db.mysql", label: "MySQL up", category: "Database", unit: "up", live: true, color: "#2b4cff" },
   { id: "redis.memory", label: "Memory", category: "Redis", unit: "MB", live: false, color: "#94a3b8" },
   { id: "redis.hit_rate", label: "Hit rate", category: "Redis", unit: "%", live: false, color: "#94a3b8" },
+  { id: "redis.up", label: "Redis up", category: "Redis", unit: "up", live: true, color: "#d97706" },
   { id: "mq.depth", label: "Queue depth", category: "RabbitMQ", unit: "msg", live: false, color: "#94a3b8" },
   { id: "mq.publish", label: "Publish rate", category: "RabbitMQ", unit: "/sec", live: false, color: "#94a3b8" },
   { id: "net.bandwidth", label: "Bandwidth", category: "Network", unit: "Mbps", live: false, color: "#94a3b8" },
   { id: "net.packet_loss", label: "Packet loss", category: "Network", unit: "%", live: false, color: "#94a3b8" },
+  { id: "prom.targets", label: "Prom targets up", category: "Kubernetes", unit: "targets", live: true, color: "#ff5b2e" },
 ];
 
 const SAMPLE_KEYS: Record<MetricId, keyof MetricSample | null> = {
@@ -149,6 +168,8 @@ const SAMPLE_KEYS: Record<MetricId, keyof MetricSample | null> = {
   "k8s.namespaces": "namespaces",
   "k8s.warnings": "warnings",
   "k8s.estate": "estate",
+  "k8s.cpu": "cpuCores",
+  "k8s.mem": "memGiB",
   "app.request_rate": null,
   "app.error_rate": null,
   "app.latency_p95": null,
@@ -166,12 +187,16 @@ const SAMPLE_KEYS: Record<MetricId, keyof MetricSample | null> = {
   "db.query_latency": null,
   "db.slow_queries": null,
   "db.locks": null,
+  "db.postgres": "postgresUp",
+  "db.mysql": "mysqlUp",
   "redis.memory": null,
   "redis.hit_rate": null,
+  "redis.up": "redisUp",
   "mq.depth": null,
   "mq.publish": null,
   "net.bandwidth": null,
   "net.packet_loss": null,
+  "prom.targets": "targetsUp",
 };
 
 export function metricDef(id: MetricId): MetricDef {
@@ -181,7 +206,9 @@ export function metricDef(id: MetricId): MetricDef {
 export function sampleValue(sample: MetricSample, id: MetricId): number | null {
   const key = SAMPLE_KEYS[id];
   if (!key) return null;
-  return sample[key] as number;
+  const value = sample[key];
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return value;
 }
 
 export function formatClock(ts: number): string {
@@ -197,13 +224,34 @@ export function formatClock(ts: number): string {
 export function sampleFromSnapshot(
   snapshot: ClusterSnapshot | null,
   nowMs = 0,
+  prom?: {
+    cpuCores: number | null;
+    memBytes: number | null;
+    postgresUp: number | null;
+    mysqlUp: number | null;
+    redisUp: number | null;
+    targetsUp: number | null;
+    restarts1h: number | null;
+    live: boolean;
+  } | null,
 ): MetricSample | null {
   if (!isLiveCluster(snapshot)) return null;
   const ts = Date.parse(snapshot.generatedAt);
   if (!Number.isFinite(ts)) return null;
   const pending = snapshot.pods.filter((p) => p.phase === "Pending").length;
-  const restarts = snapshot.pods.reduce((sum, p) => sum + p.restarts, 0);
+  const restarts =
+    prom?.restarts1h != null && Number.isFinite(prom.restarts1h)
+      ? Math.round(prom.restarts1h)
+      : snapshot.pods.reduce((sum, p) => sum + p.restarts, 0);
   const ready = snapshot.counts.pods - snapshot.counts.notReady;
+  const memGiB =
+    prom?.memBytes != null && Number.isFinite(prom.memBytes)
+      ? Math.round((prom.memBytes / (1024 * 1024 * 1024)) * 100) / 100
+      : null;
+  const cpuCores =
+    prom?.cpuCores != null && Number.isFinite(prom.cpuCores)
+      ? Math.round(prom.cpuCores * 100) / 100
+      : null;
   return {
     ts,
     t: formatClock(ts || nowMs),
@@ -218,6 +266,13 @@ export function sampleFromSnapshot(
     namespaces: snapshot.counts.namespaces,
     warnings: snapshot.warningEvents.length,
     estate: liveEstateScore(snapshot),
+    cpuCores,
+    memGiB,
+    postgresUp: prom?.postgresUp ?? null,
+    mysqlUp: prom?.mysqlUp ?? null,
+    redisUp: prom?.redisUp ?? null,
+    targetsUp: prom?.targetsUp ?? null,
+    promLive: Boolean(prom?.live),
   };
 }
 

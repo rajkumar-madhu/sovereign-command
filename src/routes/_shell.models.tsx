@@ -4,8 +4,21 @@ import { toast } from "sonner";
 import { Activity, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForStatus } from "@/components/ops/status-badge";
@@ -24,7 +37,8 @@ export const Route = createFileRoute("/_shell/models")({
       { property: "og:title", content: "Model Gateway · Wecrew Ops" },
       {
         property: "og:description",
-        content: "Vendor-neutral model routing with residency, latency and tenant allow-list controls.",
+        content:
+          "Vendor-neutral model routing with residency, latency and tenant allow-list controls.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -65,10 +79,7 @@ function ModelGateway() {
   const [logQuery, setLogQuery] = useState("");
   const [logDecision, setLogDecision] = useState("all");
 
-  const residencies = useMemo(
-    () => Array.from(new Set(providers.map((p) => p.residency))),
-    [],
-  );
+  const residencies = useMemo(() => Array.from(new Set(providers.map((p) => p.residency))), []);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -122,7 +133,9 @@ function ModelGateway() {
 
   const healthy = providers.filter((p) => p.status === "healthy").length;
   const degraded = providers.filter((p) => p.status !== "healthy").length;
-  const avgLatencyBase = Math.round(providers.reduce((s, p) => s + p.latencyMs, 0) / providers.length);
+  const avgLatencyBase = Math.round(
+    providers.reduce((s, p) => s + p.latencyMs, 0) / providers.length,
+  );
   const liveLatency = useLiveLatency(avgLatencyBase);
   const liveRps = useLiveRps(64);
   const sovereign = providers.filter((p) => p.residency.toLowerCase().includes("premise")).length;
@@ -133,7 +146,10 @@ function ModelGateway() {
         aria-label="Model gateway pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-primary/30 blur-3xl"
           aria-hidden="true"
@@ -147,8 +163,8 @@ function ModelGateway() {
               Model Gateway
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Vendor-neutral routing across hosted and sovereign on-premise inference, with residency
-              and tenant enforcement. Configuration is read-only in this console.
+              Vendor-neutral routing across hosted and sovereign on-premise inference, with
+              residency and tenant enforcement. Configuration is read-only in this console.
             </p>
             <Button
               className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
@@ -200,7 +216,9 @@ function ModelGateway() {
                   )}
                   {s.value}
                   {s.unit ? (
-                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
+                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">
+                      {s.unit}
+                    </span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
@@ -291,7 +309,9 @@ function ModelGateway() {
                         <StatusPill tone={toneForStatus(p.status)}>{p.status}</StatusPill>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{p.latencyMs} ms</TableCell>
-                      <TableCell className="text-right tabular-nums">{p.errorRate.toFixed(1)}%</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {p.errorRate.toFixed(1)}%
+                      </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">{p.residency}</TableCell>
                       <TableCell>
                         <StatusPill tone={costTone[p.costTier]}>{p.costTier}</StatusPill>
@@ -385,13 +405,21 @@ function ModelGateway() {
                 <TableBody>
                   {decisionRows.map((d) => (
                     <TableRow key={d.id}>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">{d.correlationId}</TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">
+                        {d.correlationId}
+                      </TableCell>
                       <TableCell className="text-xs whitespace-nowrap tabular-nums">
                         {d.time.replace("T", " ").replace("Z", "")}
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{tenantName(d.tenantId)}</TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{agentName(d.agentId)}</TableCell>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">{d.requestedModel}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {tenantName(d.tenantId)}
+                      </TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {agentName(d.agentId)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">
+                        {d.requestedModel}
+                      </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         {d.chosenProvider}
                         {d.chosenModel !== "—" && (

@@ -4,8 +4,21 @@ import { toast } from "sonner";
 import { ShieldAlert, Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
@@ -93,7 +106,9 @@ function SocPage() {
 
   const count = (c: string) => scopedEvents.filter((e) => e.category === c).length;
   const p1 = scopedEvents.filter((e) => e.severity === "P1").length;
-  const blocked = scopedEvents.filter((e) => e.action === "blocked" || e.action === "quarantined").length;
+  const blocked = scopedEvents.filter(
+    (e) => e.action === "blocked" || e.action === "quarantined",
+  ).length;
   const blockPctBase = Math.round((blocked / Math.max(1, scopedEvents.length)) * 100);
   const liveIngress = useLiveIngress(7);
   const liveBlock = useLiveBlockRate(blockPctBase);
@@ -104,7 +119,10 @@ function SocPage() {
         aria-label="Security SOC pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-destructive/25 blur-3xl"
           aria-hidden="true"
@@ -181,7 +199,9 @@ function SocPage() {
                   )}
                   {s.value}
                   {s.unit ? (
-                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
+                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">
+                      {s.unit}
+                    </span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
@@ -203,7 +223,9 @@ function SocPage() {
           <ShieldAlert className="size-4 text-brand-coral" aria-hidden="true" />
           <div>
             <h2 className="font-display text-sm font-semibold">Category signal</h2>
-            <p className="text-xs text-muted-foreground">Tap a category filter via the stream below</p>
+            <p className="text-xs text-muted-foreground">
+              Tap a category filter via the stream below
+            </p>
           </div>
         </div>
         <div className="grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
@@ -228,7 +250,8 @@ function SocPage() {
                 <p
                   className={cn(
                     "font-display mt-1 text-xl font-semibold tabular-nums",
-                    n > 0 && (c === "prompt-injection" || c === "secret-access" || c === "cross-tenant")
+                    n > 0 &&
+                      (c === "prompt-injection" || c === "secret-access" || c === "cross-tenant")
                       ? "text-destructive"
                       : "text-foreground",
                   )}
@@ -247,14 +270,11 @@ function SocPage() {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-sm font-semibold">Security event stream</h2>
             <p className="text-xs text-muted-foreground">
-              {rows.length} of {scopedEvents.length} events · tenant {tenantName(ops.tenantId)} · host / IP attached
+              {rows.length} of {scopedEvents.length} events · tenant {tenantName(ops.tenantId)} ·
+              host / IP attached
             </p>
           </div>
-          {p1 > 0 && (
-            <StatusPill tone="danger">
-              {p1} P1
-            </StatusPill>
-          )}
+          {p1 > 0 && <StatusPill tone="danger">{p1} P1</StatusPill>}
         </div>
         <div className="space-y-4 p-4">
           <div className="flex flex-col gap-2 sm:flex-row">

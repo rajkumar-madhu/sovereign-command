@@ -34,22 +34,22 @@ export interface Customer {
 /** Structured host / network / workload identity for SRE & platform views. */
 export interface ResourceIdentity {
   /** Business or service name operators recognize. */
-  application?: string;
+  application?: string | undefined;
   /** Node or VM hostname. */
-  hostname?: string;
+  hostname?: string | undefined;
   /** Primary IPv4/IPv6 on the affected interface. */
-  ipAddress?: string;
+  ipAddress?: string | undefined;
   /** Kubernetes / estate cluster name. */
-  cluster?: string;
-  namespace?: string;
-  pod?: string;
+  cluster?: string | undefined;
+  namespace?: string | undefined;
+  pod?: string | undefined;
   /** Node name when distinct from hostname. */
-  nodeName?: string;
+  nodeName?: string | undefined;
   /** External or internal FQDN / endpoint. */
-  fqdn?: string;
-  region?: string;
+  fqdn?: string | undefined;
+  region?: string | undefined;
   /** Optional role label: worker, control-plane, edge, db, gateway. */
-  role?: string;
+  role?: string | undefined;
 }
 
 export interface Agent {
@@ -76,7 +76,7 @@ export interface Agent {
   /** For orchestration agents: specialist agent ids this supervisor may route to. */
   routesTo?: string[];
   /** Recent step consumption vs passport maxSteps (demo / live pulse). */
-  stepsUsedRecent?: number;
+  stepsUsedRecent?: number | undefined;
 }
 
 export interface EvidenceArtifact {
@@ -88,7 +88,7 @@ export interface EvidenceArtifact {
   body: string;
   incidentId?: string;
   /** Capture locus — host/IP/cluster for platform triage. */
-  resource?: ResourceIdentity;
+  resource?: ResourceIdentity | undefined;
 }
 
 export interface AgentPassport {
@@ -125,7 +125,7 @@ export interface SecurityEvent {
   detail: string;
   action: "blocked" | "quarantined" | "flagged" | "allowed-with-audit";
   /** Runtime host / IP when the event was observed. */
-  resource?: ResourceIdentity;
+  resource?: ResourceIdentity | undefined;
 }
 
 export interface Incident {

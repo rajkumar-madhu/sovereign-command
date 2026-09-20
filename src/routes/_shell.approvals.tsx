@@ -16,9 +16,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
@@ -54,7 +67,8 @@ export const Route = createFileRoute("/_shell/approvals")({
       { property: "og:title", content: "Approval Queue · Wecrew Ops" },
       {
         property: "og:description",
-        content: "Track pending agent approvals approaching their SLA threshold and decide before they breach.",
+        content:
+          "Track pending agent approvals approaching their SLA threshold and decide before they breach.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -104,7 +118,9 @@ function ApprovalQueue() {
   }, [feed.pending, onlyAlerts, query, stateFilter]);
 
   const decided = approvals.filter((a) => a.status !== "pending").length;
-  const escalatedCount = feed.pending.filter((p) => (escalationTiers[p.approval.id] ?? "primary") !== "primary").length;
+  const escalatedCount = feed.pending.filter(
+    (p) => (escalationTiers[p.approval.id] ?? "primary") !== "primary",
+  ).length;
   const pendingIds = useMemo(() => rows.map((r) => r.approval.id), [rows]);
   const selectedRows = useMemo(
     () => rows.filter((r) => selected.includes(r.approval.id)),
@@ -217,7 +233,10 @@ function ApprovalQueue() {
         aria-label="Approval queue pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
@@ -235,7 +254,10 @@ function ApprovalQueue() {
               SLA is breached — decisions are simulated and audited only.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
+              <Button
+                asChild
+                className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
+              >
                 <Link to="/sla-admin">SLA administration</Link>
               </Button>
               {feed.alertCount > 0 && (
@@ -354,7 +376,11 @@ function ApprovalQueue() {
               </SelectContent>
             </Select>
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={onlyAlerts} onCheckedChange={setOnlyAlerts} aria-label="Only show SLA alerts" />
+              <Switch
+                checked={onlyAlerts}
+                onCheckedChange={setOnlyAlerts}
+                aria-label="Only show SLA alerts"
+              />
               Only SLA alerts
             </label>
           </div>
@@ -374,7 +400,11 @@ function ApprovalQueue() {
                 >
                   {allVisibleSelected ? "Clear selection" : "Select all filtered"}
                 </Button>
-                <Button size="sm" disabled={selectedRows.length === 0} onClick={() => setConfirmAction("approved")}>
+                <Button
+                  size="sm"
+                  disabled={selectedRows.length === 0}
+                  onClick={() => setConfirmAction("approved")}
+                >
                   Approve selected
                 </Button>
                 <Button
@@ -419,7 +449,10 @@ function ApprovalQueue() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((item) => (
-                    <TableRow key={item.approval.id} className={item.state === "breached" ? "bg-destructive/5" : undefined}>
+                    <TableRow
+                      key={item.approval.id}
+                      className={item.state === "breached" ? "bg-destructive/5" : undefined}
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selected.includes(item.approval.id)}
@@ -433,10 +466,16 @@ function ApprovalQueue() {
                           {item.approval.id} · requested by {item.approval.requestedBy}
                         </p>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{tenantName(item.approval.tenantId)}</TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{agentName(item.approval.agentId)}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {tenantName(item.approval.tenantId)}
+                      </TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {agentName(item.approval.agentId)}
+                      </TableCell>
                       <TableCell>
-                        <StatusPill tone={toneForSeverity(item.approval.risk)}>{item.approval.risk}</StatusPill>
+                        <StatusPill tone={toneForSeverity(item.approval.risk)}>
+                          {item.approval.risk}
+                        </StatusPill>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {item.approval.requiredRoles.join(" + ")}
@@ -459,12 +498,20 @@ function ApprovalQueue() {
                       <TableCell>
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <StatusPill tone={slaTone(item.state)}>{slaLabel(item.state)}</StatusPill>
-                            <span className="text-xs tabular-nums text-muted-foreground" aria-live="off">
+                            <StatusPill tone={slaTone(item.state)}>
+                              {slaLabel(item.state)}
+                            </StatusPill>
+                            <span
+                              className="text-xs tabular-nums text-muted-foreground"
+                              aria-live="off"
+                            >
                               {formatCountdown(item.remainingMinutes)}
                             </span>
                           </div>
-                          <Progress value={item.consumedPct} aria-label={`${Math.round(item.consumedPct)}% of SLA window consumed`} />
+                          <Progress
+                            value={item.consumedPct}
+                            aria-label={`${Math.round(item.consumedPct)}% of SLA window consumed`}
+                          />
                         </div>
                       </TableCell>
                       <TableCell>
@@ -472,13 +519,20 @@ function ApprovalQueue() {
                           <Button size="sm" variant="ghost" onClick={() => escalateNow(item)}>
                             Escalate
                           </Button>
-                          <Button size="sm" onClick={() => decide(item.approval.id, item.approval.request, "approved")}>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              decide(item.approval.id, item.approval.request, "approved")
+                            }
+                          >
                             Approve
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => decide(item.approval.id, item.approval.request, "rejected")}
+                            onClick={() =>
+                              decide(item.approval.id, item.approval.request, "rejected")
+                            }
                           >
                             Reject
                           </Button>
@@ -499,8 +553,8 @@ function ApprovalQueue() {
             <div>
               <h2 className="font-display text-sm font-semibold">Batch outcomes</h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {batch.outcomes.length} request{batch.outcomes.length === 1 ? "" : "s"} decided. Undo returns every item
-                to the pending queue before the window seals.
+                {batch.outcomes.length} request{batch.outcomes.length === 1 ? "" : "s"} decided.
+                Undo returns every item to the pending queue before the window seals.
               </p>
             </div>
             <Button
@@ -565,8 +619,8 @@ function ApprovalQueue() {
         <div className="p-4">
           {escalationLog.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-              No escalations yet. Pages appear here as approvals approach or pass their SLA window, or when you escalate
-              manually.
+              No escalations yet. Pages appear here as approvals approach or pass their SLA window,
+              or when you escalate manually.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -590,9 +644,13 @@ function ApprovalQueue() {
                       </TableCell>
                       <TableCell className="max-w-64">
                         <p className="text-sm font-medium">{event.request}</p>
-                        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{event.approvalId}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                          {event.approvalId}
+                        </p>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{tenantName(event.tenantId)}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {tenantName(event.tenantId)}
+                      </TableCell>
                       <TableCell>
                         <StatusPill tone={tierTone(event.tier)}>{tierLabel(event.tier)}</StatusPill>
                       </TableCell>
@@ -606,7 +664,9 @@ function ApprovalQueue() {
                       <TableCell className="text-xs whitespace-nowrap capitalize text-muted-foreground">
                         {event.trigger}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{event.reason}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {event.reason}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -616,7 +676,10 @@ function ApprovalQueue() {
         </div>
       </section>
 
-      <AlertDialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+      <AlertDialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => !open && setConfirmAction(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -632,14 +695,19 @@ function ApprovalQueue() {
           </AlertDialogHeader>
           <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-border p-3">
             {selectedRows.map((item) => (
-              <div key={item.approval.id} className="flex items-start justify-between gap-3 text-sm">
+              <div
+                key={item.approval.id}
+                className="flex items-start justify-between gap-3 text-sm"
+              >
                 <div className="min-w-0">
                   <p className="truncate font-medium">{item.approval.request}</p>
                   <p className="text-xs text-muted-foreground">
                     {tenantName(item.approval.tenantId)} · {agentName(item.approval.agentId)}
                   </p>
                 </div>
-                <StatusPill tone={slaTone(item.state)}>{formatCountdown(item.remainingMinutes)}</StatusPill>
+                <StatusPill tone={slaTone(item.state)}>
+                  {formatCountdown(item.remainingMinutes)}
+                </StatusPill>
               </div>
             ))}
           </div>

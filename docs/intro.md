@@ -19,11 +19,11 @@ Looking to open the console? Visit [sign-in](https://sovereign.ops.wecrew.in/log
 
 ## Two ways to use Wecrew Ops
 
-| | Product console | Self-hosted estate |
-| --- | --- | --- |
+|                | Product console                                                               | Self-hosted estate                                                              |
+| -------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | **What it is** | Hosted UI at sovereign.ops / agents.ops with demo seed and read-only sessions | Same application image on your Kind / K3s cluster behind your Traefik / ingress |
-| **Best for** | Evaluation, training, and stakeholder walkthroughs | Regulated estates that must keep agent ops data on-prem |
-| **Learn more** | [Sign in / demo](https://sovereign.ops.wecrew.in/login) | [Deploy guide](https://github.com/rajkumar-madhu/sovereign-command) |
+| **Best for**   | Evaluation, training, and stakeholder walkthroughs                            | Regulated estates that must keep agent ops data on-prem                         |
+| **Learn more** | [Sign in / demo](https://sovereign.ops.wecrew.in/login)                       | [Deploy guide](https://github.com/rajkumar-madhu/sovereign-command)             |
 
 ---
 

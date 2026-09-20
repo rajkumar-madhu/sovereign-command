@@ -30,7 +30,10 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const groups: Array<{ label: string; items: Array<{ title: string; url: string; icon: typeof Gauge }> }> = [
+const groups: Array<{
+  label: string;
+  items: Array<{ title: string; url: string; icon: typeof Gauge }>;
+}> = [
   {
     label: "Operate",
     items: [
@@ -68,7 +71,9 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const isActive = (url: string) =>
-    url === "/command" ? pathname === "/command" : pathname === url || pathname.startsWith(`${url}/`);
+    url === "/command"
+      ? pathname === "/command"
+      : pathname === url || pathname.startsWith(`${url}/`);
 
   return (
     <Sidebar collapsible="icon">

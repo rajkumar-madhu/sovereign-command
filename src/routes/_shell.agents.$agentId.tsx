@@ -4,11 +4,23 @@ import { Bot, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { MetricCard } from "@/components/ops/metric-card";
 import { SafetyBanner } from "@/components/ops/safety-banner";
-import { StatusPill, toneForScore, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
+import {
+  StatusPill,
+  toneForScore,
+  toneForSeverity,
+  toneForStatus,
+} from "@/components/ops/status-badge";
 import {
   agents,
   auditLog,
@@ -39,7 +51,10 @@ export const Route = createFileRoute("/_shell/agents/$agentId")({
           content: `Passport, capabilities, tools, models, executions, security events, cost and audit trail for ${name}.`,
         },
         { property: "og:title", content: `${name} · Agent Detail` },
-        { property: "og:description", content: `Signed passport and operating envelope for ${name}.` },
+        {
+          property: "og:description",
+          content: `Signed passport and operating envelope for ${name}.`,
+        },
         ...(loaderData ? [] : [{ name: "robots", content: "noindex" }]),
       ],
     };
@@ -76,7 +91,11 @@ function AgentDetail() {
   const liveRuns = useLiveInvokes(Math.max(4, Math.round(agent.executions24h / 48)));
   const budgetPct = Math.min(100, Math.round((passport.tokensUsed / passport.tokenBudget) * 100));
   const sigTone =
-    passport.signature === "valid" ? "success" : passport.signature === "expiring" ? "warning" : "danger";
+    passport.signature === "valid"
+      ? "success"
+      : passport.signature === "expiring"
+        ? "warning"
+        : "danger";
 
   return (
     <div className="space-y-6">
@@ -84,7 +103,10 @@ function AgentDetail() {
         aria-label="Agent passport pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
@@ -97,32 +119,47 @@ function AgentDetail() {
               </p>
               <StatusPill tone={toneForStatus(status)}>{status}</StatusPill>
               <StatusPill tone={sigTone}>sig {passport.signature}</StatusPill>
-              <StatusPill tone={toneForScore(agent.trustScore)}>trust {agent.trustScore}</StatusPill>
+              <StatusPill tone={toneForScore(agent.trustScore)}>
+                trust {agent.trustScore}
+              </StatusPill>
             </div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
               {agent.name}
             </h1>
-            <p className="text-sm leading-relaxed text-sidebar-foreground/70">{agent.description}</p>
+            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
+              {agent.description}
+            </p>
             <p className="font-mono text-[11px] text-sidebar-foreground/55">
               {agent.kind} · {agent.model} · {agent.environment}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button asChild variant="outline" className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent">
+              <Button
+                asChild
+                variant="outline"
+                className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
+              >
                 <Link to="/agents">Back to registry</Link>
               </Button>
             </div>
           </div>
           <div className="grid w-full max-w-sm grid-cols-2 gap-2">
             <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">Runs/hr</p>
+              <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                Runs/hr
+              </p>
               <p className="font-display mt-1 flex items-center gap-1.5 text-2xl font-semibold tabular-nums text-sidebar-accent-foreground">
-                <span className="inline-flex size-1.5 animate-pulse rounded-full bg-brand-coral" aria-hidden="true" />
+                <span
+                  className="inline-flex size-1.5 animate-pulse rounded-full bg-brand-coral"
+                  aria-hidden="true"
+                />
                 {liveRuns}
               </p>
               <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">live</p>
             </div>
             <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">Token budget</p>
+              <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                Token budget
+              </p>
               <p className="font-display mt-1 text-2xl font-semibold tabular-nums text-sidebar-accent-foreground">
                 {budgetPct}%
               </p>
@@ -130,10 +167,14 @@ function AgentDetail() {
             </div>
             <div className="col-span-2 rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur">
               <div className="mb-1.5 flex items-center justify-between gap-2">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">Identity</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                  Identity
+                </p>
                 <ShieldCheck className="size-3.5 text-brand-coral" aria-hidden="true" />
               </div>
-              <p className="truncate font-mono text-[11px] text-sidebar-accent-foreground">{passport.identity}</p>
+              <p className="truncate font-mono text-[11px] text-sidebar-accent-foreground">
+                {passport.identity}
+              </p>
             </div>
           </div>
         </div>
@@ -222,7 +263,9 @@ function AgentDetail() {
 
         <TabsContent value="passport" className="space-y-4 pt-4">
           <section className="ops-panel rounded-2xl p-5">
-            <h2 className="font-display text-lg font-semibold tracking-tight">Signed agent passport</h2>
+            <h2 className="font-display text-lg font-semibold tracking-tight">
+              Signed agent passport
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">Issued by {passport.issuer}</p>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               <Row label="Identity" value={passport.identity} />
@@ -399,8 +442,15 @@ function AgentDetail() {
 
         <TabsContent value="cost" className="space-y-4 pt-4">
           <section className="grid gap-3 sm:grid-cols-3">
-            <MetricCard label="Tokens (30d)" value={`${(agent.tokens30d / 1_000_000).toFixed(2)}M`} />
-            <MetricCard label="Cost (30d)" value={`$${agent.cost30dUsd.toLocaleString()}`} tone="info" />
+            <MetricCard
+              label="Tokens (30d)"
+              value={`${(agent.tokens30d / 1_000_000).toFixed(2)}M`}
+            />
+            <MetricCard
+              label="Cost (30d)"
+              value={`$${agent.cost30dUsd.toLocaleString()}`}
+              tone="info"
+            />
             <MetricCard
               label="Budget remaining"
               value={`$${(passport.costBudgetUsd - passport.costUsedUsd).toLocaleString()}`}
@@ -418,7 +468,10 @@ function AgentDetail() {
               </p>
             ) : (
               audits.map((a) => (
-                <div key={a.id} className="rounded-xl border border-border/80 bg-surface p-3 text-sm">
+                <div
+                  key={a.id}
+                  className="rounded-xl border border-border/80 bg-surface p-3 text-sm"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">{a.action}</span>
                     <StatusPill tone={toneForStatus(a.decision)}>{a.decision}</StatusPill>
@@ -440,7 +493,12 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border/80 pb-2 last:border-0">
       <span className="text-muted-foreground">{label}</span>
-      <span className={cn("truncate text-right font-medium", value.includes("spiffe") && "font-mono text-xs")}>
+      <span
+        className={cn(
+          "truncate text-right font-medium",
+          value.includes("spiffe") && "font-mono text-xs",
+        )}
+      >
         {value}
       </span>
     </div>
