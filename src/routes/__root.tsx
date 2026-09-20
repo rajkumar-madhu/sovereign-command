@@ -98,10 +98,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Wecrew Ops" },
-      { name: "description", content: "Wecrew Ops · sovereign.ops — read-only multi-tenant agent operations for regulated hybrid infrastructure." },
+      {
+        name: "description",
+        content:
+          "Wecrew Ops · sovereign.ops — read-only multi-tenant agent operations for regulated hybrid infrastructure.",
+      },
       { name: "author", content: "Wecrew Ops" },
       { property: "og:title", content: "Wecrew Ops" },
-      { property: "og:description", content: "Vendor-neutral agent operations command centre at sovereign.ops.wecrew.in." },
+      {
+        property: "og:description",
+        content: "Vendor-neutral agent operations command centre at sovereign.ops.wecrew.in.",
+      },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://sovereign.ops.wecrew.in/og-wecrew-ops.jpg" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -134,6 +141,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("sovereign-theme");if(t!=="dark"&&t!=="light"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.classList.toggle("dark",t==="dark");document.documentElement.dataset.theme=t;}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-h-screen antialiased">
         {children}

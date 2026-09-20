@@ -1,6 +1,6 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { customers, initialApprovals, initialPolicies, tenantName, tenants } from "@/data/seed";
-import type { Approval, EnvName, Policy, RiskLevel } from "@/data/types";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { Approval, Customer, EnvName, Policy, RiskLevel, Tenant } from "@/data/types";
+import { useClusterSnapshot } from "@/hooks/use-cluster-snapshot";
 import { defaultSlaConfig, type SlaAuditEntry, type SlaConfig } from "@/lib/approval-sla";
 import {
   approversFor,
@@ -9,11 +9,23 @@ import {
   type EscalationEvent,
   type EscalationTier,
 } from "@/lib/escalation";
+import {
+  customersFromSnapshot,
+  isLiveCluster,
+  LIVE_CLUSTER_TENANT_ID,
+  livePolicies,
+  tenantsFromSnapshot,
+} from "@/lib/live-ops";
+import { useOpsSession } from "@/lib/ops-session";
+import type { ClusterSnapshot } from "@/lib/stage1-client";
 
 interface OpsState {
   tenantId: string;
   customerId: string;
   environment: EnvName;
+  tenants: Tenant[];
+  customers: Customer[];
+  clusterSnapshot: ClusterSnapshot | null;
   setTenantId: (id: string) => void;
   setCustomerId: (id: string) => void;
   setEnvironment: (env: EnvName) => void;
@@ -32,7 +44,12 @@ interface OpsState {
   slaAuditLog: SlaAuditEntry[];
   setSlaDefault: (risk: RiskLevel, minutes: number, actor: string) => void;
   setAtRiskPct: (pct: number, actor: string) => void;
-  setTenantSlaOverride: (tenantId: string, risk: RiskLevel, minutes: number | null, actor: string) => void;
+  setTenantSlaOverride: (
+    tenantId: string,
+    risk: RiskLevel,
+    minutes: number | null,
+    actor: string,
+  ) => void;
   /** Current escalation tier per approval id (absent = primary rota). */
   escalationTiers: Record<string, EscalationTier>;
   /** Append-only notification history for every escalation page. */
@@ -50,18 +67,38 @@ interface OpsState {
 const OpsCtx = createContext<OpsState | null>(null);
 
 export function OpsProvider({ children }: { children: ReactNode }) {
-  const [tenantId, setTenantId] = useState<string>(tenants[0]!.id);
+  const { session } = useOpsSession();
+  const scopedTenant = session?.tenantId ?? "";
+  const clusterSnapshot = useClusterSnapshot(scopedTenant, Boolean(session));
+  const tenants = useMemo(() => tenantsFromSnapshot(clusterSnapshot), [clusterSnapshot]);
+  const customers = useMemo(() => customersFromSnapshot(clusterSnapshot), [clusterSnapshot]);
+  const [tenantId, setTenantId] = useState<string>(scopedTenant);
   const [customerId, setCustomerId] = useState<string>("all");
   const [environment, setEnvironment] = useState<EnvName>("production");
-  const [approvals, setApprovals] = useState<Approval[]>(initialApprovals);
-  const [policies, setPolicies] = useState<Policy[]>(initialPolicies);
+  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [policies, setPolicies] = useState<Policy[]>(() => livePolicies(LIVE_CLUSTER_TENANT_ID));
   const [agentStates, setAgentStates] = useState<OpsState["agentStates"]>({});
   const [budgets, setBudgets] = useState<Record<string, number>>({
-    "tn-nordic": 24000,
-    "tn-helios": 18000,
-    "tn-meridian": 16000,
-    "tn-atlas": 9000,
+    [LIVE_CLUSTER_TENANT_ID]: 0,
   });
+
+  useEffect(() => {
+    if (scopedTenant && scopedTenant !== tenantId) setTenantId(scopedTenant);
+  }, [scopedTenant, tenantId]);
+
+  useEffect(() => {
+    const liveId = tenants[0]?.id;
+    if (liveId && liveId !== tenantId) setTenantId(liveId);
+  }, [tenants, tenantId]);
+
+  useEffect(() => {
+    if (!isLiveCluster(clusterSnapshot)) return;
+    setPolicies((prev) => {
+      const edited = prev.some((p) => !p.id.startsWith("POL-RO-"));
+      if (edited) return prev;
+      return livePolicies(clusterSnapshot.cluster, clusterSnapshot.generatedAt);
+    });
+  }, [clusterSnapshot]);
 
   const [slaConfig, setSlaConfig] = useState<SlaConfig>(defaultSlaConfig);
   const [slaAuditLog, setSlaAuditLog] = useState<SlaAuditEntry[]>([]);
@@ -84,6 +121,9 @@ export function OpsProvider({ children }: { children: ReactNode }) {
       tenantId,
       customerId,
       environment,
+      tenants,
+      customers,
+      clusterSnapshot,
       setTenantId: (id) => {
         setTenantId(id);
         setCustomerId("all");
@@ -96,7 +136,9 @@ export function OpsProvider({ children }: { children: ReactNode }) {
       decideApprovals: (ids, status) =>
         setApprovals((prev) => prev.map((a) => (ids.includes(a.id) ? { ...a, status } : a))),
       revertApprovals: (ids) =>
-        setApprovals((prev) => prev.map((a) => (ids.includes(a.id) ? { ...a, status: "pending" } : a))),
+        setApprovals((prev) =>
+          prev.map((a) => (ids.includes(a.id) ? { ...a, status: "pending" } : a)),
+        ),
       escalationTiers,
       escalationLog,
       escalateApproval: (approval, tier, reason, trigger) => {
@@ -175,11 +217,14 @@ export function OpsProvider({ children }: { children: ReactNode }) {
         });
         recordSlaAudit({
           actor,
-          scope: tenantName(tenantId),
+          scope: tenants.find((t) => t.id === tenantId)?.name ?? tenantId,
           field: `${risk} approval SLA override`,
           from: from === undefined ? `inherited ${slaConfig.defaults[risk]}m` : `${from}m`,
           to: minutes === null ? `inherited ${slaConfig.defaults[risk]}m` : `${minutes}m`,
-          outcome: minutes === null ? "Override removed; tenant inherits the default." : "Tenant override applied.",
+          outcome:
+            minutes === null
+              ? "Override removed; tenant inherits the default."
+              : "Tenant override applied.",
         });
       },
     }),
@@ -187,6 +232,9 @@ export function OpsProvider({ children }: { children: ReactNode }) {
       tenantId,
       customerId,
       environment,
+      tenants,
+      customers,
+      clusterSnapshot,
       approvals,
       policies,
       agentStates,
@@ -207,8 +255,8 @@ export function useOps(): OpsState {
   return ctx;
 }
 
-export function tenantCustomers(tenantId: string) {
-  return customers.filter((c) => c.tenantId === tenantId);
+export function tenantCustomers(tenantId: string, all: Customer[]) {
+  return all.filter((c) => c.tenantId === tenantId);
 }
 
 /** Filter rows by top-bar tenant / customer / environment scope. */

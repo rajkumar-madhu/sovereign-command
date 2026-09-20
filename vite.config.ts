@@ -8,7 +8,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 // Self-host: NITRO_PRESET=node-server bun run build
 // Default (Lovable / Cloudflare): cloudflare-module
-const nitroPreset = process.env.NITRO_PRESET?.trim() || undefined;
+const nitroPreset = process.env["NITRO_PRESET"]?.trim() || undefined;
 
 export default defineConfig({
   nitro: nitroPreset
@@ -20,5 +20,15 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+  },
+  vite: {
+    server: {
+      proxy: {
+        "/stage1-api": {
+          target: "http://127.0.0.1:8091",
+          rewrite: (path: string) => path.replace(/^\/stage1-api/, ""),
+        },
+      },
+    },
   },
 });

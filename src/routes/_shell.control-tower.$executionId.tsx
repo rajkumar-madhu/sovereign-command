@@ -4,20 +4,16 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
-import {
-  agentName,
-  customerName,
-  getExecutionTrace,
-  tenantName,
-} from "@/data/seed";
+import { agentName, customerName, tenantName } from "@/data/seed";
 import type { ExecutionHop, ExecutionTrace, TraceDomain } from "@/data/types";
+import { fetchExecutionTrace } from "@/lib/stage1-client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/control-tower/$executionId")({
-  loader: ({ params }): { trace: ExecutionTrace } => {
-    const trace = getExecutionTrace(params.executionId);
-    if (!trace) throw notFound();
-    return { trace };
+  loader: async ({ params }): Promise<{ trace: ExecutionTrace }> => {
+    const live = await fetchExecutionTrace(params.executionId);
+    if (!live) throw notFound();
+    return { trace: live };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -68,7 +64,10 @@ function ControlTowerDetail() {
   return (
     <div className="space-y-6">
       <section className="command-pulse relative overflow-hidden rounded-2xl border border-border/70">
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.45]" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.45]"
+          aria-hidden
+        />
         <div className="relative z-10 space-y-4 p-5 md:p-6">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
@@ -102,8 +101,13 @@ function ControlTowerDetail() {
               ["Audit corr", trace.auditCorrelationId],
               ["Approval", trace.approvalId ?? "—"],
             ].map(([k, v]) => (
-              <div key={k} className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2">
-                <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">{k}</dt>
+              <div
+                key={k}
+                className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2"
+              >
+                <dt className="text-[10px] uppercase tracking-wide text-sidebar-foreground/50">
+                  {k}
+                </dt>
                 <dd className="mt-0.5 truncate font-mono text-[12px] text-sidebar-accent-foreground">
                   {v}
                 </dd>
@@ -111,7 +115,11 @@ function ControlTowerDetail() {
             ))}
           </dl>
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button asChild variant="outline" className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground">
+            <Button
+              asChild
+              variant="outline"
+              className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground"
+            >
               <Link to="/control-tower">
                 <ArrowLeft className="size-4" aria-hidden />
                 All executions
@@ -205,15 +213,15 @@ function ControlTowerDetail() {
           </ol>
           <div className="border-t border-border pt-3 text-xs text-muted-foreground">
             <p>
-              Tokens <span className="font-mono text-foreground">{trace.tokens.toLocaleString()}</span>
+              Tokens{" "}
+              <span className="font-mono text-foreground">{trace.tokens.toLocaleString()}</span>
             </p>
             <p className="mt-1">
               Cost <span className="font-mono text-foreground">${trace.costUsd.toFixed(2)}</span>
             </p>
             {trace.confidence != null && (
               <p className="mt-1">
-                Confidence{" "}
-                <span className="font-mono text-foreground">{trace.confidence}%</span>
+                Confidence <span className="font-mono text-foreground">{trace.confidence}%</span>
               </p>
             )}
           </div>

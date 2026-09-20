@@ -22,7 +22,7 @@ import {
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForScore } from "@/components/ops/status-badge";
-import { customers, tenantName, tenants } from "@/data/seed";
+import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/customers/")({
@@ -69,6 +69,7 @@ function useLiveHealthDrift(base: number) {
 }
 
 function CustomersPage() {
+  const { customers, tenants } = useOps();
   const [query, setQuery] = useState("");
   const [tenantFilter, setTenantFilter] = useState("all");
   const [contract, setContract] = useState("all");
@@ -83,7 +84,7 @@ function CustomersPage() {
             c.industry.toLowerCase().includes(query.toLowerCase()) ||
             c.owner.toLowerCase().includes(query.toLowerCase())),
       ),
-    [query, tenantFilter, contract],
+    [customers, query, tenantFilter, contract],
   );
 
   const totalNodes = rows.reduce((s, c) => s + c.nodes, 0);
@@ -91,9 +92,7 @@ function CustomersPage() {
   const totalSpend = rows.reduce((s, c) => s + c.monthlyCostUsd, 0);
   const open = rows.reduce((s, c) => s + c.openIncidents, 0);
   const avgHealth =
-    rows.length === 0
-      ? 0
-      : Math.round(rows.reduce((s, c) => s + c.health, 0) / rows.length);
+    rows.length === 0 ? 0 : Math.round(rows.reduce((s, c) => s + c.health, 0) / rows.length);
 
   const liveBurn = useLiveSpendRate(86);
   const liveHealth = useLiveHealthDrift(avgHealth || 88);
@@ -104,7 +103,10 @@ function CustomersPage() {
         aria-label="Customers pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
@@ -118,14 +120,14 @@ function CustomersPage() {
               Customer Management
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Every customer estate onboarded to the Agent OS — clusters, agents, health and spend
-              posture across tenant boundaries.
+              Live Finspot-dev namespaces from the existing kubectl client. Seed demo estates are
+              not loaded.
             </p>
             <Button
               className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
               onClick={() =>
                 toast.success("Estate rollup refreshed", {
-                  description: `${customers.length} customer estates re-correlated (read-only).`,
+                  description: `${customers.length} live namespaces re-read (read-only).`,
                 })
               }
             >
@@ -135,7 +137,7 @@ function CustomersPage() {
           </div>
           <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
             {[
-              { label: "Customers", value: rows.length, hint: "in view" },
+              { label: "Namespaces", value: rows.length, hint: "in view" },
               { label: "Nodes", value: totalNodes.toLocaleString(), hint: "fleet" },
               { label: "Agents", value: totalAgents, hint: "active" },
               {
@@ -287,7 +289,7 @@ function CustomersPage() {
                         <p className="text-xs text-muted-foreground">{c.industry}</p>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
-                        {tenantName(c.tenantId)}
+                        {tenants.find((t) => t.id === c.tenantId)?.name ?? c.tenantId}
                       </TableCell>
                       <TableCell className="text-sm capitalize">{c.contract}</TableCell>
                       <TableCell className="text-right tabular-nums">{c.clusters}</TableCell>

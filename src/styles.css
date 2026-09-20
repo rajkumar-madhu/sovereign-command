@@ -62,6 +62,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-brand-coral: var(--brand-coral);
+  --color-brand-blue: var(--brand-blue);
   --color-brand-ink: var(--brand-ink);
   --color-brand-paper: var(--brand-paper);
 }
@@ -131,8 +132,8 @@
   --card-foreground: #f4f1ea;
   --popover: #1a1f28;
   --popover-foreground: #f4f1ea;
-  --primary: #6b85ff;
-  --primary-foreground: #0e1116;
+  --primary: var(--brand-blue);
+  --primary-foreground: #ffffff;
   --secondary: #1a1f28;
   --secondary-foreground: #f4f1ea;
   --muted: #1a1f28;
@@ -145,13 +146,13 @@
   --success-foreground: #0e1116;
   --warning: #fbbf24;
   --warning-foreground: #0e1116;
-  --info: #6b85ff;
+  --info: var(--brand-blue);
   --border: #252b36;
   --input: #2a3140;
   --ring: var(--brand-coral);
   --shadow-panel: 0 1px 2px rgb(0 0 0 / 35%), 0 16px 40px -24px rgb(255 91 46 / 25%);
 
-  --chart-1: #6b85ff;
+  --chart-1: var(--brand-blue);
   --chart-2: #34d399;
   --chart-3: #ff5b2e;
   --chart-4: #f87171;
@@ -180,7 +181,7 @@
     background-color: var(--color-background);
     background-image: none;
     color: var(--color-foreground);
-    font-feature-settings: "ss01" on, "kern" on;
+    font-feature-settings: "kern" on;
   }
 
   h1,
@@ -233,7 +234,9 @@
     background-image:
       linear-gradient(180deg, #141820, var(--brand-ink)),
       linear-gradient(rgb(255 91 46 / 0.08) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 20px;
+    background-size:
+      100% 100%,
+      100% 20px;
   }
 
   .dark .silicon-rail {
@@ -244,6 +247,12 @@
 
   .command-pulse {
     isolation: isolate;
+    background-color: var(--brand-ink);
+    color: var(--brand-paper);
+  }
+
+  .command-pulse .silicon-circuit {
+    opacity: 1 !important;
   }
 
   .inspector-panel {

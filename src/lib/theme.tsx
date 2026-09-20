@@ -14,14 +14,14 @@ const STORAGE_KEY = "sovereign-theme";
 function applyTheme(theme: ThemeMode) {
   const root = document.documentElement;
   root.classList.toggle("dark", theme === "dark");
-  root.dataset.theme = theme;
+  root.dataset["theme"] = theme;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>("light");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
+    const stored = window.localStorage.getItem(STORAGE_KEY);
     const preferred =
       stored === "dark" || stored === "light"
         ? stored
@@ -43,7 +43,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
   );
 }
 
