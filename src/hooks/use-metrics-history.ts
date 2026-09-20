@@ -23,7 +23,19 @@ function readStored(): MetricSample[] {
 
 function promOverlay(dump: PrometheusMetricDump | null) {
   if (!dump || dump.source !== "live-prometheus") {
-    return { live: false, cpuCores: null, memBytes: null, postgresUp: null, mysqlUp: null, redisUp: null, targetsUp: null, restarts1h: null };
+    return {
+      live: false,
+      cpuCores: null,
+      memBytes: null,
+      postgresUp: null,
+      mysqlUp: null,
+      redisUp: null,
+      targetsUp: null,
+      restarts1h: null,
+      postgresConnections: null,
+      mysqlConnections: null,
+      redisMemoryBytes: null,
+    };
   }
   return {
     live: true,
@@ -34,6 +46,9 @@ function promOverlay(dump: PrometheusMetricDump | null) {
     redisUp: dump.values.redisUp,
     targetsUp: dump.values.targetsUp,
     restarts1h: dump.values.restarts1h,
+    postgresConnections: dump.values.postgresConnections,
+    mysqlConnections: dump.values.mysqlConnections,
+    redisMemoryBytes: dump.values.redisMemoryBytes,
   };
 }
 

@@ -32,6 +32,15 @@ describe("rewriteStage1Path", () => {
     expect(rewriteStage1Path("/stage1-api/cluster/metrics", "?tenantId=finspot-dev&query=up")).toBeNull();
   });
 
+  it("allows ES log backend params and rejects DSL injection", () => {
+    expect(
+      rewriteStage1Path("/stage1-api/cluster/logs", "?tenantId=finspot-dev&backend=es&window=15m&q=crash"),
+    ).toBe("/cluster/logs?tenantId=finspot-dev&backend=es&window=15m&q=crash");
+    expect(
+      rewriteStage1Path("/stage1-api/cluster/logs", "?tenantId=finspot-dev&backend=es&q=foo%22%3B"),
+    ).toBeNull();
+  });
+
   it("rejects exec, secrets, and foreign hosts", () => {
     expect(rewriteStage1Path("/stage1-api/cluster/snapshot", "?tenantId=finspot-dev&extra=1")).toBeNull();
     expect(rewriteStage1Path("/stage1-api/run", "")).toBeNull();

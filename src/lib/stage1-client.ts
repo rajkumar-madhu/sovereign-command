@@ -77,7 +77,7 @@ export function fetchClusterSnapshot(tenantId: string): Promise<ClusterSnapshot 
 }
 
 export type ContainerLogDump = {
-  source: "live-k8s" | "unavailable";
+  source: "live-k8s" | "live-elasticsearch" | "unavailable";
   remediator: "held";
   readOnly: true;
   cluster: string;
@@ -89,17 +89,23 @@ export type ContainerLogDump = {
   container?: string;
   tailLines: number;
   text: string;
+  hitCount?: number;
+  indexPattern?: string;
+  clusterStatus?: string;
   error?: string;
 };
 
 export function fetchContainerLogs(
   tenantId: string,
-  selected?: { namespace?: string; pod?: string },
+  selected?: { namespace?: string; pod?: string; backend?: "es" | "k8s" | "auto"; window?: string; q?: string },
 ): Promise<ContainerLogDump | null> {
   if (!tenantId) return Promise.resolve(null);
   const params = new URLSearchParams({ tenantId });
   if (selected?.namespace) params.set("namespace", selected.namespace);
   if (selected?.pod) params.set("pod", selected.pod);
+  if (selected?.backend) params.set("backend", selected.backend);
+  if (selected?.window) params.set("window", selected.window);
+  if (selected?.q) params.set("q", selected.q);
   return stage1Get<ContainerLogDump>(`/cluster/logs?${params.toString()}`);
 }
 
@@ -122,6 +128,9 @@ export type PrometheusMetricDump = {
     mysqlUp: number | null;
     redisUp: number | null;
     targetsUp: number | null;
+    postgresConnections: number | null;
+    mysqlConnections: number | null;
+    redisMemoryBytes: number | null;
   };
   series?: Record<string, Array<{ ts: number; value: number }>>;
   error?: string;
