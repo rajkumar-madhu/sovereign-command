@@ -10,8 +10,10 @@ import {
   AuthSpinner,
   AuthSubmit,
 } from "@/components/auth/auth-shell";
+import { isOperatorEmail, MIN_PASSWORD_LENGTH } from "@/data/operator-allowlist";
 import { bindTenantAccess } from "@/lib/auth-client";
 import { rememberOperator } from "@/lib/ops-identity";
+import { createOperatorSession, setSession } from "@/lib/session";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -37,12 +39,21 @@ function SignUpPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!email.includes("@") || password.length < 6) {
-      setError("Use a work email and a password of at least 6 characters.");
+    if (!email.includes("@") || password.length < MIN_PASSWORD_LENGTH) {
+      setError(
+        `Enter a valid work email and a password of at least ${MIN_PASSWORD_LENGTH} characters.`,
+      );
+      return;
+    }
+    if (!isOperatorEmail(email)) {
+      setError(
+        "This email is not on the operator allowlist. Contact your platform administrator.",
+      );
       return;
     }
     rememberOperator(email);
     setBusy(true);
+    setSession(createOperatorSession(email));
     if (token.trim()) {
       const fail = await bindTenantAccess(email, token.trim());
       setBusy(false);
@@ -107,7 +118,7 @@ function SignUpPage() {
             type="password"
             value={password}
             onChange={setPassword}
-            placeholder="At least 6 characters"
+            placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
             autoComplete="new-password"
             required
           />

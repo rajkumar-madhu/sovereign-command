@@ -28,6 +28,7 @@ import { Route as ShellRcaRouteImport } from './routes/_shell.rca'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellSlaAdminRouteImport } from './routes/_shell.sla-admin'
 import { Route as ShellSocRouteImport } from './routes/_shell.soc'
+import { Route as ShellSovereignControlRouteImport } from './routes/_shell.sovereign-control'
 import { Route as ShellToolsRouteImport } from './routes/_shell.tools'
 import { Route as DemoVerticalSliceRouteImport } from './routes/demo.vertical-slice'
 import { Route as DocsAegisRouteImport } from './routes/docs.aegis'
@@ -133,6 +134,11 @@ const ShellSocRoute = ShellSocRouteImport.update({
   path: '/soc',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellSovereignControlRoute = ShellSovereignControlRouteImport.update({
+  id: '/sovereign-control',
+  path: '/sovereign-control',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellToolsRoute = ShellToolsRouteImport.update({
   id: '/tools',
   path: '/tools',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof ShellSettingsRoute
   '/sla-admin': typeof ShellSlaAdminRoute
   '/soc': typeof ShellSocRoute
+  '/sovereign-control': typeof ShellSovereignControlRoute
   '/tools': typeof ShellToolsRoute
   '/demo/vertical-slice': typeof DemoVerticalSliceRoute
   '/docs/aegis': typeof DocsAegisRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/settings': typeof ShellSettingsRoute
   '/sla-admin': typeof ShellSlaAdminRoute
   '/soc': typeof ShellSocRoute
+  '/sovereign-control': typeof ShellSovereignControlRoute
   '/tools': typeof ShellToolsRoute
   '/demo/vertical-slice': typeof DemoVerticalSliceRoute
   '/docs/aegis': typeof DocsAegisRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/_shell/settings': typeof ShellSettingsRoute
   '/_shell/sla-admin': typeof ShellSlaAdminRoute
   '/_shell/soc': typeof ShellSocRoute
+  '/_shell/sovereign-control': typeof ShellSovereignControlRoute
   '/_shell/tools': typeof ShellToolsRoute
   '/demo/vertical-slice': typeof DemoVerticalSliceRoute
   '/docs/aegis': typeof DocsAegisRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sla-admin'
     | '/soc'
+    | '/sovereign-control'
     | '/tools'
     | '/demo/vertical-slice'
     | '/docs/aegis'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sla-admin'
     | '/soc'
+    | '/sovereign-control'
     | '/tools'
     | '/demo/vertical-slice'
     | '/docs/aegis'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/_shell/settings'
     | '/_shell/sla-admin'
     | '/_shell/soc'
+    | '/_shell/sovereign-control'
     | '/_shell/tools'
     | '/demo/vertical-slice'
     | '/docs/aegis'
@@ -517,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellSocRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/sovereign-control': {
+      id: '/_shell/sovereign-control'
+      path: '/sovereign-control'
+      fullPath: '/sovereign-control'
+      preLoaderRoute: typeof ShellSovereignControlRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/tools': {
       id: '/_shell/tools'
       path: '/tools'
@@ -605,6 +624,7 @@ interface ShellRouteChildren {
   ShellSettingsRoute: typeof ShellSettingsRoute
   ShellSlaAdminRoute: typeof ShellSlaAdminRoute
   ShellSocRoute: typeof ShellSocRoute
+  ShellSovereignControlRoute: typeof ShellSovereignControlRoute
   ShellToolsRoute: typeof ShellToolsRoute
   ShellAgentsAgentIdRoute: typeof ShellAgentsAgentIdRoute
   ShellControlTowerExecutionIdRoute: typeof ShellControlTowerExecutionIdRoute
@@ -630,6 +650,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellSettingsRoute: ShellSettingsRoute,
   ShellSlaAdminRoute: ShellSlaAdminRoute,
   ShellSocRoute: ShellSocRoute,
+  ShellSovereignControlRoute: ShellSovereignControlRoute,
   ShellToolsRoute: ShellToolsRoute,
   ShellAgentsAgentIdRoute: ShellAgentsAgentIdRoute,
   ShellControlTowerExecutionIdRoute: ShellControlTowerExecutionIdRoute,

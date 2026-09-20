@@ -32,6 +32,21 @@ import {
 import type { TimelineStep } from "@/data/types";
 import { cn } from "@/lib/utils";
 import {
+  fetchLiveChange,
+  fetchLiveEvidence,
+  STAGE1_EXECUTION_ID,
+  STAGE1_INCIDENT_ID,
+  type LiveChange,
+} from "@/lib/stage1-api";
+import {
+  livePodFromEvidence,
+  mergeResourceIdentity,
+  overlayTimelineLogs,
+  podStatusLabel,
+  restartCount,
+  type LivePodStatus,
+} from "@/lib/live-pod-context";
+import {
   DEFAULT_INCIDENT_RANGE,
   TimeRangeControl,
   filterLogLines,
@@ -40,7 +55,11 @@ import {
   inTimeRange,
   type TimeRange,
 } from "@/components/ops/time-range-control";
-import { ResourceIdentityPanel } from "@/components/ops/resource-identity-panel";
+import {
+  ResourceIdentityPanel,
+} from "@/components/ops/resource-identity-panel";
+import { LivePodMonitorPanel } from "@/components/ops/live-pod-monitor-panel";
+import { useLivePodMonitoring } from "@/hooks/use-live-pod-monitoring";
 
 export const Route = createFileRoute("/_shell/incidents/$incidentId")({
   loader: ({ params }) => {
@@ -111,7 +130,10 @@ function useElapsed(openedIso: string) {
 }
 
 function StepLoadGraph({ step, range }: { step: TimelineStep; range: TimeRange }) {
-  const series = useMemo(() => filterSeriesByClock(step.series, range), [step.series, range]);
+  const series = useMemo(
+    () => filterSeriesByClock(step.series, range),
+    [step.series, range],
+  );
   if (!step.series?.length) return null;
   if (!series.length) {
     return (
@@ -138,9 +160,7 @@ function StepLoadGraph({ step, range }: { step: TimelineStep; range: TimeRange }
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="t" tick={{ fontSize: 10 }} />
               <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={32} />
-              {hasPull && (
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={28} />
-              )}
+              {hasPull && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={28} />}
               <Tooltip
                 contentStyle={{
                   fontSize: 12,
@@ -229,14 +249,20 @@ function TimelineStepCard({
   open,
   onToggle,
   range,
+  livePod,
 }: {
   step: TimelineStep;
   open: boolean;
   onToggle: () => void;
   range: TimeRange;
+  livePod?: LivePodStatus | null;
 }) {
   const when = formatStepAt(step.at);
-  const filteredLogs = useMemo(() => filterLogLines(step.logs, range), [step.logs, range]);
+  const logSource = overlayTimelineLogs(step.id, step.logs, livePod ?? null);
+  const filteredLogs = useMemo(
+    () => filterLogLines(logSource, range),
+    [logSource, range],
+  );
   return (
     <li className="relative border-l border-border pl-5">
       <span
@@ -316,7 +342,11 @@ function TimelineStepCard({
                 return (
                   <li key={e}>
                     {artifactId ? (
-                      <Link to="/evidence" search={{ artifact: artifactId }} className={chipClass}>
+                      <Link
+                        to="/evidence"
+                        search={{ artifact: artifactId }}
+                        className={chipClass}
+                      >
                         {e}
                       </Link>
                     ) : (
@@ -335,16 +365,78 @@ function TimelineStepCard({
 
 function IncidentWorkspace() {
   const { incident } = Route.useLoaderData();
-  const allSteps = getIncidentTimeline(incident.id);
+  const seedSteps = getIncidentTimeline(incident.id);
+  const [liveChange, setLiveChange] = useState<LiveChange | null>(null);
+  const [livePod, setLivePod] = useState<LivePodStatus | null>(null);
+  useEffect(() => {
+    if (incident.id !== STAGE1_INCIDENT_ID) return;
+    let cancelled = false;
+    Promise.all([
+      fetchLiveChange(STAGE1_EXECUTION_ID, "tn-nordic"),
+      fetchLiveEvidence(STAGE1_EXECUTION_ID, "tn-nordic"),
+    ]).then(([changeRes, evidenceRes]) => {
+      if (cancelled) return;
+      if (changeRes?.change) setLiveChange(changeRes.change);
+      if (evidenceRes?.length) setLivePod(livePodFromEvidence(evidenceRes));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [incident.id]);
+  const mergedResources = useMemo(() => {
+    if (!incident.resources?.length) return incident.resources;
+    if (!livePod) return incident.resources;
+    return incident.resources.map((r, idx) =>
+      idx === 0 ? mergeResourceIdentity(r, livePod) ?? r : r,
+    );
+  }, [incident.resources, livePod]);
+  const allSteps = useMemo(() => {
+    let steps = seedSteps;
+    if (liveChange) {
+      steps = steps.map((s) =>
+        s.id === "clb-s4"
+          ? {
+              ...s,
+              detail: `Live image ${liveChange.image} (${liveChange.imageSource}) for ${liveChange.app}; ArgoCD ${liveChange.id} syncedAt ${liveChange.syncedAt}; ConfigMap ${liveChange.configMap} ${liveChange.configMapChanged ? "changed" : "unchanged"} (${liveChange.configMapSource ?? "sealed"} — ConfigMap reads denied).`,
+              evidence: [
+                `${liveChange.id} · ${liveChange.image}`,
+                `ConfigMap ${liveChange.configMap} ${liveChange.configMapChanged ? "changed" : "unchanged"}`,
+                `${liveChange.evidenceId} · ${liveChange.imageSource}`,
+              ],
+            }
+          : s,
+      );
+    }
+    if (livePod) {
+      steps = steps.map((s) =>
+        s.id === "clb-s2"
+          ? {
+              ...s,
+              detail: `${livePod.application ?? "payments-auth"} reports ${podStatusLabel(livePod)} on ${livePod.cluster ?? "cluster"} · node ${livePod.nodeName ?? "—"} · restartCount=${restartCount(livePod)} · client ${livePod.customerId ?? incident.customerId}.`,
+              evidence: [
+                `live-k8s · ${livePod.cluster ?? "cluster"}`,
+                `node ${livePod.nodeName ?? "—"}`,
+                `restartCount=${restartCount(livePod)}`,
+              ],
+            }
+          : s,
+      );
+    }
+    return steps;
+  }, [seedSteps, liveChange, livePod, incident.customerId]);
   const execution = getExecutionByIncident(incident.id);
   const sealedRca = incident.status === "rca-ready" || incident.status === "closed";
   const defaultRange = useMemo(() => {
+    if (incident.id === STAGE1_INCIDENT_ID) {
+      const now = new Date();
+      return { from: new Date(now.getTime() - 24 * 60 * 60_000), to: now };
+    }
     const opened = new Date(incident.opened);
     if (Number.isNaN(opened.getTime())) return DEFAULT_INCIDENT_RANGE;
     const from = new Date(opened.getTime() - 15 * 60_000);
     const to = new Date(opened.getTime() + 30 * 60_000);
     return { from, to };
-  }, [incident.opened]);
+  }, [incident.opened, incident.id]);
   const rangePresets = useMemo(() => {
     const opened = new Date(incident.opened);
     if (Number.isNaN(opened.getTime())) return undefined;
@@ -356,8 +448,15 @@ function IncidentWorkspace() {
       day: "numeric",
       month: "short",
     });
+    const now = new Date();
+    const last6h = new Date(now.getTime() - 6 * 60 * 60_000);
+    const last24h = new Date(now.getTime() - 24 * 60 * 60_000);
+    const incidentWindow = {
+      from: new Date(opened.getTime() - 15 * 60_000),
+      to: new Date(opened.getTime() + 30 * 60_000),
+    };
     return [
-      { id: "incident", label: "Incident window", range: defaultRange },
+      { id: "incident", label: "Incident window", range: incidentWindow },
       {
         id: "onset",
         label: "Onset ±10m",
@@ -371,13 +470,40 @@ function IncidentWorkspace() {
         label: `Full day ${dayLabel}`,
         range: { from: dayStart, to: dayEnd },
       },
+      ...(incident.id === STAGE1_INCIDENT_ID
+        ? [
+            {
+              id: "onset-now",
+              label: "Onset → now (history)",
+              range: { from: opened, to: now },
+            },
+            {
+              id: "last-24h",
+              label: "Last 24h",
+              range: { from: last24h, to: now },
+            },
+            {
+              id: "last-6h",
+              label: "Last 6h",
+              range: { from: last6h, to: now },
+            },
+          ]
+        : []),
     ];
-  }, [incident.opened, defaultRange]);
+  }, [incident.opened, incident.id]);
   const [range, setRange] = useState<TimeRange>(defaultRange);
-  const [presetId, setPresetId] = useState("incident");
+  const [presetId, setPresetId] = useState(
+    incident.id === STAGE1_INCIDENT_ID ? "last-24h" : "incident",
+  );
+  function applyMonitoringPreset(presetIdToApply: string) {
+    const preset = rangePresets?.find((p) => p.id === presetIdToApply);
+    if (!preset) return;
+    setRange(preset.range);
+    setPresetId(preset.id);
+  }
   useEffect(() => {
     setRange(defaultRange);
-    setPresetId("incident");
+    setPresetId(incident.id === STAGE1_INCIDENT_ID ? "last-24h" : "incident");
   }, [incident.id, defaultRange]);
   const steps = useMemo(
     () =>
@@ -398,6 +524,14 @@ function IncidentWorkspace() {
   const tenant = tenants.find((t) => t.id === incident.tenantId);
   const customer = customers.find((c) => c.id === incident.customerId);
   const report = getRcaReport(incident.id);
+  const liveMonitoring = useLivePodMonitoring(
+    incident.tenantId,
+    incident.id === STAGE1_INCIDENT_ID,
+    {
+      incidentOpenedIso: incident.opened,
+      range,
+    },
+  );
 
   const openedLabel = useMemo(() => {
     const d = new Date(incident.opened);
@@ -413,10 +547,7 @@ function IncidentWorkspace() {
         aria-label="Incident pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div
-          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
-          aria-hidden="true"
-        />
+        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
         <div
           className={cn(
             "pointer-events-none absolute -right-10 -top-14 size-52 rounded-full blur-3xl",
@@ -510,10 +641,7 @@ function IncidentWorkspace() {
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                asChild
-                className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
-              >
+              <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
                 <Link to="/evidence">
                   <FileSearch className="size-4" aria-hidden="true" />
                   Evidence viewer
@@ -525,7 +653,10 @@ function IncidentWorkspace() {
                   variant="outline"
                   className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
                 >
-                  <Link to="/control-tower/$executionId" params={{ executionId: execution.id }}>
+                  <Link
+                    to="/control-tower/$executionId"
+                    params={{ executionId: execution.id }}
+                  >
                     <Radar className="size-4" aria-hidden="true" />
                     AI Control Tower
                   </Link>
@@ -607,40 +738,49 @@ function IncidentWorkspace() {
         value={range}
         presetId={presetId}
         presets={rangePresets}
+        hint="Filters timeline, logs, graphs, and workload monitoring"
         onChange={(next, id) => {
           setRange(next);
           setPresetId(id);
         }}
       />
 
-      {incident.resources?.length ? <ResourceIdentityPanel resources={incident.resources} /> : null}
+      {mergedResources?.length ? (
+        <ResourceIdentityPanel resources={mergedResources} />
+      ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Status" value={incident.status} tone="info" />
-        <MetricCard
-          label="Application"
-          value={incident.application ?? "—"}
-          hint={incident.resources?.[0]?.hostname ?? incident.environment}
-        />
-        <MetricCard
-          label="Primary host"
-          value={incident.resources?.[0]?.hostname ?? "—"}
-          hint={
-            incident.resources?.[0]?.ipAddress
-              ? `IP ${incident.resources[0].ipAddress}`
-              : customerName(incident.customerId)
-          }
-        />
-        <MetricCard
-          label="Cluster"
-          value={incident.resources?.[0]?.cluster ?? "—"}
-          hint={
-            incident.resources?.[0]?.namespace
-              ? `ns ${incident.resources[0].namespace}`
-              : `Environment: ${incident.environment}`
-          }
-        />
-      </section>
+      {!(incident.id === STAGE1_INCIDENT_ID && liveMonitoring.pod) && (
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard label="Status" value={incident.status} tone="info" />
+          <MetricCard
+            label="Application"
+            value={livePod?.application ?? incident.application ?? "—"}
+            hint={mergedResources?.[0]?.hostname ?? incident.environment}
+          />
+          <MetricCard
+            label="Worker node"
+            value={livePod?.nodeName ?? mergedResources?.[0]?.nodeName ?? "—"}
+            hint={
+              livePod?.hostIP
+                ? `host ${livePod.hostIP}`
+                : mergedResources?.[0]?.ipAddress
+                  ? `IP ${mergedResources[0].ipAddress}`
+                  : customerName(incident.customerId)
+            }
+          />
+          <MetricCard
+            label="Cluster"
+            value={livePod?.cluster ?? mergedResources?.[0]?.cluster ?? "—"}
+            hint={
+              livePod?.namespace
+                ? `ns ${livePod.namespace}`
+                : mergedResources?.[0]?.namespace
+                  ? `ns ${mergedResources[0].namespace}`
+                  : `Environment: ${incident.environment}`
+            }
+          />
+        </section>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
@@ -673,6 +813,18 @@ function IncidentWorkspace() {
         />
       </section>
 
+      {incident.id === STAGE1_INCIDENT_ID ? (
+        <LivePodMonitorPanel
+          snapshot={liveMonitoring}
+          range={range}
+          customerName={customer?.name ?? customerName(incident.customerId)}
+          tenantName={tenant?.name ?? tenantName(incident.tenantId)}
+          tenantId={incident.tenantId}
+          customerId={incident.customerId}
+          onPresetSelect={applyMonitoringPreset}
+        />
+      ) : null}
+
       <section className="ops-panel rounded-2xl p-5" aria-labelledby="timeline-title">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -691,7 +843,9 @@ function IncidentWorkspace() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setExpanded(Object.fromEntries(steps.map((s) => [s.id, true])))}
+              onClick={() =>
+                setExpanded(Object.fromEntries(steps.map((s) => [s.id, true])))
+              }
             >
               Expand all
             </Button>
@@ -702,8 +856,8 @@ function IncidentWorkspace() {
         </div>
         {steps.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-            No timeline steps in {formatRangeLabel(range)}. Widen the history window or choose Full
-            day.
+            No timeline steps in {formatRangeLabel(range)}. Widen the history window or choose
+            Full day.
           </p>
         ) : (
           <ol className="space-y-5">
@@ -713,7 +867,10 @@ function IncidentWorkspace() {
                 step={s}
                 range={range}
                 open={Boolean(expanded[s.id])}
-                onToggle={() => setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))}
+                onToggle={() =>
+                  setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))
+                }
+                livePod={livePod}
               />
             ))}
           </ol>

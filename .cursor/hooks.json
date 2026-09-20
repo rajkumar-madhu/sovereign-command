@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/sovereign-deploy-context.sh"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/sovereign-deploy-gate.sh",
+        "failClosed": true
+      }
+    ]
+  }
+}

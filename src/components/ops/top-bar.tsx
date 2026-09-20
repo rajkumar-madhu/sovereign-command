@@ -29,9 +29,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
 import { DualSidebarExpandTrigger, DualSidebarMobileTrigger } from "@/components/ops/dual-sidebar";
 import { InspectorToggle } from "@/components/ops/right-inspector";
+import { VisualModeSwitch } from "@/lib/visual-mode";
 import { useOps, tenantCustomers } from "@/lib/ops-context";
 import { operatorDisplayName } from "@/lib/ops-identity";
 import { useOpsSession } from "@/lib/ops-session";
+import { clearSession } from "@/lib/session";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
 import { formatCountdown, slaLabel, slaTone } from "@/lib/approval-sla";
@@ -161,6 +163,7 @@ export function TopBar({
           <span className="truncate">Search agents, incidents…</span>
         </Button>
 
+        <VisualModeSwitch className="hidden md:inline-flex" />
         <InspectorToggle />
 
         <Popover>
@@ -263,6 +266,7 @@ export function TopBar({
             <DropdownMenuItem
               onClick={() => {
                 void session.signOut().then(() => {
+                  clearSession();
                   toast.success("Signed out of the operator session");
                   void navigate({ to: "/login" });
                 });

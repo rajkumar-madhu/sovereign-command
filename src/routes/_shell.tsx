@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { DualSidebar } from "@/components/ops/dual-sidebar";
 import { RightInspector } from "@/components/ops/right-inspector";
@@ -7,12 +7,21 @@ import { TopBar } from "@/components/ops/top-bar";
 import { InspectorProvider, useInspector } from "@/lib/inspector-context";
 import { OpsProvider } from "@/lib/ops-context";
 import { OpsSessionProvider } from "@/lib/ops-session";
+import { getSession } from "@/lib/session";
 import { ThemeProvider } from "@/lib/theme";
+import { VisualModeProvider } from "@/lib/visual-mode";
 import { ShellChromeProvider, useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalEscalationEngine, useApprovalSlaAlerts } from "@/lib/use-approval-sla";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell")({
+  beforeLoad: () => {
+    // Stage-1: client localStorage only (SSR has no window)
+    if (typeof window === "undefined") return;
+    if (!getSession()) {
+      throw redirect({ to: "/login" });
+    }
+  },
   component: ShellLayout,
 });
 
@@ -20,11 +29,13 @@ function ShellLayout() {
   return (
     <ThemeProvider>
       <OpsSessionProvider>
-        <OpsProvider>
-          <InspectorProvider>
-            <ShellWithFocusSync />
-          </InspectorProvider>
-        </OpsProvider>
+        <VisualModeProvider>
+          <OpsProvider>
+            <InspectorProvider>
+              <ShellWithFocusSync />
+            </InspectorProvider>
+          </OpsProvider>
+        </VisualModeProvider>
       </OpsSessionProvider>
     </ThemeProvider>
   );

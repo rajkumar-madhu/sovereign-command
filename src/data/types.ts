@@ -72,9 +72,9 @@ export interface Agent {
   riskLevel: RiskLevel;
   description: string;
   /** Where this agent runtime is scheduled. */
-  runtime?: ResourceIdentity;
+  runtime?: ResourceIdentity | undefined;
   /** For orchestration agents: specialist agent ids this supervisor may route to. */
-  routesTo?: string[];
+  routesTo?: string[] | undefined;
   /** Recent step consumption vs passport maxSteps (demo / live pulse). */
   stepsUsedRecent?: number | undefined;
 }
@@ -86,7 +86,7 @@ export interface EvidenceArtifact {
   collected: string;
   hash: string;
   body: string;
-  incidentId?: string;
+  incidentId?: string | undefined;
   /** Capture locus — host/IP/cluster for platform triage. */
   resource?: ResourceIdentity | undefined;
 }
@@ -240,6 +240,8 @@ export interface Approval {
   risk: RiskLevel;
   requestedAt: string;
   status: "pending" | "approved" | "rejected";
+  /** Dual-control signatures already recorded (Stage-1 live overlay). */
+  approvedRoles?: string[];
 }
 export interface GatewayDecision {
   id: string;
@@ -293,7 +295,7 @@ export interface ExecutionTrace {
   model: string;
   tool: string;
   autonomyLevel: "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
-  status: "complete" | "awaiting-approval" | "running";
+  status: "complete" | "awaiting-approval" | "running" | "held";
   startedAt: string;
   endedAt?: string;
   summary: string;
