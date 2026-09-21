@@ -9,17 +9,25 @@ export const OPERATOR_ALLOWLIST: readonly string[] = [
   "ingrid.halvorsen@nordicbank.example",
 ] as const;
 
+function splitAllowlist(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function envAllowlist(): string[] {
+  const fromProcess =
+    typeof process !== "undefined"
+      ? process.env.AEGIS_OPERATOR_ALLOWLIST || process.env.VITE_OPERATOR_ALLOWLIST
+      : undefined;
   try {
-    const raw = (import.meta as ImportMeta & { env?: Record<string, string> }).env
+    const fromVite = (import.meta as ImportMeta & { env?: Record<string, string> }).env
       ?.VITE_OPERATOR_ALLOWLIST;
-    if (!raw) return [];
-    return raw
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
+    return [...splitAllowlist(fromProcess), ...splitAllowlist(fromVite)];
   } catch {
-    return [];
+    return splitAllowlist(fromProcess);
   }
 }
 

@@ -115,7 +115,7 @@ export async function proxyStage1Request(request: Request): Promise<Response> {
   try {
     const res = await fetch(`${stage1Upstream()}${scoped}`, {
       method: request.method,
-      headers: { accept: "application/json" },
+      headers: { accept: "application/json", connection: "close" },
     });
     return new Response(await res.text(), {
       status: res.status,

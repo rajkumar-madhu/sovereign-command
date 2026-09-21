@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { isOperatorEmail } from "../data/operator-allowlist";
 
 export const OPS_SESSION_COOKIE = "aegis_op";
 export const OPS_AUTH_PREFIX = "/auth";
@@ -176,6 +177,9 @@ export async function handleOpsAuth(request: Request): Promise<Response | null> 
     const email = typeof payload.email === "string" ? normalizeEmail(payload.email) : "";
     const token = typeof payload.token === "string" ? payload.token.trim() : "";
     if (!isEmail(email)) return json({ error: "valid work email is required" }, 400);
+    if (!isOperatorEmail(email)) {
+      return json({ error: "this email is not on the operator allowlist" }, 403);
+    }
     const tenantId = tenantIdForToken(token, tokens);
     if (!tenantId) return json({ error: "unknown tenant token" }, 403);
     const session: OperatorSession = {
