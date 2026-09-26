@@ -20,7 +20,6 @@ import {
 } from "@/components/ops/status-badge";
 import { ResourceIdentityChips } from "@/components/ops/resource-identity-panel";
 import { useInspector } from "@/lib/inspector-context";
-import { isLiveCluster } from "@/lib/live-ops";
 import { useOps } from "@/lib/ops-context";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
@@ -34,6 +33,7 @@ import {
   tenants,
 } from "@/data/seed";
 import { buildLiveEvidence } from "@/lib/live-evidence";
+import { commandOverview } from "@/lib/command-overview";
 
 function useWideDesktop() {
   const [wide, setWide] = useState(true);
@@ -80,13 +80,11 @@ function InspectorHeader({ title, onClose }: { title: string; onClose: () => voi
 /** Command Centre — shortcuts only; metrics live on the main canvas. */
 function CommandCentreInspector() {
   const ops = useOps();
-  const snapshot = ops.clusterSnapshot;
-  const attention = isLiveCluster(snapshot)
-    ? snapshot.pods.filter(
-        (p) => p.crashLoop || (p.phase !== "Running" && p.phase !== "Succeeded"),
-      )
-    : [];
-  const pending = ops.approvals.filter((a) => a.status === "pending").length;
+  const overview = commandOverview(ops.clusterSnapshot, ops.tenantId, ops.customerId);
+  const attention = overview?.attention ?? [];
+  const pending = ops.approvals.filter(
+    (a) => a.status === "pending" && a.tenantId === ops.tenantId,
+  ).length;
 
   return (
     <div className="space-y-5 p-4">
@@ -143,7 +141,9 @@ function CommandCentreInspector() {
         </h3>
         <ul className="space-y-2">
           {attention.length === 0 ? (
-            <li className="text-xs text-sidebar-foreground/60">No attention pods on Finspot-dev.</li>
+            <li className="text-xs text-sidebar-foreground/60">
+              {overview ? "No attention pods in this scope." : "Workload status unavailable."}
+            </li>
           ) : (
             attention.slice(0, 4).map((pod) => (
               <li key={`${pod.namespace}/${pod.name}`}>
@@ -156,10 +156,16 @@ function CommandCentreInspector() {
                     <p className="line-clamp-2 font-mono text-xs font-medium leading-snug text-sidebar-accent-foreground">
                       {pod.namespace}/{pod.name}
                     </p>
-                    <StatusPill tone={pod.crashLoop ? "danger" : "warning"}>{pod.phase}</StatusPill>
+                    <StatusPill tone={pod.crashLoop ? "danger" : "warning"}>
+                      {pod.crashLoop
+                        ? "CrashLoopBackOff"
+                        : pod.phase === "Running"
+                          ? "Not ready"
+                          : pod.phase}
+                    </StatusPill>
                   </div>
                   <p className="mt-1 text-[11px] text-sidebar-foreground/60">
-                    {pod.reason ?? "not running"}
+                    {pod.reason ?? `${pod.ready} containers ready`}
                   </p>
                 </Link>
               </li>
@@ -465,7 +471,9 @@ function EvidenceInspector() {
           <p className="mt-1 text-[11px] text-sidebar-foreground/60">
             {first.source} · {first.severity} · {first.integrity}
           </p>
-          <p className="mt-1 font-mono text-[10px] text-sidebar-foreground/55">{report.incidentId}</p>
+          <p className="mt-1 font-mono text-[10px] text-sidebar-foreground/55">
+            {report.incidentId}
+          </p>
         </div>
       )}
       <div className="grid gap-2">

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlarmClock, Bell, LogOut, Maximize2, Minimize2, Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
+import { StatusPill } from "@/components/ops/status-badge";
 import { DualSidebarExpandTrigger, DualSidebarMobileTrigger } from "@/components/ops/dual-sidebar";
 import { InspectorToggle } from "@/components/ops/right-inspector";
 import { VisualModeSwitch } from "@/lib/visual-mode";
@@ -37,7 +37,8 @@ import { clearSession } from "@/lib/session";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { useApprovalSlaFeed } from "@/lib/use-approval-sla";
 import { formatCountdown, slaLabel, slaTone } from "@/lib/approval-sla";
-import { agents, incidents } from "@/data/seed";
+import { navDomains } from "@/lib/nav";
+import { commandOverview } from "@/lib/command-overview";
 import type { EnvName } from "@/data/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ export function TopBar({
   onOpenMobileNav: () => void;
 }) {
   const navigate = useNavigate();
+  const isCommand = useRouterState({ select: (state) => state.location.pathname === "/command" });
   const ops = useOps();
   const session = useOpsSession();
   const operatorEmail = session.session?.email || session.identityEmail;
@@ -84,19 +86,21 @@ export function TopBar({
     () => tenantCustomers(ops.tenantId, ops.customers),
     [ops.tenantId, ops.customers],
   );
-  const notifications = (ops.clusterSnapshot?.warningEvents ?? []).slice(0, 5).map((ev, idx) => ({
+  const overview = commandOverview(ops.clusterSnapshot, ops.tenantId, ops.customerId);
+  const notifications = (overview?.warnings ?? []).slice(0, 5).map((ev, idx) => ({
     id: `evt-${idx}`,
     category: ev.reason,
-    severity: "P3" as const,
     detail: `${ev.namespace} · ${ev.object}`,
   }));
-  const pending = ops.approvals.filter((a) => a.status === "pending").length;
+  const pending = ops.approvals.filter(
+    (a) => a.status === "pending" && a.tenantId === ops.tenantId,
+  ).length;
   const sla = useApprovalSlaFeed();
   const alertItems = [...sla.breached, ...sla.atRisk];
   const unread = notifications.length + sla.alertCount;
 
   return (
-    <header className="sticky top-0 z-30 flex flex-col gap-2 border-b border-border/80 bg-background/80 px-3 py-2 backdrop-blur-md md:flex-row md:items-center md:gap-3 md:px-4">
+    <header className="sticky top-0 z-30 flex flex-col gap-2 border-b border-border/80 bg-background/80 px-3 py-2 backdrop-blur-md 2xl:flex-row 2xl:items-center md:gap-3 md:px-4">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <DualSidebarMobileTrigger onOpen={onOpenMobileNav} />
         <DualSidebarExpandTrigger secondaryOpen={secondaryOpen} onToggle={onToggleSecondary} />
@@ -123,7 +127,10 @@ export function TopBar({
             </SelectContent>
           </Select>
           <Select value={ops.customerId} onValueChange={ops.setCustomerId}>
-            <SelectTrigger className="h-9 w-full min-w-0 sm:w-[190px]" aria-label="Select customer">
+            <SelectTrigger
+              className="h-9 w-full min-w-0 sm:w-[190px]"
+              aria-label="Select namespace"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -135,35 +142,37 @@ export function TopBar({
               ))}
             </SelectContent>
           </Select>
-          <Select value={ops.environment} onValueChange={(v) => ops.setEnvironment(v as EnvName)}>
-            <SelectTrigger
-              className="h-9 w-full min-w-0 sm:w-[130px]"
-              aria-label="Select environment"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ENVS.map((e) => (
-                <SelectItem key={e} value={e}>
-                  {e}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isCommand && (
+            <Select value={ops.environment} onValueChange={(v) => ops.setEnvironment(v as EnvName)}>
+              <SelectTrigger
+                className="h-9 w-full min-w-0 sm:w-[130px]"
+                aria-label="Select environment"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ENVS.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
         <Button
           variant="outline"
-          className="h-9 w-full justify-start gap-2 text-muted-foreground md:w-64"
+          className="h-9 min-w-0 flex-1 justify-start gap-2 text-muted-foreground 2xl:max-w-64"
           onClick={() => setSearchOpen(true)}
         >
           <Search className="size-4" aria-hidden="true" />
-          <span className="truncate">Search agents, incidents…</span>
+          <span className="truncate">Search namespaces, pages…</span>
         </Button>
 
-        <VisualModeSwitch className="hidden md:inline-flex" />
+        {!isCommand && <VisualModeSwitch className="hidden md:inline-flex" />}
         <InspectorToggle />
 
         <Popover>
@@ -223,7 +232,7 @@ export function TopBar({
                 <li key={n.id} className="px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-medium">{n.category}</span>
-                    <StatusPill tone={toneForSeverity(n.severity)}>{n.severity}</StatusPill>
+                    <StatusPill tone="warning">Warning</StatusPill>
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{n.detail}</p>
                 </li>
@@ -279,37 +288,43 @@ export function TopBar({
       </div>
 
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <CommandInput placeholder="Search agents, incidents, pages…" />
+        <CommandInput placeholder="Search namespaces, pages…" />
         <CommandList>
           <CommandEmpty>No matches found.</CommandEmpty>
-          <CommandGroup heading="Incidents">
-            {incidents.map((i) => (
+          <CommandGroup heading="Namespaces">
+            {custs.map((customer) => (
               <CommandItem
-                key={i.id}
-                value={`${i.id} ${i.title}`}
+                key={customer.id}
+                value={`namespace ${customer.name}`}
                 onSelect={() => {
                   setSearchOpen(false);
-                  void navigate({ to: "/incidents/$incidentId", params: { incidentId: i.id } });
+                  void navigate({
+                    to: "/customers/$customerId",
+                    params: { customerId: customer.id },
+                  });
                 }}
               >
-                {i.id} · {i.title}
+                {customer.name}
               </CommandItem>
             ))}
           </CommandGroup>
-          <CommandGroup heading="Agents">
-            {agents.slice(0, 12).map((a) => (
-              <CommandItem
-                key={a.id}
-                value={`${a.id} ${a.name}`}
-                onSelect={() => {
-                  setSearchOpen(false);
-                  void navigate({ to: "/agents/$agentId", params: { agentId: a.id } });
-                }}
-              >
-                {a.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          {navDomains.map((domain) => (
+            <CommandGroup key={domain.id} heading={domain.label}>
+              {domain.items.map((item) => (
+                <CommandItem
+                  key={item.url}
+                  value={`${domain.label} ${item.title}`}
+                  onSelect={() => {
+                    setSearchOpen(false);
+                    void navigate({ to: item.url });
+                  }}
+                >
+                  <item.icon className="size-4" aria-hidden="true" />
+                  {item.title}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ))}
         </CommandList>
       </CommandDialog>
     </header>

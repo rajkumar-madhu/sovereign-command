@@ -12,7 +12,7 @@ const ALLOWED_PATHS = new Set([
   "/executions/exec-clb-01",
 ]);
 
-const LOG_PARAMS = new Set(["tenantId", "namespace", "pod", "backend", "window", "q"]);
+const LOG_PARAMS = new Set(["tenantId", "namespace", "pod", "backend", "window", "q", "limit"]);
 const METRICS_PARAMS = new Set(["tenantId", "window", "series"]);
 const SNAPSHOT_PARAMS = new Set(["tenantId"]);
 
@@ -33,6 +33,8 @@ function paramsAllowed(pathname: string, searchParams: URLSearchParams): boolean
     if (window && !/^[0-9]+[mhd]$/.test(window)) return false;
     const q = searchParams.get("q");
     if (q && !/^[A-Za-z0-9._\-\s:/]{0,120}$/.test(q)) return false;
+    const limit = searchParams.get("limit");
+    if (limit && !/^[1-9][0-9]{0,3}$/.test(limit)) return false;
     const ns = searchParams.get("namespace");
     const pod = searchParams.get("pod");
     if (ns && !/^[A-Za-z0-9._-]+$/.test(ns)) return false;

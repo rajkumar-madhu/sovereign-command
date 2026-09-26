@@ -37,6 +37,12 @@ describe("rewriteStage1Path", () => {
       rewriteStage1Path("/stage1-api/cluster/logs", "?tenantId=finspot-dev&backend=es&window=15m&q=crash"),
     ).toBe("/cluster/logs?tenantId=finspot-dev&backend=es&window=15m&q=crash");
     expect(
+      rewriteStage1Path("/stage1-api/cluster/logs", "?tenantId=finspot-dev&limit=50"),
+    ).toBe("/cluster/logs?tenantId=finspot-dev&limit=50");
+    expect(
+      rewriteStage1Path("/stage1-api/cluster/logs", "?tenantId=finspot-dev&limit=0"),
+    ).toBeNull();
+    expect(
       rewriteStage1Path("/stage1-api/cluster/logs", "?tenantId=finspot-dev&backend=es&q=foo%22%3B"),
     ).toBeNull();
   });

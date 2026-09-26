@@ -26,9 +26,9 @@ export function DualSidebar({
   focusHidden?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(1024);
   const { theme, toggleTheme } = useTheme();
-  const expanded = secondaryOpen && !focusHidden;
+  const expanded = isMobile || (secondaryOpen && !focusHidden);
 
   const brand = (
     <div
@@ -80,9 +80,10 @@ export function DualSidebar({
                   <Link
                     to={item.url}
                     title={item.title}
+                    aria-label={item.title}
                     onClick={() => onMobileOpenChange(false)}
                     className={cn(
-                      "mb-0.5 flex items-center rounded-md text-[13px] transition-colors",
+                      "mb-0.5 flex items-center rounded-md text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
                       expanded ? "gap-2.5 px-2 py-1.5" : "justify-center px-0 py-2",
                       active
                         ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
@@ -169,6 +170,7 @@ export function DualSidebar({
       )}
       aria-label="Application sidebar"
       aria-hidden={focusHidden}
+      inert={focusHidden}
     >
       {panel}
       {!focusHidden && (

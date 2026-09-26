@@ -78,13 +78,13 @@
   --brand-paper: #f4f1ea;
   --brand-paper-2: #ebe6dc;
 
-  --background: var(--brand-paper);
+  --background: #ffffff;
   --foreground: var(--brand-ink);
-  --surface: #fffcf7;
+  --surface: #ffffff;
   --surface-strong: var(--brand-paper-2);
-  --card: #fffcf7;
+  --card: #ffffff;
   --card-foreground: var(--brand-ink);
-  --popover: #fffcf7;
+  --popover: #ffffff;
   --popover-foreground: var(--brand-ink);
   --primary: var(--brand-blue);
   --primary-foreground: #ffffff;
