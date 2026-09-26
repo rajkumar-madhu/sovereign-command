@@ -4,6 +4,7 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 /** Static allowlist. Optional: merge VITE_OPERATOR_ALLOWLIST (comma-separated) at runtime. */
 export const OPERATOR_ALLOWLIST: readonly string[] = [
+  "admin@wecrew.in",
   "raj@wecrew.in",
   "rajkumar.madhu@finspot.in",
   "ingrid.halvorsen@nordicbank.example",
