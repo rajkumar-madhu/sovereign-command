@@ -87,7 +87,7 @@ function CommandCentre() {
     {
       label: "Workloads to review",
       value: overview?.attention.length,
-      detail: "Unready, failed or waiting pods",
+      hint: "unready · failed",
       icon: TriangleAlert,
       alert: Boolean(overview?.attention.length),
       href: "#workload-attention",
@@ -95,7 +95,7 @@ function CommandCentre() {
     {
       label: "Ready pods",
       value: overview ? `${overview.ready} / ${overview.active.length}` : undefined,
-      detail: "Running and all containers ready",
+      hint: "running · ready",
       icon: Box,
       alert: false,
       href: "#namespace-health",
@@ -103,7 +103,7 @@ function CommandCentre() {
     {
       label: "Crash loops",
       value: overview?.crashLoops,
-      detail: "Repeated container failures",
+      hint: "restarting",
       icon: Activity,
       alert: Boolean(overview?.crashLoops),
       href: "#workload-attention",
@@ -111,7 +111,7 @@ function CommandCentre() {
     {
       label: "Warning events",
       value: overview?.warnings.length,
-      detail: "Records in the current snapshot",
+      hint: "snapshot",
       icon: Radio,
       alert: false,
       href: "#warning-events",
@@ -120,38 +120,87 @@ function CommandCentre() {
 
   return (
     <div className="space-y-6 pb-6">
+      {/* Same hero shell as SOC / Token & Cost / Metrics Explorer so every dashboard opens alike. */}
       <section
         aria-labelledby="command-title"
-        className="flex flex-wrap items-start justify-between gap-4"
+        className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div>
-          <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-brand-coral" aria-hidden="true" /> Operate /
-            Overview
-          </p>
-          <h1
-            id="command-title"
-            className="font-display text-3xl font-semibold tracking-tight md:text-4xl"
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
+          <div className="max-w-xl space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
+              Operate · overview
+            </p>
+            <h1
+              id="command-title"
+              className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl"
+            >
+              Command Centre
+            </h1>
+            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
+              Know what needs attention. Follow the evidence — tenant-scoped Kubernetes readiness,
+              priority workloads and warning events.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                asChild
+                className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
+              >
+                <Link to="/logs">
+                  <Terminal className="size-4" aria-hidden="true" />
+                  Explore logs
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="border-sidebar-border bg-transparent text-sidebar-accent-foreground hover:bg-sidebar-accent"
+              >
+                <Link to="/investigations">
+                  Investigations
+                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <nav
+            aria-label="Scoped workload metrics"
+            className="grid w-full max-w-md grid-cols-2 gap-2"
           >
-            Command Centre
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Know what needs attention. Follow the evidence.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline">
-            <Link to="/logs">
-              <Terminal className="size-4" aria-hidden="true" />
-              Explore logs
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link to="/investigations">
-              Investigations
-              <ArrowUpRight className="size-4" aria-hidden="true" />
-            </Link>
-          </Button>
+            {metrics.map((metric) => (
+              <a
+                key={metric.label}
+                href={metric.href}
+                aria-label={`${metric.label}: ${metric.value ?? "unavailable"}. View details`}
+                className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur transition-colors hover:border-brand-coral/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <p className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                  {metric.label}
+                  <metric.icon
+                    className={cn(
+                      "size-3.5",
+                      metric.alert ? "text-destructive" : "text-sidebar-foreground/40",
+                    )}
+                    aria-hidden="true"
+                  />
+                </p>
+                <p
+                  className={cn(
+                    "font-display mt-1 text-2xl font-semibold tabular-nums",
+                    metric.alert ? "text-destructive" : "text-sidebar-accent-foreground",
+                  )}
+                >
+                  {metric.value ?? "—"}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">
+                  {overview ? metric.hint : "awaiting data"}
+                </p>
+              </a>
+            ))}
+          </nav>
         </div>
       </section>
 
@@ -216,42 +265,6 @@ function CommandCentre() {
           Treat the values below as the last reported state.
         </p>
       )}
-
-      <section
-        aria-label="Scoped workload metrics"
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        {metrics.map((metric) => (
-          <a
-            key={metric.label}
-            href={metric.href}
-            aria-label={`${metric.label}: ${metric.value ?? "unavailable"}. View details`}
-            className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
-              <metric.icon
-                className={cn(
-                  "size-4",
-                  metric.alert ? "text-destructive" : "text-muted-foreground",
-                )}
-                aria-hidden="true"
-              />
-            </div>
-            <p
-              className={cn(
-                "mt-4 font-mono text-3xl font-medium tracking-tight tabular-nums",
-                metric.alert ? "text-destructive" : "text-foreground",
-              )}
-            >
-              {metric.value ?? "—"}
-            </p>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              {overview ? metric.detail : "Awaiting cluster data"}
-            </p>
-          </a>
-        ))}
-      </section>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         <section
