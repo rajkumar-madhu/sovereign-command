@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   fetchLiveSovereignControl,
   stage1ApiConfigured,
@@ -28,12 +29,103 @@ export const Route = createFileRoute("/_shell/sovereign-control")({
 
 function SovereignControlPage() {
   const { live } = Route.useLoaderData() as { live: LiveSovereignControl | null };
+  const tiles = [
+    { label: "Autonomy", value: live?.autonomyLevel ?? "L2", hint: "investigate" },
+    {
+      label: "Policy",
+      value: live?.policy?.decision ?? "—",
+      hint: live?.policy?.action ?? "no live policy",
+    },
+    {
+      label: "Approval",
+      value: live?.approval?.status ?? "—",
+      hint: "dual-control",
+      live: live?.approval?.status === "pending",
+    },
+    {
+      label: "Kill switch",
+      value: live?.killSwitch?.engaged ? "engaged" : "idle",
+      hint: "per tenant",
+      hot: Boolean(live?.killSwitch?.engaged),
+    },
+    {
+      label: "Would execute",
+      value: live ? String(live.wouldExecute) : "—",
+      hint: "stage-1 hold",
+    },
+    { label: "Remediator", value: "held", hint: "read-only" },
+  ];
 
   return (
     <div className="space-y-6">
+      {/* Same hero shell as the other dashboards (SOC, Token & Cost, Command Centre). */}
+      <section
+        aria-label="Sovereign control pulse"
+        className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
+      >
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
+          <div className="max-w-xl space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
+              Govern · sovereign control
+            </p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
+              Sovereign Control
+            </h1>
+            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
+              Policy · dual-control · kill switch · L2 investigate. Remediator stays held.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                asChild
+                className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
+              >
+                <Link to="/approvals">Approvals</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="border-sidebar-border bg-transparent text-sidebar-accent-foreground hover:bg-sidebar-accent"
+              >
+                <Link to="/policies">Policies</Link>
+              </Button>
+            </div>
+          </div>
+          <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
+            {tiles.map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur"
+              >
+                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
+                  {s.label}
+                </p>
+                <p
+                  className={cn(
+                    "font-display mt-1 truncate text-xl font-semibold",
+                    s.hot ? "text-destructive" : "text-sidebar-accent-foreground",
+                  )}
+                >
+                  {s.live && (
+                    <span className="mr-1.5 inline-flex size-1.5 animate-pulse rounded-full bg-brand-coral align-middle" />
+                  )}
+                  {s.value}
+                </p>
+                <p className="mt-0.5 truncate font-mono text-[10px] text-sidebar-foreground/50">
+                  {s.hint}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <PageHeader
-        title="Sovereign Control"
-        description="Policy · dual-control · kill switch · L2 investigate. Remediator stays held."
+        title="Control state"
+        description="Live Stage-1 policy, approval and kill-switch state for this tenant."
         crumbs={[{ label: "Govern", to: "/command" }, { label: "Sovereign Control" }]}
       />
       <SafetyBanner />
@@ -72,14 +164,6 @@ function SovereignControlPage() {
             Stage-1 API unreachable. Policy and approval queues still apply; remediator stays held.
           </p>
         )}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link to="/policies">Policies</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/approvals">Approvals</Link>
-          </Button>
-        </div>
       </section>
     </div>
   );
