@@ -34,7 +34,7 @@ Prefer working locally? You need Node.js / [Bun](https://bun.sh) — or npm via 
 
 ```sh
 bun install   # or: npm i
-bun run dev   # http://127.0.0.1:5173
+bun run dev   # http://127.0.0.1:8080
 ```
 
 ## CI
