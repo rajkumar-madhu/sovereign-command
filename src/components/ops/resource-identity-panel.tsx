@@ -66,12 +66,15 @@ export function ResourceIdentityPanel({
         <div className="flex items-start gap-2">
           <Server className="mt-0.5 size-4 shrink-0 text-brand-coral" aria-hidden />
           <div>
-            <h3 className={cn("font-semibold tracking-tight", compact ? "text-sm" : "font-display text-base")}>
+            <h3
+              className={cn(
+                "font-semibold tracking-tight",
+                compact ? "text-sm" : "font-display text-base",
+              )}
+            >
               {title}
             </h3>
-            {!compact && (
-              <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-            )}
+            {!compact && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
           </div>
         </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -82,8 +85,7 @@ export function ResourceIdentityPanel({
       <div className={cn("grid gap-3", list.length > 1 && "lg:grid-cols-2")}>
         {list.map((r, idx) => {
           const fields = fieldsOf(r);
-          const heading =
-            r.hostname ?? r.application ?? r.fqdn ?? r.pod ?? `Resource ${idx + 1}`;
+          const heading = r.hostname ?? r.application ?? r.fqdn ?? r.pod ?? `Resource ${idx + 1}`;
           return (
             <article
               key={`${heading}-${idx}`}
@@ -107,7 +109,10 @@ export function ResourceIdentityPanel({
                     <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                       {f.label}
                     </dt>
-                    <dd className="min-w-0 truncate font-mono text-[12px] text-foreground/90" title={f.value}>
+                    <dd
+                      className="min-w-0 truncate font-mono text-[12px] text-foreground/90"
+                      title={f.value}
+                    >
                       {f.value}
                     </dd>
                     <Button
@@ -136,7 +141,7 @@ export function ResourceIdentityChips({
   resource,
   className,
 }: {
-  resource?: ResourceIdentity | null;
+  resource?: ResourceIdentity | null | undefined;
   className?: string;
 }) {
   if (!resource) return null;

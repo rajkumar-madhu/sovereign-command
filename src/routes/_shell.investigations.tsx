@@ -4,7 +4,14 @@ import { Siren } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
@@ -91,7 +98,10 @@ function Investigations() {
         aria-label="Investigations pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
           <div className="max-w-xl space-y-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
@@ -200,9 +210,7 @@ function Investigations() {
                         <p className="text-foreground/90">{i.application ?? "—"}</p>
                         <p className="text-muted-foreground">
                           {i.resources?.[0]?.hostname ?? "—"}
-                          {i.resources?.[0]?.ipAddress
-                            ? ` · ${i.resources[0].ipAddress}`
-                            : ""}
+                          {i.resources?.[0]?.ipAddress ? ` · ${i.resources[0].ipAddress}` : ""}
                         </p>
                       </TableCell>
                       <TableCell className="text-sm">{tenantName(i.tenantId)}</TableCell>

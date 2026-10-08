@@ -59,7 +59,10 @@ export function DualSidebar({
   );
 
   const nav = (
-    <nav className={cn("flex-1 overflow-y-auto py-3", expanded ? "px-2" : "px-1.5")} aria-label="Main">
+    <nav
+      className={cn("flex-1 overflow-y-auto py-3", expanded ? "px-2" : "px-1.5")}
+      aria-label="Main"
+    >
       {navDomains.map((domain) => (
         <div key={domain.id} className="mb-4 last:mb-0">
           {expanded ? (
@@ -121,7 +124,9 @@ export function DualSidebar({
         aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
       >
         {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        {expanded && <span className="text-xs">{theme === "dark" ? "Light mode" : "Dark mode"}</span>}
+        {expanded && (
+          <span className="text-xs">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        )}
       </Button>
       {expanded && (
         <p className="px-1 text-[11px] leading-relaxed text-sidebar-foreground/45">

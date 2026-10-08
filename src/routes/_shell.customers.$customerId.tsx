@@ -1,36 +1,29 @@
-import { useEffect, useState } from "react";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Building2, Bot, Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
-import { StatusPill, toneForScore, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
-import { agents, customers, incidents, tenantName } from "@/data/seed";
+import { StatusPill, toneForScore, toneForStatus } from "@/components/ops/status-badge";
+import { isLiveCluster } from "@/lib/live-ops";
+import { useOps } from "@/lib/ops-context";
 import { cn } from "@/lib/utils";
-import { ResourceIdentityChips } from "@/components/ops/resource-identity-panel";
 
 export const Route = createFileRoute("/_shell/customers/$customerId")({
-  loader: ({ params }) => {
-    const customer = customers.find((c) => c.id === params.customerId);
-    if (!customer) throw notFound();
-    return { customer };
-  },
-  head: ({ loaderData }) => {
-    const name = loaderData?.customer.name ?? "Customer";
+  loader: ({ params }) => ({ customerId: params.customerId }),
+  head: ({ params }) => {
+    const name = params.customerId;
     return {
       meta: [
         { title: `${name} · Customer Detail · Wecrew Ops` },
         {
           name: "description",
-          content: `Estate detail for ${name}: clusters, nodes, registered agents, open incidents and agent spend.`,
+          content: `Live Finspot-dev namespace ${name}: pods, phase and attention workloads.`,
         },
-        { property: "og:title", content: `${name} · Customer Detail` },
+        { property: "og:title", content: `${name} · Namespace` },
         {
           property: "og:description",
-          content: `Clusters, nodes, agents, incidents and spend for ${name}.`,
+          content: `Live Kubernetes namespace ${name} from the existing Finspot-dev client.`,
         },
-        ...(loaderData ? [] : [{ name: "robots", content: "noindex" }]),
       ],
     };
   },
@@ -52,24 +45,31 @@ function CustomerNotFound() {
   );
 }
 
-function useLiveHealth(base: number) {
-  const [n, setN] = useState(base);
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setN((v) => Math.max(base - 4, Math.min(99, Math.round(v + (Math.random() - 0.5) * 0.9))));
-    }, 2200);
-    return () => window.clearInterval(id);
-  }, [base]);
-  return n;
-}
-
 function CustomerDetail() {
-  const { customer } = Route.useLoaderData();
-  const custAgents = agents.filter((a) => a.customerId === customer.id);
-  const custIncidents = incidents.filter((i) => i.customerId === customer.id);
-  const openIncidents = custIncidents.filter((i) => i.status !== "closed").length;
-  const budgetPct = Math.min(100, Math.round((customer.monthlyCostUsd / 22000) * 100));
-  const liveHealth = useLiveHealth(customer.health);
+  const { customerId } = Route.useLoaderData();
+  const ops = useOps();
+  const customer = ops.customers.find((c) => c.id === customerId);
+  if (!customer) {
+    if (!ops.clusterSnapshot) {
+      return (
+        <div className="rounded-xl border border-dashed border-border p-10 text-center">
+          <p className="text-sm font-medium">Connecting to Finspot-dev</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Live namespace inventory has not arrived yet.
+          </p>
+        </div>
+      );
+    }
+    return <CustomerNotFound />;
+  }
+  const snapshot = ops.clusterSnapshot;
+  const pods = isLiveCluster(snapshot)
+    ? snapshot.pods.filter((p) => p.namespace === customer.name)
+    : [];
+  const attention = pods.filter(
+    (p) => p.crashLoop || (p.phase !== "Running" && p.phase !== "Succeeded"),
+  );
+  const tenantLabel = ops.tenants.find((t) => t.id === customer.tenantId)?.name ?? customer.tenantId;
 
   return (
     <div className="space-y-6">
@@ -77,7 +77,10 @@ function CustomerDetail() {
         aria-label="Customer estate pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
@@ -97,7 +100,7 @@ function CustomerDetail() {
               {customer.name}
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              {customer.industry} · {tenantName(customer.tenantId)} · SLA {customer.slaTarget}
+              {customer.industry} · {tenantLabel} · SLA {customer.slaTarget}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Button
@@ -122,21 +125,21 @@ function CustomerDetail() {
             {[
               { label: "Clusters", value: customer.clusters, hint: "k8s" },
               { label: "Nodes", value: customer.nodes, hint: "fleet" },
-              { label: "Agents", value: custAgents.length, hint: "scoped" },
+              { label: "Pods", value: pods.length, hint: "scoped" },
               {
-                label: "Open",
-                value: openIncidents,
-                hint: "incidents",
-                hot: openIncidents > 0,
+                label: "Attention",
+                value: attention.length,
+                hint: "workloads",
+                hot: attention.length > 0,
               },
               {
                 label: "Spend",
-                value: `$${(customer.monthlyCostUsd / 1000).toFixed(1)}k`,
-                hint: "monthly",
+                value: "$0",
+                hint: "read-only",
               },
               {
                 label: "Health",
-                value: liveHealth,
+                value: customer.health,
                 hint: "live",
                 live: true,
               },
@@ -189,19 +192,9 @@ function CustomerDetail() {
           <div className="space-y-3 text-sm">
             <Row label="Service owner" value={customer.owner} />
             <Row label="Onboarded" value={customer.onboarded} />
-            <Row label="Tenant" value={tenantName(customer.tenantId)} />
+            <Row label="Tenant" value={tenantLabel} />
             <Row label="SLA target" value={customer.slaTarget} />
-            <Row
-              label="Monthly agent spend"
-              value={`$${customer.monthlyCostUsd.toLocaleString()}`}
-            />
-            <div>
-              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Budget consumed</span>
-                <span className="tabular-nums">{budgetPct}%</span>
-              </div>
-              <Progress value={budgetPct} />
-            </div>
+            <Row label="Monthly agent spend" value="$0" />
           </div>
         </section>
 
@@ -212,35 +205,33 @@ function CustomerDetail() {
           <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
             <Bot className="size-4 text-brand-coral" aria-hidden="true" />
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-sm font-semibold">Registered agents</h2>
-              <p className="text-xs text-muted-foreground">Scoped to this customer estate</p>
+              <h2 className="font-display text-sm font-semibold">Live pods</h2>
+              <p className="text-xs text-muted-foreground">Workloads in this namespace</p>
             </div>
-            <StatusPill tone="info">{custAgents.length}</StatusPill>
+            <StatusPill tone="info">{pods.length}</StatusPill>
           </div>
           <div className="space-y-2 p-4">
-            {custAgents.length === 0 ? (
+            {pods.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-                No agents are registered against this estate yet.
+                No pods in this namespace.
               </p>
             ) : (
-              custAgents.map((a) => (
-                <Link
-                  key={a.id}
-                  to="/agents/$agentId"
-                  params={{ agentId: a.id }}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/40 p-3 transition-colors hover:bg-accent/50"
+              pods.map((pod) => (
+                <div
+                  key={pod.name}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/40 p-3"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {a.model} · {a.environment} · {a.autonomy}
+                    <p className="truncate font-mono text-sm font-medium">{pod.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {pod.ready} · restarts {pod.restarts}
+                      {pod.nodeName ? ` · ${pod.nodeName}` : ""}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <StatusPill tone={toneForScore(a.trustScore)}>Trust {a.trustScore}</StatusPill>
-                    <StatusPill tone={toneForStatus(a.status)}>{a.status}</StatusPill>
-                  </div>
-                </Link>
+                  <StatusPill tone={pod.crashLoop || pod.phase !== "Running" ? "danger" : "success"}>
+                    {pod.phase}
+                  </StatusPill>
+                </div>
               ))
             )}
           </div>
@@ -251,41 +242,32 @@ function CustomerDetail() {
         <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
           <Siren className="size-4 text-brand-coral" aria-hidden="true" />
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-sm font-semibold">Incident history</h2>
-            <p className="text-xs text-muted-foreground">All incidents raised for this estate</p>
+            <h2 className="font-display text-sm font-semibold">Attention workloads</h2>
+            <p className="text-xs text-muted-foreground">CrashLoop or non-running pods</p>
           </div>
-          {openIncidents > 0 && (
-            <StatusPill tone="warning">{openIncidents} open</StatusPill>
-          )}
+          {attention.length > 0 && <StatusPill tone="warning">{attention.length} open</StatusPill>}
         </div>
         <div className="space-y-2 p-4">
-          {custIncidents.length === 0 ? (
+          {attention.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-              No incidents recorded — this estate has been stable across the reporting window.
+              No attention pods in this namespace.
             </p>
           ) : (
-            custIncidents.map((i) => (
-              <Link
-                key={i.id}
-                to="/incidents/$incidentId"
-                params={{ incidentId: i.id }}
-                className="block rounded-xl border border-border bg-surface/40 p-3 transition-colors hover:bg-accent/50"
+            attention.map((pod) => (
+              <div
+                key={pod.name}
+                className="block rounded-xl border border-border bg-surface/40 p-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{i.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {i.id} · {i.application ?? "app n/a"} · {i.environment} · opened{" "}
-                      {new Date(i.opened).toLocaleString()}
+                    <p className="truncate font-mono text-sm font-medium">{pod.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {pod.reason ?? pod.phase} · restarts {pod.restarts}
                     </p>
-                    <ResourceIdentityChips resource={i.resources?.[0]} className="mt-2" />
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <StatusPill tone={toneForSeverity(i.severity)}>{i.severity}</StatusPill>
-                    <StatusPill tone={toneForStatus(i.status)}>{i.status}</StatusPill>
-                  </div>
+                  <StatusPill tone="danger">{pod.phase}</StatusPill>
                 </div>
-              </Link>
+              </div>
             ))
           )}
         </div>

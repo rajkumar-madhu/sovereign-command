@@ -2,7 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useOps } from "@/lib/ops-context";
 import { agentName, tenantName } from "@/data/seed";
-import { evaluateApprovalSla, formatCountdown, type ApprovalSla, type SlaState } from "@/lib/approval-sla";
+import {
+  evaluateApprovalSla,
+  formatCountdown,
+  type ApprovalSla,
+  type SlaState,
+} from "@/lib/approval-sla";
 import { tierLabel, type EscalationTier } from "@/lib/escalation";
 
 /** Live clock used to drive approval SLA countdowns (1s cadence). */
@@ -53,9 +58,15 @@ export function useApprovalSlaAlerts(): ApprovalSlaFeed {
       announced.current.set(item.approval.id, item.state);
       const description = `${tenantName(item.approval.tenantId)} · ${agentName(item.approval.agentId)} · ${formatCountdown(item.remainingMinutes)}`;
       if (item.state === "breached") {
-        toast.error(`Approval SLA breached: ${item.approval.request}`, { description, duration: 8000 });
+        toast.error(`Approval SLA breached: ${item.approval.request}`, {
+          description,
+          duration: 8000,
+        });
       } else {
-        toast.warning(`Approval nearing SLA: ${item.approval.request}`, { description, duration: 7000 });
+        toast.warning(`Approval nearing SLA: ${item.approval.request}`, {
+          description,
+          duration: 7000,
+        });
       }
     }
   }, [feed.pending]);

@@ -18,11 +18,16 @@ function applyTheme(theme: ThemeMode) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>("dark");
+  const [theme, setThemeState] = useState<ThemeMode>("light");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    const preferred = stored === "dark" || stored === "light" ? stored : "dark";
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const preferred =
+      stored === "dark" || stored === "light"
+        ? stored
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
     setThemeState(preferred);
     applyTheme(preferred);
   }, []);

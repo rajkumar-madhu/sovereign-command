@@ -5,9 +5,28 @@ import { AlertTriangle, Globe, ShieldCheck, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForScore, toneForStatus } from "@/components/ops/status-badge";
@@ -27,7 +46,8 @@ export const Route = createFileRoute("/_shell/tools")({
       { property: "og:title", content: "Tool & MCP Registry · Wecrew Ops" },
       {
         property: "og:description",
-        content: "Governed MCP tool inventory with scan status, trust scores and per-tool telemetry.",
+        content:
+          "Governed MCP tool inventory with scan status, trust scores and per-tool telemetry.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -87,13 +107,8 @@ function ToolRegistry() {
   const warning = mcpTools.filter((t) => t.scan === "warning").length;
   const external = mcpTools.filter((t) => t.externalAccess).length;
   const calls = mcpTools.reduce((s, t) => s + t.calls30d, 0);
-  const avgErr =
-    calls === 0
-      ? 0
-      : (mcpTools.reduce((s, t) => s + t.errors30d, 0) / calls) * 100;
-  const avgTrust = Math.round(
-    mcpTools.reduce((s, t) => s + t.trustScore, 0) / mcpTools.length,
-  );
+  const avgErr = calls === 0 ? 0 : (mcpTools.reduce((s, t) => s + t.errors30d, 0) / calls) * 100;
+  const avgTrust = Math.round(mcpTools.reduce((s, t) => s + t.trustScore, 0) / mcpTools.length);
 
   const liveCpm = useLiveCallsPerMin(48);
   const liveErr = useLiveErrPct(+avgErr.toFixed(2));
@@ -104,7 +119,10 @@ function ToolRegistry() {
         aria-label="Tool registry pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-primary/30 blur-3xl"
           aria-hidden="true"
@@ -180,7 +198,9 @@ function ToolRegistry() {
                   )}
                   {s.value}
                   {s.unit ? (
-                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
+                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">
+                      {s.unit}
+                    </span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
@@ -270,7 +290,10 @@ function ToolRegistry() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((t) => (
-                    <TableRow key={t.id} className={t.scan === "failed" ? "bg-destructive/5" : undefined}>
+                    <TableRow
+                      key={t.id}
+                      className={t.scan === "failed" ? "bg-destructive/5" : undefined}
+                    >
                       <TableCell className="font-medium whitespace-nowrap">{t.name}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap">{t.owner}</TableCell>
                       <TableCell className="tabular-nums">{t.version}</TableCell>

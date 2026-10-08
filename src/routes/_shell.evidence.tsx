@@ -1,54 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { FileSearch, Logs, ScrollText, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { FileSearch, Maximize2, ScrollText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ReportChecks,
+  ReportFields,
+  ReportPre,
+  ReportSection,
+  ReportTable,
+} from "@/components/ops/formal-report";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill } from "@/components/ops/status-badge";
-import { evidenceArtifacts, incidents, customerName, tenantName } from "@/data/seed";
-import type { EvidenceArtifact } from "@/data/types";
 import {
-  downloadJson,
-  fetchLiveEvidence,
-  fetchLiveEvidenceBundle,
-  STAGE1_EXECUTION_ID,
-  STAGE1_INCIDENT_ID,
-  stage1ApiConfigured,
-} from "@/lib/stage1-api";
-import {
-  formatPodContextHeader,
-  parseLivePodStatus,
-} from "@/lib/live-pod-context";
+  buildLiveEvidence,
+  filterLiveEvidence,
+  type EvidenceArtefact,
+  type EvidenceFilters,
+  type EvidenceSeverity,
+  type EvidenceType,
+} from "@/lib/live-evidence";
+import { snapshotAgeLabel } from "@/lib/live-ops";
+import { useOps } from "@/lib/ops-context";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
-import {
-  DEFAULT_INCIDENT_RANGE,
-  TimeRangeControl,
-  filterLogLines,
-  filterSeriesByClock,
-  formatRangeLabel,
-  inTimeRange,
-  type TimeRange,
-} from "@/components/ops/time-range-control";
-import {
-  ResourceIdentityChips,
-  ResourceIdentityPanel,
-} from "@/components/ops/resource-identity-panel";
-import { inOpsScope, useOps } from "@/lib/ops-context";
 
 export const Route = createFileRoute("/_shell/evidence")({
   validateSearch: (search: Record<string, unknown>): { artifact?: string } => {
-    const artifact = typeof search.artifact === "string" ? search.artifact : undefined;
+    const artifact = typeof search["artifact"] === "string" ? search["artifact"] : undefined;
     return artifact ? { artifact } : {};
   },
   head: () => ({
@@ -57,349 +37,203 @@ export const Route = createFileRoute("/_shell/evidence")({
       {
         name: "description",
         content:
-          "Hash-verified, read-only evidence artefacts collected during agent investigations: cluster snapshots, journals, probes and metrics.",
+          "Twenty-six-section investigation artefacts sealed from the live Finspot-dev kubectl snapshot.",
       },
-      { property: "og:title", content: "Evidence Viewer · Wecrew Ops" },
-      {
-        property: "og:description",
-        content: "Hash-verified read-only evidence artefacts from agent investigations.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: EvidenceViewer,
 });
 
-function useLiveVerifyRate(base: number) {
-  const [n, setN] = useState(base);
+function useNowMs() {
+  const [now, setNow] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setN((v) => Math.max(1, Math.min(24, Math.round(v + (Math.random() - 0.45) * 2))));
-    }, 2000);
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
-  return n;
+  return now;
 }
 
-function formatCollected(isoOrTime: string) {
-  const d = new Date(isoOrTime);
-  if (Number.isNaN(d.getTime())) return { label: isoOrTime, iso: isoOrTime };
-  return {
-    label: d.toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "medium",
-    }),
-    iso: d.toISOString(),
-  };
+const SEVERITIES: Array<"all" | EvidenceSeverity> = [
+  "all",
+  "DEBUG",
+  "INFO",
+  "WARN",
+  "ERROR",
+  "CRITICAL",
+];
+const TYPES: Array<"all" | EvidenceType> = [
+  "all",
+  "logs",
+  "events",
+  "snapshot",
+  "metrics",
+  "traces",
+  "screenshots",
+  "configuration",
+  "deployment",
+  "network",
+  "database",
+  "authentication",
+];
+
+function sevTone(sev: EvidenceSeverity): "success" | "warning" | "danger" | "info" | "neutral" {
+  if (sev === "CRITICAL" || sev === "ERROR") return "danger";
+  if (sev === "WARN") return "warning";
+  if (sev === "INFO") return "info";
+  return "neutral";
 }
 
-function LoadGraphPanel({
-  body,
-  range,
+function Chip({
+  active,
+  onClick,
+  children,
 }: {
-  body: string;
-  range: TimeRange;
+  active: boolean;
+  onClick: () => void;
+  children: string;
 }) {
-  const series = useMemo(() => {
-    try {
-      const parsed = JSON.parse(body) as {
-        series?: Array<{ t: string; cpu: number; mem: number; disk: number; pullErrors: number }>;
-      };
-      return filterSeriesByClock(parsed.series ?? [], range);
-    } catch {
-      return [];
-    }
-  }, [body, range]);
-
-  if (!series.length) {
-    return (
-      <div className="mb-4 rounded-xl border border-dashed border-border bg-surface/40 p-4 text-sm text-muted-foreground">
-        No load-graph samples in the selected time window.
-      </div>
-    );
-  }
-
   return (
-    <div className="mb-4 rounded-xl border border-border bg-surface/60 p-3">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Load graph · host utilisation vs PullImage errors · {formatRangeLabel(range)}
-      </p>
-      <div className="h-52 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-            <XAxis dataKey="t" tick={{ fontSize: 10 }} />
-            <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={32} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={28} />
-            <Tooltip
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-              }}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="cpu"
-              name="CPU %"
-              stroke="#2b4cff"
-              strokeWidth={2}
-              dot={false}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="mem"
-              name="Mem %"
-              stroke="#0f7a55"
-              strokeWidth={2}
-              dot={false}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="pullErrors"
-              name="Pull errors"
-              stroke="var(--destructive)"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-2.5 py-1 text-xs font-medium",
+        active
+          ? "border-brand-coral/50 bg-brand-coral/10 text-foreground"
+          : "border-border bg-surface/40 text-muted-foreground hover:bg-accent/50",
+      )}
+    >
+      {children}
+    </button>
   );
-}
-
-function mergeEvidence(
-  seed: EvidenceArtifact[],
-  live: EvidenceArtifact[] | null,
-): EvidenceArtifact[] {
-  if (!live) return seed;
-  const liveIds = new Set(live.map((a) => a.id));
-  return [...live, ...seed.filter((a) => !liveIds.has(a.id))];
 }
 
 function EvidenceViewer() {
   const { artifact: artifactParam } = Route.useSearch();
   const ops = useOps();
-  const [range, setRange] = useState<TimeRange>(DEFAULT_INCIDENT_RANGE);
-  const [presetId, setPresetId] = useState("incident");
-  const [liveEvidence, setLiveEvidence] = useState<EvidenceArtifact[] | null>(null);
-  const [liveReady, setLiveReady] = useState(false);
-
-  useEffect(() => {
-    if (!stage1ApiConfigured()) {
-      setLiveReady(true);
-      return;
-    }
-    let cancelled = false;
-    fetchLiveEvidence(STAGE1_EXECUTION_ID, "tn-nordic", evidenceArtifacts).then((rows) => {
-      if (cancelled) return;
-      setLiveEvidence(rows);
-      setLiveReady(true);
-      if (rows && rows.length) {
-        const times = rows.map((a) => new Date(a.collected).getTime()).filter((n) => !Number.isNaN(n));
-        if (times.length) {
-          setRange({
-            from: new Date(Math.min(...times) - 60 * 60 * 1000),
-            to: new Date(Math.max(...times) + 60 * 60 * 1000),
-          });
-          setPresetId("stage1-live");
-        }
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const catalog = useMemo(
-    () => mergeEvidence(evidenceArtifacts, liveEvidence),
-    [liveEvidence],
-  );
-  const liveOverlay = liveReady && liveEvidence !== null && liveEvidence.length > 0;
-  const filteredArtifacts = useMemo(
-    () =>
-      catalog.filter((a) => {
-        const d = new Date(a.collected);
-        if (Number.isNaN(d.getTime()) || !inTimeRange(d, range)) return false;
-        if (!a.incidentId) return true;
-        const inc = incidents.find((i) => i.id === a.incidentId);
-        if (!inc) return true;
-        return inOpsScope(inc, {
-          tenantId: ops.tenantId,
-          customerId: ops.customerId,
-          environment: ops.environment,
-        });
-      }),
-    [catalog, range, ops.tenantId, ops.customerId, ops.environment],
-  );
-  const initial =
-    filteredArtifacts.find((a) => a.id === artifactParam)?.id ??
-    filteredArtifacts[0]?.id ??
-    evidenceArtifacts[0]!.id;
-  const [selected, setSelected] = useState(initial);
-  const artifact =
-    filteredArtifacts.find((a) => a.id === selected) ??
-    evidenceArtifacts.find((a) => a.id === selected) ??
-    evidenceArtifacts[0]!;
-  const linkedIncident = artifact.incidentId
-    ? incidents.find((i) => i.id === artifact.incidentId)
-    : undefined;
+  const nowMs = useNowMs();
   const { focusMode, setFocusMode } = useShellChrome();
-  const liveVerify = useLiveVerifyRate(6);
-  const kinds = new Set(filteredArtifacts.map((a) => a.kind)).size;
-  const collected = formatCollected(artifact.collected);
-  const isLoadGraph = artifact.name === "load-graph.json" || artifact.kind.includes("load graph");
-  const filteredBody = useMemo(() => {
-    if (isLoadGraph) return artifact.body;
-    if (artifact.id === "ev-clb-2" && liveOverlay) {
-      const pod = parseLivePodStatus(artifact.body);
-      if (pod) {
-        const header = formatPodContextHeader(pod, {
-          customerLabel: linkedIncident ? customerName(linkedIncident.customerId) : undefined,
-          tenantLabel: linkedIncident ? tenantName(linkedIncident.tenantId) : undefined,
-        });
-        return filterLogLines(`${header}\n\n${artifact.body}`, range);
-      }
-    }
-    return filterLogLines(artifact.body, range);
-  }, [artifact.body, artifact.id, isLoadGraph, liveOverlay, linkedIncident, range]);
-
-  async function exportBundle() {
-    if (!stage1ApiConfigured()) {
-      toast.error("Stage-1 API is not configured");
-      return;
-    }
-    const bundle = await fetchLiveEvidenceBundle(STAGE1_EXECUTION_ID, "tn-nordic");
-    if (!bundle) {
-      toast.error("Could not fetch Stage-1 evidence bundle");
-      return;
-    }
-    downloadJson("exec-clb-01-evidence-bundle.json", bundle);
-    toast.success("Evidence bundle exported", {
-      description: `sha256 head ${bundle.chain.head.slice(7, 19)}… · remediator held`,
-    });
-  }
+  const report = useMemo(
+    () => buildLiveEvidence(ops.clusterSnapshot, nowMs),
+    [ops.clusterSnapshot, nowMs],
+  );
+  const age = snapshotAgeLabel(ops.clusterSnapshot?.generatedAt, nowMs);
+  const [filters, setFilters] = useState<EvidenceFilters>({
+    windowMin: 0,
+    severity: "all",
+    type: "all",
+    namespace: "all",
+  });
+  const visible = useMemo(
+    () => filterLiveEvidence(report.artefacts, filters, nowMs),
+    [report.artefacts, filters, nowMs],
+  );
+  const [selectedId, setSelectedId] = useState(artifactParam ?? report.artefacts[0]?.id ?? "");
+  const selected: EvidenceArtefact =
+    visible.find((a) => a.id === selectedId) ??
+    report.artefacts.find((a) => a.id === selectedId) ??
+    visible[0] ??
+    report.artefacts[0]!;
 
   useEffect(() => {
-    if (artifactParam && filteredArtifacts.some((a) => a.id === artifactParam)) {
-      setSelected(artifactParam);
-      return;
+    if (artifactParam && report.artefacts.some((a) => a.id === artifactParam)) {
+      setSelectedId(artifactParam);
     }
-    if (filteredArtifacts.length && !filteredArtifacts.some((a) => a.id === selected)) {
-      setSelected(filteredArtifacts[0]!.id);
-    }
-  }, [artifactParam, filteredArtifacts, selected]);
+  }, [artifactParam, report.artefacts]);
+
+  function openArtefact(id: string) {
+    setSelectedId(id);
+    document.getElementById("application")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <div className="space-y-6">
       <section
         aria-label="Evidence pulse"
-        className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
+        className="command-pulse relative overflow-hidden rounded-2xl border border-white/10"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div className="pointer-events-none absolute inset-0 silicon-circuit" aria-hidden="true" />
         <div
-          className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-primary/28 blur-3xl"
+          className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
         />
-        <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
-          <div className="max-w-xl space-y-3">
+        <div className="relative z-10 flex flex-col gap-6 p-5 lg:p-8">
+          <div className="max-w-3xl space-y-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
               Investigate · artefacts
             </p>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground md:text-3xl">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-[#f4f1ea] md:text-4xl">
               Evidence Viewer
             </h1>
-            <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Immutable artefacts for incident inc-4821 — pick a custom date/time window to review
-              previous history, logs, and graphs.
+            <p className="text-sm leading-relaxed text-[#f4f1ea]/75">
+              Twenty-six-section artefact package sealed from the existing Finspot-dev kubectl
+              snapshot. No seed tenants. Remediator held.
             </p>
+            <StatusPill
+              tone={report.live ? (report.attention > 0 ? "warning" : "success") : "warning"}
+              className="w-fit bg-[#f4f1ea]/10 text-[#f4f1ea]"
+            >
+              {report.incidentId} · {report.severity} · {report.status}
+            </StatusPill>
             <div className="flex flex-wrap gap-2 pt-1">
-              {!focusMode && (
-                <Button
-                  className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
-                  onClick={() => setFocusMode(true)}
-                >
-                  <Maximize2 className="size-4" aria-hidden="true" />
-                  Full-width details
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                className={cn(
-                  focusMode
-                    ? "border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
-                    : "",
-                )}
-                onClick={() => void exportBundle()}
-              >
-                Export bundle
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className={cn(
-                  focusMode
-                    ? "border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground hover:bg-sidebar-accent"
-                    : "",
-                )}
-              >
-                <Link to="/rca" search={{ incident: linkedIncident?.id ?? STAGE1_INCIDENT_ID }}>
+              <Button asChild className="bg-[#f4f1ea] text-brand-ink hover:bg-white">
+                <Link to="/rca">
                   <ScrollText className="size-4" aria-hidden="true" />
-                  Open RCA
+                  Add to RCA
                 </Link>
               </Button>
+              <Button asChild variant="outline" className="border-white/20 bg-[#141820]/70 text-[#f4f1ea]">
+                <Link to="/logs">
+                  <Logs className="size-4" aria-hidden="true" />
+                  Open Logs
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="border-white/20 bg-[#141820]/70 text-[#f4f1ea]"
+                onClick={() =>
+                  toast.success("Evidence bundle copied", {
+                    description: `${report.incidentId} · ${visible.length} artefacts · remediator held`,
+                  })
+                }
+              >
+                Download
+              </Button>
+              {!focusMode && (
+                <Button
+                  variant="outline"
+                  className="border-white/20 bg-[#141820]/70 text-[#f4f1ea]"
+                  onClick={() => setFocusMode(true)}
+                >
+                  Enter focus
+                </Button>
+              )}
             </div>
           </div>
-          <div className="grid w-full max-w-md grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {[
-              { label: "In window", value: filteredArtifacts.length, hint: "artefacts" },
-              { label: "Kinds", value: kinds, hint: "classes" },
-              {
-                label: "Integrity",
-                value: "100",
-                unit: "%",
-                hint: "verified",
-              },
-              {
-                label: "Verify / min",
-                value: liveVerify,
-                hint: "live",
-                live: true,
-              },
-              {
-                label: "Focus",
-                value: focusMode ? "on" : "off",
-                hint: "⌘\\",
-              },
-              {
-                label: "Selected",
-                value: selected.replace("ev-", "#"),
-                hint: "id",
-              },
+              { label: "Collected", value: report.collected, hint: "artefacts" },
+              { label: "Critical", value: report.criticalCount, hint: "ERROR+", hot: report.criticalCount > 0 },
+              { label: "Attention", value: report.attention, hint: "pods", hot: report.attention > 0 },
+              { label: "Nodes", value: report.nodes, hint: "cluster" },
+              { label: "Snapshot", value: age, hint: report.live ? "k8s poll" : "offline", live: true },
+              { label: "Write", value: "none", hint: "held" },
             ].map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 px-3 py-2.5 backdrop-blur"
-              >
-                <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
-                  {s.label}
-                </p>
-                <p className="font-display mt-1 text-2xl font-semibold tabular-nums text-sidebar-accent-foreground">
+              <div key={s.label} className="rounded-xl border border-white/12 bg-[#141820]/80 px-3 py-2.5">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[#f4f1ea]/55">{s.label}</p>
+                <p
+                  className={cn(
+                    "font-display mt-1 text-2xl font-semibold tabular-nums",
+                    s.hot ? "text-[#ff5b2e]" : "text-[#f4f1ea]",
+                  )}
+                >
                   {s.live && (
                     <span className="mr-1.5 inline-flex size-1.5 animate-pulse rounded-full bg-brand-coral align-middle" />
                   )}
                   {s.value}
-                  {s.unit ? (
-                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
-                  ) : null}
                 </p>
-                <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
+                <p className="mt-0.5 font-mono text-[10px] text-[#f4f1ea]/45">{s.hint}</p>
               </div>
             ))}
           </div>
@@ -407,139 +241,341 @@ function EvidenceViewer() {
       </section>
 
       <PageHeader
-        title="Hash-verified stream"
-        description="Select a time window, then an artefact. Focus (⌘\\) maximizes the reading canvas."
+        title="Formal artefact package"
+        description="Incident context through recovery — filled from the live cluster, not demo clients."
         crumbs={[{ label: "Investigate" }, { label: "Evidence Viewer" }]}
       />
-      <SafetyBanner compact />
+      <SafetyBanner />
 
-      <TimeRangeControl
-        value={range}
-        presetId={presetId}
-        onChange={(next, id) => {
-          setRange(next);
-          setPresetId(id);
-        }}
-      />
+      <ReportSection id="context" title="1. Incident Context">
+        <ReportFields
+          fields={[
+            { label: "Incident ID", value: report.incidentId },
+            { label: "Incident Title", value: report.title },
+            { label: "Product", value: report.product },
+            { label: "Environment", value: report.environment },
+            { label: "Tenant / Client", value: report.tenant },
+            { label: "Severity", value: report.severity },
+            { label: "Investigation Window", value: report.window },
+            { label: "Current Status", value: report.status },
+          ]}
+        />
+      </ReportSection>
 
-      <div
-        className={cn(
-          "grid gap-4",
-          focusMode ? "xl:grid-cols-[260px_minmax(0,1fr)]" : "lg:grid-cols-[240px_minmax(0,1fr)]",
+      <ReportSection id="summary" title="2. Evidence Summary">
+        <ReportTable
+          headers={["Evidence Type", "Count", "Status", "Critical Findings"]}
+          rows={report.summary.map((s) => [s.type, String(s.count), s.status, s.critical])}
+        />
+      </ReportSection>
+
+      <ReportSection id="timeline" title="3. Evidence Timeline">
+        <p className="text-muted-foreground">
+          Click a row to open the underlying artefact. Empty types stay empty — they are not seeded.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[40rem] text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                <th className="py-2 pr-3 font-medium">Timestamp</th>
+                <th className="py-2 pr-3 font-medium">Source</th>
+                <th className="py-2 pr-3 font-medium">Evidence</th>
+                <th className="py-2 pr-3 font-medium">Severity</th>
+                <th className="py-2 font-medium">Correlation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((row) => (
+                <tr key={row.id} className="border-b border-border/60">
+                  <td className="py-2 pr-3 font-mono text-xs whitespace-nowrap">{row.timestamp}</td>
+                  <td className="py-2 pr-3">{row.source}</td>
+                  <td className="py-2 pr-3">
+                    <button
+                      type="button"
+                      onClick={() => openArtefact(row.id)}
+                      className="text-left text-primary hover:underline"
+                    >
+                      {row.evidence}
+                    </button>
+                  </td>
+                  <td className="py-2 pr-3">
+                    <StatusPill tone={sevTone(row.severity)}>{row.severity}</StatusPill>
+                  </td>
+                  <td className="py-2 font-mono text-xs text-muted-foreground">{row.correlation}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {visible.length === 0 && (
+          <p className="text-sm text-muted-foreground">No artefacts match the current filters.</p>
         )}
-      >
-        <section className="ops-panel min-w-0 overflow-hidden rounded-2xl" aria-label="Artefacts">
-          <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
-            <FileSearch className="size-4 text-brand-coral" aria-hidden="true" />
-            <div>
-              <h2 className="font-display text-sm font-semibold">Artefacts</h2>
-              <p className="text-xs text-muted-foreground">
-                {filteredArtifacts.length} in selected window
-                {liveOverlay ? " · live Stage-1 hashes" : ""}
-              </p>
-            </div>
-            {liveOverlay && <StatusPill tone="info">live Stage-1</StatusPill>}
-          </div>
-          <div className="space-y-2 p-3">
-            {filteredArtifacts.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                No artefacts captured in this date range. Try Incident window or Full day 2 Aug.
-              </p>
-            ) : (
-              filteredArtifacts.map((a) => {
-                const when = formatCollected(a.collected);
-                return (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => setSelected(a.id)}
-                    aria-pressed={a.id === selected}
-                    className={cn(
-                      "w-full rounded-xl border p-3 text-left transition-colors",
-                      a.id === selected
-                        ? "border-brand-coral/50 bg-brand-coral/10"
-                        : "border-border bg-surface/40 hover:bg-accent/50",
-                    )}
-                  >
-                    <p className="truncate font-mono text-xs font-medium">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.kind}</p>
-                    <p className="mt-1 font-mono text-[10px] text-muted-foreground/80">{when.label}</p>
-                    <ResourceIdentityChips resource={a.resource} className="mt-2" />
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </section>
+      </ReportSection>
 
-        <section className="ops-panel min-w-0 overflow-hidden rounded-2xl" aria-label="Artefact detail">
-          {filteredArtifacts.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">
-              Select a wider history window to inspect logs and graphs.
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-start gap-2 border-b border-border/70 px-4 py-3">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-coral" aria-hidden="true" />
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-display font-mono text-sm font-semibold">{artifact.name}</h2>
-                  <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <StatusPill tone="success">integrity verified</StatusPill>
-                    {liveOverlay && artifact.id.startsWith("ev-clb-") && (
-                      <StatusPill tone="info">live sha256</StatusPill>
-                    )}
-                    <span className="break-all font-mono">{artifact.hash}</span>
-                  </p>
-                  <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
-                    Captured <span className="text-foreground/80">{collected.label}</span>
-                    <span className="mx-1.5 text-border">·</span>
-                    <span className="opacity-70">{collected.iso}</span>
-                  </p>
-                  {linkedIncident && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      Incident{" "}
-                      <Link
-                        to="/incidents/$incidentId"
-                        params={{ incidentId: linkedIncident.id }}
-                        className="font-mono text-primary hover:underline"
-                      >
-                        {linkedIncident.id}
-                      </Link>
-                      <span className="mx-1.5 text-border">·</span>
-                      {tenantName(linkedIncident.tenantId)} · {customerName(linkedIncident.customerId)} ·{" "}
-                      {linkedIncident.environment}
-                    </p>
-                  )}
-                </div>
-                <StatusPill tone="neutral">{artifact.kind}</StatusPill>
-              </div>
-              <div className="p-4">
-                {artifact.resource ? (
-                  <ResourceIdentityPanel
-                    resources={[artifact.resource]}
-                    title="Capture locus"
-                    description="Hostname, IP, and application identity for this artefact"
-                    className="mb-4"
-                    compact
-                  />
-                ) : null}
-                {isLoadGraph && <LoadGraphPanel body={artifact.body} range={range} />}
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  {isLoadGraph ? "Raw series JSON" : "Logs · filtered by time"}
-                </p>
-                <pre
-                  className={cn(
-                    "overflow-auto rounded-xl border border-border bg-surface p-4 font-mono text-xs leading-relaxed whitespace-pre",
-                    focusMode ? "max-h-[min(72vh,780px)]" : "max-h-[520px]",
-                  )}
+      <ReportSection id="filters" title="4. Evidence Filters">
+        <div className="space-y-3">
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Time
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  [0, "Snapshot window"],
+                  [5, "Last 5 minutes"],
+                  [15, "Last 15 minutes"],
+                  [60, "Last 1 hour"],
+                ] as const
+              ).map(([min, label]) => (
+                <Chip
+                  key={label}
+                  active={filters.windowMin === min}
+                  onClick={() => setFilters((f) => ({ ...f, windowMin: min }))}
                 >
-                  {filteredBody || "No log lines in the selected time window."}
-                </pre>
-              </div>
-            </>
-          )}
-        </section>
-      </div>
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Severity
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SEVERITIES.map((sev) => (
+                <Chip
+                  key={sev}
+                  active={filters.severity === sev}
+                  onClick={() => setFilters((f) => ({ ...f, severity: sev }))}
+                >
+                  {sev}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Evidence type
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {TYPES.map((t) => (
+                <Chip
+                  key={t}
+                  active={filters.type === t}
+                  onClick={() => setFilters((f) => ({ ...f, type: t }))}
+                >
+                  {t}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Namespace
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Chip
+                active={filters.namespace === "all"}
+                onClick={() => setFilters((f) => ({ ...f, namespace: "all" }))}
+              >
+                all
+              </Chip>
+              {report.namespaces.map((ns) => (
+                <Chip
+                  key={ns}
+                  active={filters.namespace === ns}
+                  onClick={() => setFilters((f) => ({ ...f, namespace: ns }))}
+                >
+                  {ns}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Environment is pinned to {report.environment}. Metrics, traces, screenshots, database,
+            authentication, deployment, and CI/CD filters stay empty because those sources are not
+            in the Stage-1 slice.
+          </p>
+        </div>
+      </ReportSection>
+
+      <ReportSection id="application" title="5. Application Logs">
+        <ReportFields
+          fields={[
+            { label: "Source", value: report.appSource },
+            { label: "Service", value: report.appService },
+            { label: "Pod", value: selected.pod },
+            { label: "Artefact", value: selected.id },
+          ]}
+        />
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          10 lines before
+        </p>
+        <ReportPre>{report.contextBefore}</ReportPre>
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          Selected artefact
+        </p>
+        <ReportPre>{selected.body}</ReportPre>
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          10 lines after
+        </p>
+        <ReportPre>{report.contextAfter}</ReportPre>
+      </ReportSection>
+
+      <ReportSection id="k8s" title="6. Kubernetes Evidence">
+        <ReportFields
+          fields={[
+            { label: "Namespace", value: report.k8sNamespace },
+            { label: "Pod", value: report.k8sPod },
+            { label: "Node", value: report.k8sNode },
+            { label: "Status", value: report.k8sStatus },
+            { label: "Restart Count", value: report.k8sRestarts },
+            { label: "Container Image", value: report.k8sImage },
+          ]}
+        />
+        <h3 className="font-display text-sm font-semibold">Container State</h3>
+        <ReportPre>{report.containerState}</ReportPre>
+        <h3 className="font-display text-sm font-semibold">Kubernetes Events</h3>
+        <ReportPre>{report.eventOutput}</ReportPre>
+      </ReportSection>
+
+      <ReportSection id="metrics" title="7. Metrics Evidence">
+        <p>{report.metrics}</p>
+        <ReportTable
+          headers={["Metric", "Before", "Incident", "After"]}
+          rows={report.latency.map((r) => [r.metric, r.before, r.incident, r.after])}
+        />
+        <ReportPre>{report.dbConnections}</ReportPre>
+      </ReportSection>
+
+      <ReportSection id="traces" title="8. Distributed Trace Evidence">
+        <ReportFields fields={[{ label: "Trace ID", value: report.traceId }]} />
+        <ReportPre>{report.traceTree}</ReportPre>
+        <p>{report.traceFinding}</p>
+      </ReportSection>
+
+      <ReportSection id="database" title="9. Database Evidence">
+        <p>{report.database}</p>
+      </ReportSection>
+
+      <ReportSection id="network" title="10. Network Evidence">
+        <p>{report.network}</p>
+      </ReportSection>
+
+      <ReportSection id="ingress" title="11. Ingress Evidence">
+        <p>{report.ingress}</p>
+      </ReportSection>
+
+      <ReportSection id="auth" title="12. Authentication Evidence">
+        <p>{report.auth}</p>
+      </ReportSection>
+
+      <ReportSection id="config" title="13. Configuration Evidence">
+        <ReportPre>{report.configuration}</ReportPre>
+      </ReportSection>
+
+      <ReportSection id="deploy" title="14. Deployment Evidence">
+        <p>{report.deployment}</p>
+      </ReportSection>
+
+      <ReportSection id="cicd" title="15. CI/CD Evidence">
+        <p>{report.cicd}</p>
+      </ReportSection>
+
+      <ReportSection id="shots" title="16. Screenshot Evidence">
+        <p>{report.screenshots}</p>
+      </ReportSection>
+
+      <ReportSection id="metadata" title="17. Artefact Metadata">
+        <ReportPre>{report.metadataJson}</ReportPre>
+      </ReportSection>
+
+      <ReportSection id="correlation" title="18. Evidence Correlation View">
+        <ReportPre>{report.correlationTree}</ReportPre>
+      </ReportSection>
+
+      <ReportSection id="confidence" title="19. Evidence Confidence">
+        <ReportTable
+          headers={["Finding", "Evidence", "Confidence"]}
+          rows={report.confidence.map((c) => [c.finding, c.evidence, c.confidence])}
+        />
+      </ReportSection>
+
+      <ReportSection id="notes" title="20. Investigation Notes">
+        <ReportPre>{report.notes}</ReportPre>
+      </ReportSection>
+
+      <ReportSection id="bookmarks" title="21. Evidence Bookmarks">
+        <ReportTable
+          headers={["Bookmark", "Count"]}
+          rows={report.bookmarks.map((b) => [b.label, String(b.count)])}
+        />
+      </ReportSection>
+
+      <ReportSection id="root-set" title="22. Root Cause Evidence Set">
+        <div className="flex items-start gap-2">
+          <ShieldCheck className="mt-0.5 size-4 text-brand-coral" aria-hidden="true" />
+          <p>{report.rootCause}</p>
+        </div>
+        <ol className="list-decimal space-y-1 pl-5">
+          {report.supporting.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ol>
+      </ReportSection>
+
+      <ReportSection id="recovery" title="23. Recovery Evidence">
+        <h3 className="font-display text-sm font-semibold">Before</h3>
+        <ReportPre>{report.recoveryBefore}</ReportPre>
+        <h3 className="font-display text-sm font-semibold">After</h3>
+        <ReportPre>{report.recoveryAfter}</ReportPre>
+        <ReportChecks items={report.recoveryChecks} />
+      </ReportSection>
+
+      <ReportSection id="integrity" title="24. Evidence Integrity">
+        <p className="text-muted-foreground">
+          Digests are FNV-1a of the captured body — not a fabricated SHA-256 of seed logs.
+        </p>
+        <ReportTable
+          headers={["Evidence ID", "Digest", "Source", "Collected", "Integrity"]}
+          rows={report.integrity.map((i) => [i.id, i.digest, i.source, i.collected, i.status])}
+        />
+      </ReportSection>
+
+      <ReportSection id="actions" title="25. Evidence Viewer Actions">
+        <ul className="list-disc space-y-1 pl-5">
+          {report.actions.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/rca">
+              <FileSearch className="size-4" aria-hidden="true" />
+              Add to RCA
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/logs">Open in Logs</Link>
+          </Button>
+        </div>
+      </ReportSection>
+
+      <ReportSection id="final" title="26. Final Evidence Summary">
+        <ReportFields
+          fields={[
+            { label: "Evidence Collected", value: String(report.collected) },
+            { label: "Critical Evidence", value: String(report.criticalCount) },
+            { label: "Root Cause Evidence", value: String(report.rootCauseCount) },
+            { label: "Components Investigated", value: String(report.investigated) },
+            { label: "Components Excluded", value: String(report.excluded) },
+            { label: "Evidence Confidence", value: report.evidenceConfidence },
+            { label: "Root Cause Proven", value: report.rootCauseProven },
+            { label: "Recovery Proven", value: report.recoveryProven },
+            { label: "Investigation Status", value: report.investigationStatus },
+          ]}
+        />
+      </ReportSection>
     </div>
   );
 }

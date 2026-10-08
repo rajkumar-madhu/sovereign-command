@@ -74,7 +74,10 @@ function ControlTowerIndex() {
         aria-label="Control Tower pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden
+        />
         <div className="relative z-10 flex flex-col gap-6 p-5 md:flex-row md:items-end md:justify-between md:p-6">
           <div className="max-w-2xl space-y-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brand-coral">
@@ -88,7 +91,10 @@ function ControlTowerIndex() {
               policy and approval — one immutable execution ID.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
+              <Button
+                asChild
+                className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
+              >
                 <Link to="/control-tower/$executionId" params={{ executionId: "exec-clb-01" }}>
                   <Radar className="size-4" aria-hidden />
                   Stage-1 execution
@@ -127,10 +133,7 @@ function ControlTowerIndex() {
       <PageHeader
         title="AI Control Tower"
         description="Immutable execution IDs across prompt, model, MCP, evidence and approval."
-        crumbs={[
-          { label: "Govern", to: "/command" },
-          { label: "AI Control Tower" },
-        ]}
+        crumbs={[{ label: "Govern", to: "/command" }, { label: "AI Control Tower" }]}
       />
 
       <SafetyBanner />
@@ -178,9 +181,7 @@ function ControlTowerIndex() {
                 <div className="text-right text-xs text-muted-foreground">
                   <p className="font-mono tabular-nums">{t.tokens.toLocaleString()} tok</p>
                   <p className="mt-0.5">${t.costUsd.toFixed(2)}</p>
-                  {t.confidence != null && (
-                    <p className="mt-0.5">confidence {t.confidence}%</p>
-                  )}
+                  {t.confidence != null && <p className="mt-0.5">confidence {t.confidence}%</p>}
                 </div>
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">

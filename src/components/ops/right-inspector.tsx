@@ -12,9 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { StatusPill, toneForScore, toneForSeverity, toneForStatus } from "@/components/ops/status-badge";
+import {
+  StatusPill,
+  toneForScore,
+  toneForSeverity,
+  toneForStatus,
+} from "@/components/ops/status-badge";
 import { ResourceIdentityChips } from "@/components/ops/resource-identity-panel";
 import { useInspector } from "@/lib/inspector-context";
+import { isLiveCluster } from "@/lib/live-ops";
 import { useOps } from "@/lib/ops-context";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
@@ -22,12 +28,12 @@ import {
   agents,
   customerName,
   customers,
-  evidenceArtifacts,
   incidents,
   passports,
   tenantName,
   tenants,
 } from "@/data/seed";
+import { buildLiveEvidence } from "@/lib/live-evidence";
 
 function useWideDesktop() {
   const [wide, setWide] = useState(true);
@@ -74,8 +80,12 @@ function InspectorHeader({ title, onClose }: { title: string; onClose: () => voi
 /** Command Centre — shortcuts only; metrics live on the main canvas. */
 function CommandCentreInspector() {
   const ops = useOps();
-  const openIncidents = incidents.filter((i) => i.status !== "closed");
-  const p1 = openIncidents.filter((i) => i.severity === "P1");
+  const snapshot = ops.clusterSnapshot;
+  const attention = isLiveCluster(snapshot)
+    ? snapshot.pods.filter(
+        (p) => p.crashLoop || (p.phase !== "Running" && p.phase !== "Succeeded"),
+      )
+    : [];
   const pending = ops.approvals.filter((a) => a.status === "pending").length;
 
   return (
@@ -89,21 +99,36 @@ function CommandCentreInspector() {
         </div>
         <div className="grid gap-2">
           <Button asChild size="sm" className="justify-start">
-            <Link to="/incidents/$incidentId" params={{ incidentId: p1[0]?.id ?? "inc-4821" }}>
+            <Link to="/customers">
               <Siren className="size-4" aria-hidden="true" />
-              Open active P1
+              Open live namespaces
             </Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="justify-start border-sidebar-border"
+          >
             <Link to="/evidence">
               <FileSearch className="size-4" aria-hidden="true" />
               Evidence viewer
             </Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="justify-start border-sidebar-border"
+          >
             <Link to="/approvals">Review approvals ({pending})</Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="justify-start border-sidebar-border"
+          >
             <Link to="/soc">
               <ShieldAlert className="size-4" aria-hidden="true" />
               Security SOC
@@ -114,29 +139,32 @@ function CommandCentreInspector() {
 
       <section className="space-y-2">
         <h3 className="font-display text-sm font-semibold text-sidebar-accent-foreground">
-          Open incidents
+          Attention pods
         </h3>
         <ul className="space-y-2">
-          {openIncidents.slice(0, 4).map((i) => (
-            <li key={i.id}>
-              <Link
-                to="/incidents/$incidentId"
-                params={{ incidentId: i.id }}
-                className="block rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-2.5 transition-colors hover:border-brand-coral/40 hover:bg-sidebar-accent/60"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="line-clamp-2 text-xs font-medium leading-snug text-sidebar-accent-foreground">
-                    {i.title}
+          {attention.length === 0 ? (
+            <li className="text-xs text-sidebar-foreground/60">No attention pods on Finspot-dev.</li>
+          ) : (
+            attention.slice(0, 4).map((pod) => (
+              <li key={`${pod.namespace}/${pod.name}`}>
+                <Link
+                  to="/customers/$customerId"
+                  params={{ customerId: `ns-${pod.namespace}` }}
+                  className="block rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-2.5 transition-colors hover:border-brand-coral/40 hover:bg-sidebar-accent/60"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="line-clamp-2 font-mono text-xs font-medium leading-snug text-sidebar-accent-foreground">
+                      {pod.namespace}/{pod.name}
+                    </p>
+                    <StatusPill tone={pod.crashLoop ? "danger" : "warning"}>{pod.phase}</StatusPill>
+                  </div>
+                  <p className="mt-1 text-[11px] text-sidebar-foreground/60">
+                    {pod.reason ?? "not running"}
                   </p>
-                  <StatusPill tone={toneForSeverity(i.severity)}>{i.severity}</StatusPill>
-                </div>
-                <p className="mt-1 text-[11px] text-sidebar-foreground/60">
-                  {customerName(i.customerId)}
-                  {i.slaRisk ? " · SLA at risk" : ""}
-                </p>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </li>
+            ))
+          )}
         </ul>
       </section>
     </div>
@@ -232,20 +260,26 @@ function AgentInspector() {
             <h3 className="font-display truncate text-base font-semibold tracking-tight text-sidebar-accent-foreground">
               {agent.name}
             </h3>
-            <p className="mt-0.5 truncate font-mono text-[10px] text-sidebar-foreground/55">{spiffeShort}</p>
+            <p className="mt-0.5 truncate font-mono text-[10px] text-sidebar-foreground/55">
+              {spiffeShort}
+            </p>
           </div>
           <StatusPill tone={toneForStatus(status!)}>{status}</StatusPill>
         </div>
         <ResourceIdentityChips resource={agent.runtime} />
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">Trust</p>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
+              Trust
+            </p>
             <p className="font-display mt-1 text-xl font-semibold tabular-nums text-sidebar-accent-foreground">
               {agent.trustScore}
             </p>
           </div>
           <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">Runs/hr</p>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
+              Runs/hr
+            </p>
             <p className="font-display mt-1 text-xl font-semibold tabular-nums text-sidebar-accent-foreground">
               {liveRuns}
             </p>
@@ -315,9 +349,13 @@ function AgentInspector() {
       )}
 
       <section className="space-y-2">
-        <h3 className="font-display text-sm font-semibold text-sidebar-accent-foreground">Open work</h3>
+        <h3 className="font-display text-sm font-semibold text-sidebar-accent-foreground">
+          Open work
+        </h3>
         {openWork.length === 0 ? (
-          <p className="text-[11px] text-sidebar-foreground/55">No open investigations for this agent.</p>
+          <p className="text-[11px] text-sidebar-foreground/55">
+            No open investigations for this agent.
+          </p>
         ) : (
           <ul className="space-y-1.5">
             {openWork.slice(0, 4).map((inc) => (
@@ -362,20 +400,40 @@ function AgentInspector() {
           )}
           {onDetail && (
             <p className="text-[11px] leading-relaxed text-sidebar-foreground/55">
-              Canvas shows the passport envelope. This panel is live ops context — routing, open work,
-              and next jumps.
+              Canvas shows the passport envelope. This panel is live ops context — routing, open
+              work, and next jumps.
             </p>
           )}
-          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="justify-start border-sidebar-border"
+          >
             <Link to="/agents">Back to registry</Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="justify-start border-sidebar-border"
+          >
             <Link to="/investigations">Investigations</Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="justify-start border-sidebar-border"
+          >
             <Link to="/evidence">Evidence</Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="justify-start border-sidebar-border"
+          >
             <Link to="/soc">Agent Security SOC</Link>
           </Button>
         </div>
@@ -388,12 +446,13 @@ function AgentInspector() {
 }
 
 function EvidenceInspector() {
-  const first = evidenceArtifacts[0];
+  const ops = useOps();
+  const report = buildLiveEvidence(ops.clusterSnapshot);
+  const first = report.artefacts[0];
   return (
     <div className="space-y-4 p-4">
       <p className="text-xs leading-relaxed text-sidebar-foreground/70">
-        Artefacts are hash-verified and read-only. Capture locus shows hostname and IP for platform
-        triage.
+        Artefacts are sealed from the Finspot-dev snapshot. Remediator held. No seed clients.
       </p>
       {first && (
         <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3">
@@ -401,22 +460,20 @@ function EvidenceInspector() {
             Latest artefact
           </p>
           <p className="mt-1 font-mono text-xs font-medium text-sidebar-accent-foreground">
-            {first.name}
+            {first.id}
           </p>
           <p className="mt-1 text-[11px] text-sidebar-foreground/60">
-            {first.kind} · {first.collected}
+            {first.source} · {first.severity} · {first.integrity}
           </p>
-          <ResourceIdentityChips resource={first.resource} className="mt-2" />
+          <p className="mt-1 font-mono text-[10px] text-sidebar-foreground/55">{report.incidentId}</p>
         </div>
       )}
       <div className="grid gap-2">
         <Button asChild size="sm" className="justify-start">
-          <Link to="/incidents/$incidentId" params={{ incidentId: "inc-4821" }}>
-            Related incident
-          </Link>
+          <Link to="/logs">Open log analysis</Link>
         </Button>
         <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
-          <Link to="/rca" search={{ incident: "inc-4821" }}>
+          <Link to="/rca" search={{ incident: report.incidentId }}>
             Open RCA report
           </Link>
         </Button>
@@ -428,7 +485,8 @@ function EvidenceInspector() {
 function IncidentInspector() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const id = pathname.match(/^\/incidents\/([^/]+)/)?.[1];
-  const incident = incidents.find((i) => i.id === id) ?? incidents.find((i) => i.status !== "closed");
+  const incident =
+    incidents.find((i) => i.id === id) ?? incidents.find((i) => i.status !== "closed");
 
   if (!incident) {
     return (
@@ -451,9 +509,7 @@ function IncidentInspector() {
           <StatusPill tone={toneForSeverity(incident.severity)}>{incident.severity}</StatusPill>
         </div>
         <p className="mt-1 font-mono text-[11px] text-sidebar-foreground/60">{incident.id}</p>
-        {incident.slaRisk && (
-          <p className="mt-2 text-xs font-medium text-warning">SLA at risk</p>
-        )}
+        {incident.slaRisk && <p className="mt-2 text-xs font-medium text-warning">SLA at risk</p>}
       </div>
       <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 space-y-2">
         <p className="text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/55">
@@ -496,10 +552,7 @@ function IncidentInspector() {
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
-          <Link
-            to="/customers/$customerId"
-            params={{ customerId: incident.customerId }}
-          >
+          <Link to="/customers/$customerId" params={{ customerId: incident.customerId }}>
             Client estate
           </Link>
         </Button>
@@ -547,16 +600,14 @@ function RcaInspector() {
   return (
     <div className="space-y-4 p-4">
       <p className="text-xs leading-relaxed text-sidebar-foreground/70">
-        RCA for the active P1 — cross-check evidence hashes before sharing externally.
+        RCA is sealed from the live Finspot-dev snapshot. Remediator held.
       </p>
       <div className="grid gap-2">
         <Button asChild size="sm" className="justify-start">
           <Link to="/evidence">Verify evidence artefacts</Link>
         </Button>
         <Button asChild size="sm" variant="outline" className="justify-start border-sidebar-border">
-          <Link to="/incidents/$incidentId" params={{ incidentId: "inc-4821" }}>
-            Incident workspace
-          </Link>
+          <Link to="/logs">Open log analysis</Link>
         </Button>
       </div>
     </div>
@@ -618,7 +669,10 @@ export function RightInspector() {
   if (!wide) {
     return (
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[min(100%,22rem)] border-sidebar-border p-0 sm:max-w-none">
+        <SheetContent
+          side="right"
+          className="w-[min(100%,22rem)] border-sidebar-border p-0 sm:max-w-none"
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>{title}</SheetTitle>
           </SheetHeader>
@@ -664,7 +718,11 @@ export function InspectorToggle() {
       aria-pressed={open}
       title={open ? "Hide details panel" : "Show details panel (opt-in)"}
     >
-      {open && wide ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+      {open && wide ? (
+        <PanelRightClose className="size-4" />
+      ) : (
+        <PanelRightOpen className="size-4" />
+      )}
     </Button>
   );
 }

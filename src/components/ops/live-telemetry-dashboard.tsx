@@ -51,10 +51,14 @@ function MetricTile({
 }) {
   return (
     <div className="rounded-xl border border-border/80 bg-surface px-3 py-3">
-      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
       <p className="font-display mt-1 text-2xl font-semibold tabular-nums tracking-tight text-foreground">
         {value}
-        {unit ? <span className="ml-0.5 text-sm font-medium text-muted-foreground">{unit}</span> : null}
+        {unit ? (
+          <span className="ml-0.5 text-sm font-medium text-muted-foreground">{unit}</span>
+        ) : null}
       </p>
       <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/80">{hint}</p>
     </div>
@@ -111,9 +115,13 @@ function TimeseriesWidget({
               width={36}
               tickLine={false}
               axisLine={false}
-              domain={yDomain}
+              {...(yDomain ? { domain: yDomain } : {})}
               tickFormatter={(v: number) =>
-                unit === "%" ? `${Math.round(v)}` : unit === "ms" ? `${Math.round(v)}` : `${Math.round(v)}`
+                unit === "%"
+                  ? `${Math.round(v)}`
+                  : unit === "ms"
+                    ? `${Math.round(v)}`
+                    : `${Math.round(v)}`
               }
             />
             <Tooltip
@@ -166,10 +174,7 @@ function MonitorsStrip({ monitors }: { monitors: LiveMonitor[] }) {
       </div>
       <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {monitors.map((m) => (
-          <li
-            key={m.id}
-            className="rounded-xl border border-border/80 bg-surface px-3 py-2.5"
-          >
+          <li key={m.id} className="rounded-xl border border-border/80 bg-surface px-3 py-2.5">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium leading-snug">{m.name}</p>
               <StatusPill tone={monitorTone(m.state)}>{m.state}</StatusPill>
@@ -186,9 +191,16 @@ function MonitorsStrip({ monitors }: { monitors: LiveMonitor[] }) {
   );
 }
 
-function EventStream({ events }: { events: { id: string; ts: number; label: string; severity: string }[] }) {
+function EventStream({
+  events,
+}: {
+  events: { id: string; ts: number; label: string; severity: string }[];
+}) {
   return (
-    <section className="ops-panel flex h-full flex-col rounded-2xl p-4" aria-labelledby="events-title">
+    <section
+      className="ops-panel flex h-full flex-col rounded-2xl p-4"
+      aria-labelledby="events-title"
+    >
       <div className="mb-3 flex items-center gap-2">
         <Radio className="size-4 text-primary" aria-hidden="true" />
         <div>
@@ -230,7 +242,7 @@ function EventStream({ events }: { events: { id: string; ts: number; label: stri
 
 export function LiveTelemetryDashboard({ snapshot }: { snapshot: LiveTelemetrySnapshot }) {
   const { series, latest, monitors, events, updatedAt } = snapshot;
-  const ageSec = Math.max(0, Math.round((Date.now() - updatedAt) / 1000));
+  const ageSec = updatedAt ? Math.max(0, Math.round((Date.now() - updatedAt) / 1000)) : 0;
 
   return (
     <div className="space-y-4" aria-label="Live telemetry dashboard">

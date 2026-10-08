@@ -21,4 +21,14 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      proxy: {
+        "/stage1-api": {
+          target: "http://127.0.0.1:8091",
+          rewrite: (path: string) => path.replace(/^\/stage1-api/, ""),
+        },
+      },
+    },
+  },
 });

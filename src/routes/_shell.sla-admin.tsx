@@ -6,14 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/ops/page-header";
 import { SafetyBanner } from "@/components/ops/safety-banner";
 import { StatusPill, toneForSeverity } from "@/components/ops/status-badge";
+import { LIVE_CLUSTER_TENANT_ID } from "@/lib/live-ops";
 import { useOps } from "@/lib/ops-context";
-import { tenants } from "@/data/seed";
 import {
   AT_RISK_PCT_MAX,
   AT_RISK_PCT_MIN,
@@ -75,14 +88,16 @@ function useLiveAtRiskCount(base: number) {
 }
 
 function SlaAdmin() {
-  const { slaConfig, slaAuditLog, setSlaDefault, setAtRiskPct, setTenantSlaOverride } = useOps();
+  const { slaConfig, slaAuditLog, setSlaDefault, setAtRiskPct, setTenantSlaOverride, tenants } =
+    useOps();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pct, setPct] = useState<number>(Math.round(slaConfig.atRiskPct));
-  const [tenantId, setTenantId] = useState<string>(tenants[0]!.id);
+  const [tenantId, setTenantId] = useState<string>(LIVE_CLUSTER_TENANT_ID);
 
   const overrideCount = useMemo(
-    () => Object.values(slaConfig.tenantOverrides).reduce((sum, o) => sum + Object.keys(o).length, 0),
+    () =>
+      Object.values(slaConfig.tenantOverrides).reduce((sum, o) => sum + Object.keys(o).length, 0),
     [slaConfig.tenantOverrides],
   );
 
@@ -155,7 +170,10 @@ function SlaAdmin() {
         aria-label="SLA administration pulse"
         className="command-pulse relative overflow-hidden rounded-2xl border border-border/70"
       >
-        <div className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 silicon-circuit opacity-[0.5]"
+          aria-hidden="true"
+        />
         <div
           className="pointer-events-none absolute -right-12 -top-16 size-52 rounded-full bg-brand-coral/28 blur-3xl"
           aria-hidden="true"
@@ -169,13 +187,10 @@ function SlaAdmin() {
               SLA Administration
             </h1>
             <p className="text-sm leading-relaxed text-sidebar-foreground/70">
-              Approval SLA windows, at-risk paging threshold and per-tenant overrides. Every change is
-              validated and written to an append-only audit trail.
+              Approval SLA windows, at-risk paging threshold and per-tenant overrides. Every change
+              is validated and written to an append-only audit trail.
             </p>
-            <Button
-              asChild
-              className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white"
-            >
+            <Button asChild className="bg-sidebar-accent-foreground text-brand-ink hover:bg-white">
               <Link to="/approvals">
                 <AlarmClock className="size-4" aria-hidden="true" />
                 Open approval queue
@@ -230,7 +245,9 @@ function SlaAdmin() {
                   )}
                   {s.value}
                   {s.unit ? (
-                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">{s.unit}</span>
+                    <span className="ml-0.5 text-sm font-medium text-sidebar-foreground/55">
+                      {s.unit}
+                    </span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-sidebar-foreground/50">{s.hint}</p>
@@ -255,7 +272,10 @@ function SlaAdmin() {
         </TabsList>
 
         <TabsContent value="defaults" className="mt-0 space-y-4">
-          <section className="ops-panel overflow-hidden rounded-2xl" aria-label="Fleet default SLA windows">
+          <section
+            className="ops-panel overflow-hidden rounded-2xl"
+            aria-label="Fleet default SLA windows"
+          >
             <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
               <AlarmClock className="size-4 text-brand-coral" aria-hidden="true" />
               <div>
@@ -269,7 +289,10 @@ function SlaAdmin() {
               {RISK_LEVELS.map((risk) => {
                 const key = `default-${risk}`;
                 return (
-                  <div key={risk} className="space-y-2 rounded-xl border border-border bg-surface/40 p-4">
+                  <div
+                    key={risk}
+                    className="space-y-2 rounded-xl border border-border bg-surface/40 p-4"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <StatusPill tone={toneForSeverity(risk)}>{risk}</StatusPill>
                       <span className="text-xs text-muted-foreground">
@@ -310,7 +333,8 @@ function SlaAdmin() {
               <div>
                 <h2 className="font-display text-sm font-semibold">At-risk alert threshold</h2>
                 <p className="text-xs text-muted-foreground">
-                  Page once this share of the window is consumed · {AT_RISK_PCT_MIN}–{AT_RISK_PCT_MAX}%
+                  Page once this share of the window is consumed · {AT_RISK_PCT_MIN}–
+                  {AT_RISK_PCT_MAX}%
                 </p>
               </div>
             </div>
@@ -336,7 +360,8 @@ function SlaAdmin() {
                 onClick={() => {
                   setAtRiskPct(pct, ACTOR);
                   toast.success(`At-risk threshold set to ${pct}%`, {
-                    description: "Applied to all pending approvals and written to the SLA audit trail.",
+                    description:
+                      "Applied to all pending approvals and written to the SLA audit trail.",
                   });
                 }}
               >
@@ -347,7 +372,10 @@ function SlaAdmin() {
         </TabsContent>
 
         <TabsContent value="tenants" className="mt-0 space-y-4">
-          <section className="ops-panel overflow-hidden rounded-2xl" aria-label="Per-tenant SLA overrides">
+          <section
+            className="ops-panel overflow-hidden rounded-2xl"
+            aria-label="Per-tenant SLA overrides"
+          >
             <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
               <GitCompareArrows className="size-4 text-brand-coral" aria-hidden="true" />
               <div>
@@ -361,7 +389,11 @@ function SlaAdmin() {
               <div className="max-w-sm space-y-2">
                 <Label htmlFor="tenant-select">Tenant</Label>
                 <Select value={tenantId} onValueChange={setTenantId}>
-                  <SelectTrigger id="tenant-select" className="bg-surface" aria-label="Select tenant">
+                  <SelectTrigger
+                    id="tenant-select"
+                    className="bg-surface"
+                    aria-label="Select tenant"
+                  >
                     <SelectValue placeholder="Tenant" />
                   </SelectTrigger>
                   <SelectContent>
@@ -378,7 +410,10 @@ function SlaAdmin() {
                   const key = `${tenantId}-${risk}`;
                   const override = slaConfig.tenantOverrides[tenantId]?.[risk];
                   return (
-                    <div key={key} className="space-y-2 rounded-xl border border-border bg-surface/40 p-4">
+                    <div
+                      key={key}
+                      className="space-y-2 rounded-xl border border-border bg-surface/40 p-4"
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <StatusPill tone={toneForSeverity(risk)}>{risk}</StatusPill>
                         <span className="text-xs text-muted-foreground">
@@ -442,7 +477,9 @@ function SlaAdmin() {
                 <TableBody>
                   {tenants.map((t) => (
                     <TableRow key={t.id}>
-                      <TableCell className="text-sm font-medium whitespace-nowrap">{t.name}</TableCell>
+                      <TableCell className="text-sm font-medium whitespace-nowrap">
+                        {t.name}
+                      </TableCell>
                       {RISK_LEVELS.map((r) => {
                         const isOverride = slaConfig.tenantOverrides[t.id]?.[r] !== undefined;
                         return (
@@ -463,11 +500,16 @@ function SlaAdmin() {
         </TabsContent>
 
         <TabsContent value="audit" className="mt-0">
-          <section className="ops-panel overflow-hidden rounded-2xl" aria-label="SLA configuration audit trail">
+          <section
+            className="ops-panel overflow-hidden rounded-2xl"
+            aria-label="SLA configuration audit trail"
+          >
             <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
               <History className="size-4 text-brand-coral" aria-hidden="true" />
               <div>
-                <h2 className="font-display text-sm font-semibold">SLA configuration audit trail</h2>
+                <h2 className="font-display text-sm font-semibold">
+                  SLA configuration audit trail
+                </h2>
                 <p className="text-xs text-muted-foreground">
                   Immutable, append-only record of every threshold change in this session
                 </p>
