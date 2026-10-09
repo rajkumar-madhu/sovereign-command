@@ -257,6 +257,9 @@ export function AuthPasswordField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           required={required}
           className={cn(fieldInputClass, "pr-11")}
         />
