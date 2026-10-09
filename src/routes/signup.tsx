@@ -6,6 +6,7 @@ import {
   AuthBackLink,
   AuthFeatures,
   AuthField,
+  AuthPasswordField,
   AuthShell,
   AuthSpinner,
   AuthSubmit,
@@ -46,9 +47,7 @@ function SignUpPage() {
       return;
     }
     if (!isOperatorEmail(email)) {
-      setError(
-        "This email is not on the operator allowlist. Contact your platform administrator.",
-      );
+      setError("This email is not on the operator allowlist. Contact your platform administrator.");
       return;
     }
     rememberOperator(email);
@@ -113,9 +112,8 @@ function SignUpPage() {
             autoComplete="email"
             required
           />
-          <AuthField
+          <AuthPasswordField
             label="Password"
-            type="password"
             value={password}
             onChange={setPassword}
             placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}

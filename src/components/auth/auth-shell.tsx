@@ -1,18 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function AuthBrand({
   tone = "dark",
   className,
+  linkToHome = true,
 }: {
   tone?: "dark" | "light";
   className?: string;
+  linkToHome?: boolean;
 }) {
   const light = tone === "light";
-  return (
-    <div className={cn("relative z-10 flex items-center gap-2.5", className)}>
+  const mark = (
+    <>
       <span
         className={cn(
           "relative grid place-items-center rounded-[11px]",
@@ -54,10 +57,27 @@ export function AuthBrand({
             light ? "text-[10px] text-[#8a8680]" : "text-[10px] text-[#6f6a62]",
           )}
         >
-          sovereign.ops · agent operations
+          sovereign.wecrew.in · agent operations
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  if (!linkToHome) {
+    return <div className={cn("relative z-10 flex items-center gap-2.5", className)}>{mark}</div>;
+  }
+
+  return (
+    <Link
+      to="/"
+      className={cn(
+        "relative z-10 flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand-coral/50",
+        className,
+      )}
+      aria-label="Wecrew Ops home"
+    >
+      {mark}
+    </Link>
   );
 }
 
@@ -127,9 +147,7 @@ export function AuthShell({
         <div className="w-full max-w-[440px] animate-in fade-in slide-in-from-bottom-3 duration-400 pb-10">
           {/* Compact brand when the dark product panel is hidden (< lg) */}
           <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
-            <Link to="/" className="min-w-0">
-              <AuthBrand tone="light" />
-            </Link>
+            <AuthBrand tone="light" className="min-w-0" />
             <Link
               to="/docs"
               className="shrink-0 font-mono text-[11px] tracking-[0.08em] text-[#5c5a56] uppercase hover:text-brand-coral"
@@ -177,6 +195,9 @@ export function AuthBackLink() {
   );
 }
 
+const fieldInputClass =
+  "w-full rounded-lg border border-[#ddd6c8] bg-white px-3.5 py-3 text-[14.5px] text-[#1c1c1c] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[#8a8680] focus:border-brand-coral focus:bg-[#fffaf7] focus:shadow-[0_0_0_3px_rgba(255,91,46,0.12)]";
+
 export function AuthField({
   label,
   type = "text",
@@ -204,8 +225,57 @@ export function AuthField({
         placeholder={placeholder}
         autoComplete={autoComplete}
         required={required}
-        className="w-full rounded-lg border border-[#ddd6c8] bg-white px-3.5 py-3 text-[14.5px] text-[#1c1c1c] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[#8a8680] focus:border-brand-coral focus:bg-[#fffaf7] focus:shadow-[0_0_0_3px_rgba(255,91,46,0.12)]"
+        className={fieldInputClass}
       />
+    </label>
+  );
+}
+
+export function AuthPasswordField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  autoComplete = "current-password",
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
+  required?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <label className="mb-4 block">
+      <span className="mb-1.5 block text-[13px] font-medium text-[#1c1c1c]">{label}</span>
+      <span className="relative block">
+        <input
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          required={required}
+          className={cn(fieldInputClass, "pr-11")}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded-md p-1.5 text-[#8a8680] transition-colors hover:bg-[#f7f7f4] hover:text-[#1c1c1c]"
+          aria-label={visible ? "Hide password" : "Show password"}
+        >
+          {visible ? (
+            <EyeOff className="size-4" aria-hidden />
+          ) : (
+            <Eye className="size-4" aria-hidden />
+          )}
+        </button>
+      </span>
     </label>
   );
 }

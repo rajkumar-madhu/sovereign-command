@@ -6,6 +6,7 @@ import {
   AuthBackLink,
   AuthFeatures,
   AuthField,
+  AuthPasswordField,
   AuthShell,
   AuthSpinner,
   AuthSubmit,
@@ -47,9 +48,7 @@ function SignInPage() {
       return;
     }
     if (!isOperatorEmail(email)) {
-      setError(
-        "This email is not on the operator allowlist. Contact your platform administrator.",
-      );
+      setError("This email is not on the operator allowlist. Contact your platform administrator.");
       return;
     }
     rememberOperator(email);
@@ -113,15 +112,22 @@ function SignInPage() {
             autoComplete="email"
             required
           />
-          <AuthField
+          <AuthPasswordField
             label="Password"
-            type="password"
             value={password}
             onChange={setPassword}
             placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
             autoComplete="current-password"
             required
           />
+          <div className="-mt-1 mb-1 flex justify-end">
+            <a
+              href="mailto:support@wecrew.in?subject=Wecrew%20Ops%20password%20reset"
+              className="text-[12.5px] font-medium text-[#5c5a56] hover:text-brand-coral hover:underline"
+            >
+              Need a reset?
+            </a>
+          </div>
           <AuthField
             label="Tenant access token"
             type="password"
@@ -142,8 +148,8 @@ function SignInPage() {
             </Link>
           </p>
           <p className="mt-4 text-center text-[12px] leading-relaxed text-[#8a8680]">
-            Tokens are issued per tenant by the platform operator. They do not grant shell,
-            secrets, or remediation.
+            Tokens are issued per tenant by the platform operator. They do not grant shell, secrets,
+            or remediation.
           </p>
         </form>
       }
