@@ -2,8 +2,11 @@ import { describe, expect, it } from "bun:test";
 import type { ClusterSnapshot } from "./stage1-client";
 import {
   buildProductLogAnalysis,
+  collapseRepeatedLines,
   filterParsedLines,
+  mergeLogColumns,
   parseLogstashDump,
+  sortParsedLines,
 } from "./live-logs";
 
 const LOGSTASH = `OpenJDK 64-Bit Server VM warning: Option UseConcMarkSweepGC was deprecated
@@ -74,6 +77,43 @@ describe("parseLogstashDump", () => {
       filterParsedLines(lines, { pipeline: "noren_filebeat" }).every((l) => l.pipeline === "noren_filebeat"),
     ).toBe(true);
     expect(filterParsedLines(lines, { query: "CMS" }).length).toBe(0);
+  });
+});
+
+describe("log explorer rows", () => {
+  it("sorts by time and level without dropping lines", () => {
+    const lines = parseLogstashDump(LOGSTASH);
+    const newest = sortParsedLines(lines, "newest");
+    expect(newest).toHaveLength(lines.length);
+    expect(newest[0]?.timestamp).toBe("2026-08-14T05:31:51,658");
+    const oldest = sortParsedLines(lines, "oldest");
+    expect(oldest[0]?.timestamp ?? "").toBe("");
+    const byLevel = sortParsedLines(lines, "level");
+    expect(byLevel[0]?.level === "WARN" || byLevel[0]?.level === "ERROR").toBe(true);
+    expect(byLevel.filter((line) => line.level === "INFO").at(-1)?.level).toBe("INFO");
+  });
+
+  it("collapses only consecutive identical messages", () => {
+    const lines = parseLogstashDump(
+      `[2026-08-14T05:31:37,350][WARN ][logstash.outputs.elasticsearch][noren_filebeat] Restored connection
+[2026-08-14T05:31:37,351][WARN ][logstash.outputs.elasticsearch][noren_filebeat] Restored connection
+[2026-08-14T05:31:37,352][INFO ][logstash.outputs.elasticsearch][noren_filebeat] Restored connection`,
+    );
+    const collapsed = collapseRepeatedLines(lines, true);
+    expect(collapsed).toHaveLength(2);
+    expect(collapsed[0]?.repeat).toBe(2);
+    expect(collapsed[1]?.repeat).toBe(1);
+    expect(collapseRepeatedLines(lines, false).every((line) => line.repeat === 1)).toBe(true);
+  });
+
+  it("keeps at least one column when storage is empty or invalid", () => {
+    expect(mergeLogColumns(null).message).toBe(true);
+    expect(
+      mergeLogColumns({ time: false, level: false, logger: false, pipeline: false, message: false })
+        .message,
+    ).toBe(true);
+    expect(mergeLogColumns({ pipeline: false, extra: true }).pipeline).toBe(false);
+    expect(mergeLogColumns({ pipeline: false }).message).toBe(true);
   });
 });
 

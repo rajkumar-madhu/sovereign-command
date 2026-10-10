@@ -17,7 +17,7 @@ export type ParsedLogLine = {
 };
 
 export type ContainerLogDump = {
-  source: "live-k8s" | "unavailable";
+  source: "live-k8s" | "live-elasticsearch" | "unavailable";
   remediator: "held";
   readOnly: true;
   cluster: string;
@@ -29,6 +29,9 @@ export type ContainerLogDump = {
   container?: string;
   tailLines: number;
   text: string;
+  hitCount?: number;
+  indexPattern?: string;
+  clusterStatus?: string;
   error?: string;
 };
 
@@ -183,10 +186,11 @@ export function parseLogstashDump(text: string): ParsedLogLine[] {
           logger = undefined;
           pipeline = first;
         }
+        const timestamp = match[1];
         return {
           id: `ls-${index}`,
           raw,
-          timestamp: match[1],
+          ...(timestamp ? { timestamp } : {}),
           level: normalizeLevel(match[2] ?? ""),
           ...(logger ? { logger } : {}),
           ...(pipeline ? { pipeline } : {}),
@@ -220,6 +224,91 @@ export function filterParsedLines(
 
 export function pipelinesFromLines(lines: ParsedLogLine[]): string[] {
   return [...new Set(lines.map((line) => line.pipeline).filter((value): value is string => Boolean(value)))].sort();
+}
+
+export type LogColumnKey = "time" | "level" | "logger" | "pipeline" | "message";
+export type LogSortKey = "newest" | "oldest" | "level";
+
+export const LOG_EXPLORER_COLUMNS: Array<{ key: LogColumnKey; label: string }> = [
+  { key: "time", label: "Time" },
+  { key: "level", label: "Level" },
+  { key: "logger", label: "Logger" },
+  { key: "pipeline", label: "Pipeline" },
+  { key: "message", label: "Message" },
+];
+
+export const DEFAULT_LOG_COLUMNS: Record<LogColumnKey, boolean> = {
+  time: true,
+  level: true,
+  logger: true,
+  pipeline: true,
+  message: true,
+};
+
+const LEVEL_RANK: Record<ParsedLogLevel, number> = {
+  FATAL: 5,
+  ERROR: 4,
+  WARN: 3,
+  INFO: 2,
+  DEBUG: 1,
+  UNKNOWN: 0,
+};
+
+export type LogRow = ParsedLogLine & { repeat: number };
+
+function lineStamp(line: ParsedLogLine): string {
+  return line.timestamp ?? "";
+}
+
+function repeatKey(line: ParsedLogLine): string {
+  return `${line.level}|${line.logger ?? ""}|${line.pipeline ?? ""}|${line.message}`;
+}
+
+export function sortParsedLines<T extends ParsedLogLine>(
+  lines: readonly T[],
+  sort: LogSortKey,
+): T[] {
+  const copy = [...lines];
+  copy.sort((a, b) => {
+    if (sort === "level") {
+      const byLevel = LEVEL_RANK[b.level] - LEVEL_RANK[a.level];
+      if (byLevel !== 0) return byLevel;
+      return lineStamp(b).localeCompare(lineStamp(a)) || a.id.localeCompare(b.id);
+    }
+    const byTime = lineStamp(a).localeCompare(lineStamp(b)) || a.id.localeCompare(b.id);
+    return sort === "oldest" ? byTime : -byTime;
+  });
+  return copy;
+}
+
+export function collapseRepeatedLines(lines: readonly ParsedLogLine[], enabled: boolean): LogRow[] {
+  if (!enabled) return lines.map((line) => ({ ...line, repeat: 1 }));
+  const out: LogRow[] = [];
+  for (const line of lines) {
+    const prev = out[out.length - 1];
+    if (prev && repeatKey(prev) === repeatKey(line)) {
+      prev.repeat += 1;
+      continue;
+    }
+    out.push({ ...line, repeat: 1 });
+  }
+  return out;
+}
+
+export function mergeLogColumns(stored: unknown): Record<LogColumnKey, boolean> {
+  const next: Record<LogColumnKey, boolean> = { ...DEFAULT_LOG_COLUMNS };
+  if (!stored || typeof stored !== "object") return next;
+  const record = stored as Record<string, unknown>;
+  for (const column of LOG_EXPLORER_COLUMNS) {
+    const value = record[column.key];
+    if (typeof value === "boolean") next[column.key] = value;
+  }
+  if (!LOG_EXPLORER_COLUMNS.some((column) => next[column.key])) return { ...DEFAULT_LOG_COLUMNS };
+  return next;
+}
+
+export function levelBarHeight(level: ParsedLogLevel): number {
+  return 4 + LEVEL_RANK[level] * 4;
 }
 
 export function logSourceCandidates(snapshot: ClusterSnapshot | null): LogSourceCandidate[] {
@@ -333,7 +422,8 @@ export function buildProductLogAnalysis(
         },
       ];
 
-  const stream = dump?.source === "live-k8s" && dump.text.trim() ? parseLogstashDump(dump.text) : [];
+  const stream =
+    dump && dump.source !== "unavailable" && dump.text.trim() ? parseLogstashDump(dump.text) : [];
   const pipelines = pipelinesFromLines(stream);
   const streamSource = dump?.pod ? `${dump.namespace}/${dump.pod}` : "";
   const errors = stream.length
@@ -545,8 +635,8 @@ UI meters / this report`,
       ["503", "Service Unavailable"],
       ["504", "Gateway Timeout"],
     ].map(([code, meaning]) => ({
-      code,
-      meaning,
+      code: code ?? "",
+      meaning: meaning ?? "",
       count: 0,
       endpoint: "not in k8s inventory slice",
     })),

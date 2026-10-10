@@ -1,7 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileSearch, Logs, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileSearch, Logs, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   ReportChecks,
@@ -16,10 +23,19 @@ import { StatusPill } from "@/components/ops/status-badge";
 import { useContainerLogs } from "@/hooks/use-container-logs";
 import {
   buildProductLogAnalysis,
+  collapseRepeatedLines,
+  DEFAULT_LOG_COLUMNS,
   filterParsedLines,
+  levelBarHeight,
+  LOG_EXPLORER_COLUMNS,
   logSourceCandidates,
+  mergeLogColumns,
   parseLogstashDump,
+  sortParsedLines,
   type LayerTone,
+  type LogColumnKey,
+  type LogRow,
+  type LogSortKey,
   type ParsedLogLevel,
 } from "@/lib/live-logs";
 import { snapshotAgeLabel } from "@/lib/live-ops";
@@ -28,7 +44,16 @@ import { useOpsSession } from "@/lib/ops-session";
 import { useShellChrome } from "@/lib/shell-chrome";
 import { cn } from "@/lib/utils";
 
+const COLUMN_STORAGE = "logsExplorerVisibleColumns";
+const AUTOSCROLL_STORAGE = "logsExplorerAutoscroll";
+const PAGE_SIZE = 80;
+
 export const Route = createFileRoute("/_shell/logs")({
+  validateSearch: (search: Record<string, unknown>): { line?: string } => {
+    const line = typeof search["line"] === "string" ? search["line"] : "";
+    if (!/^ls-\d+$/.test(line)) return {};
+    return { line };
+  },
   head: () => ({
     meta: [
       { title: "Logs Explorer · Wecrew Ops" },
@@ -73,11 +98,35 @@ function lineTone(level: ParsedLogLevel): string {
   return "text-[#d7d2c8]";
 }
 
+function levelPillTone(level: ParsedLogLevel): "success" | "warning" | "danger" | "neutral" {
+  if (level === "ERROR" || level === "FATAL") return "danger";
+  if (level === "WARN") return "warning";
+  if (level === "INFO") return "success";
+  return "neutral";
+}
+
+function readColumns(): Record<LogColumnKey, boolean> {
+  if (typeof window === "undefined") return { ...DEFAULT_LOG_COLUMNS };
+  try {
+    return mergeLogColumns(JSON.parse(window.localStorage.getItem(COLUMN_STORAGE) ?? "null"));
+  } catch {
+    return { ...DEFAULT_LOG_COLUMNS };
+  }
+}
+
+function readAutoscroll(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.localStorage.getItem(AUTOSCROLL_STORAGE) !== "0";
+}
+
 function LogsExplorer() {
   const ops = useOps();
   const { session } = useOpsSession();
   const nowMs = useNowMs();
   const { focusMode, setFocusMode } = useShellChrome();
+  const { line: selectedLineId } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const queryRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<"dashboard" | "analysis">("dashboard");
   const [namespace, setNamespace] = useState("");
   const [pod, setPod] = useState("");
@@ -85,11 +134,19 @@ function LogsExplorer() {
   const [pipeline, setPipeline] = useState("");
   const [query, setQuery] = useState("");
   const [draftQuery, setDraftQuery] = useState("");
+  const [panelMode, setPanelMode] = useState<"table" | "raw">("table");
+  const [sort, setSort] = useState<LogSortKey>("oldest");
+  const [collapseRepeats, setCollapseRepeats] = useState(false);
+  const [columns, setColumns] = useState<Record<LogColumnKey, boolean>>({ ...DEFAULT_LOG_COLUMNS });
+  const [autoscroll, setAutoscroll] = useState(true);
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [copied, setCopied] = useState(false);
 
   const dump = useContainerLogs(
     session?.tenantId ?? "",
     namespace && pod ? { namespace, pod } : undefined,
     Boolean(session),
+    Boolean(selectedLineId),
   );
   const report = useMemo(
     () => buildProductLogAnalysis(ops.clusterSnapshot, nowMs, dump),
@@ -99,9 +156,21 @@ function LogsExplorer() {
   const sources = logSourceCandidates(ops.clusterSnapshot);
   const parsed = useMemo(() => parseLogstashDump(dump?.text ?? ""), [dump?.text]);
   const visible = useMemo(
-    () => filterParsedLines(parsed, { level, pipeline: pipeline || undefined, query }),
+    () =>
+      filterParsedLines(parsed, {
+        level,
+        ...(pipeline ? { pipeline } : {}),
+        ...(query ? { query } : {}),
+      }),
     [parsed, level, pipeline, query],
   );
+  const ordered = useMemo(
+    () => sortParsedLines(collapseRepeatedLines(visible, collapseRepeats), sort),
+    [visible, collapseRepeats, sort],
+  );
+  const shown = autoscroll ? ordered : ordered.slice(0, limit);
+  const selectedIndex = selectedLineId ? ordered.findIndex((line) => line.id === selectedLineId) : -1;
+  const selected = selectedIndex >= 0 ? ordered[selectedIndex] : undefined;
   const pipelines = report.pipelines;
   const volumeLevels: ParsedLogLevel[] = ["INFO", "WARN", "ERROR", "DEBUG", "FATAL"];
   const volume = volumeLevels.map((name) => ({
@@ -109,7 +178,70 @@ function LogsExplorer() {
     count: visible.filter((line) => line.level === name).length,
   }));
   const maxVolume = Math.max(1, ...volume.map((row) => row.count));
-  const streamState = !dump ? "loading" : dump.source === "live-k8s" ? "live" : "offline";
+  const streamState = !dump ? "loading" : dump.source === "unavailable" ? "offline" : "live";
+
+  useEffect(() => {
+    setColumns(readColumns());
+    setAutoscroll(readAutoscroll());
+  }, []);
+
+  useEffect(() => {
+    setLimit(PAGE_SIZE);
+  }, [level, pipeline, query, sort, collapseRepeats, dump?.pod]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "f" && event.key !== "F") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      queryRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const openLine = (id: string) => {
+    void navigate({ search: { line: id }, replace: true });
+  };
+  const closeLine = () => {
+    setCopied(false);
+    void navigate({ search: {}, replace: true });
+  };
+  const stepLine = (delta: number) => {
+    const next = ordered[selectedIndex + delta];
+    if (!next) return;
+    setCopied(false);
+    void navigate({ search: { line: next.id }, replace: true });
+  };
+  const toggleColumn = (key: LogColumnKey) => {
+    setColumns((current) => {
+      const next = mergeLogColumns({ ...current, [key]: !current[key] });
+      try {
+        window.localStorage.setItem(COLUMN_STORAGE, JSON.stringify(next));
+      } catch {
+        /* preference is optional */
+      }
+      return next;
+    });
+  };
+  const toggleAutoscroll = () => {
+    setAutoscroll((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(AUTOSCROLL_STORAGE, next ? "1" : "0");
+      } catch {
+        /* preference is optional */
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -246,12 +378,14 @@ function LogsExplorer() {
                 <span className="uppercase tracking-[0.12em] text-muted-foreground">2. Query</span>
                 <div className="flex gap-2">
                   <Input
+                    ref={queryRef}
                     value={draftQuery}
                     onChange={(event) => setDraftQuery(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") setQuery(draftQuery);
                     }}
                     placeholder="Filter text, e.g. noren_filebeat or DEPRECATION"
+                    aria-keyshortcuts="F"
                     className="font-mono"
                   />
                   <Button type="button" onClick={() => setQuery(draftQuery)}>
@@ -276,7 +410,7 @@ function LogsExplorer() {
               </label>
             </div>
             <div className="flex flex-wrap gap-2">
-              {(["ALL", "INFO", "WARN", "ERROR"] as const).map((item) => (
+              {(["ALL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"] as const).map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -293,7 +427,7 @@ function LogsExplorer() {
                 </button>
               ))}
               <p className="self-center font-mono text-[11px] text-muted-foreground">
-                plugin=k8s-read · verb=get logs · client filter of last {dump?.tailLines ?? 400} lines · not Loki
+                plugin=k8s-read · verb=get logs · client filter of last {dump?.tailLines ?? 400} lines · not Loki · press F to search
               </p>
             </div>
           </section>
@@ -303,6 +437,25 @@ function LogsExplorer() {
             <p className="text-sm text-muted-foreground">
               Counts from the filtered tail — not a Loki range query, no invented RPS.
             </p>
+            <div className="flex h-8 items-end gap-px" aria-hidden="true">
+              {visible.slice(-72).map((line) => (
+                <span
+                  key={line.id}
+                  title={line.level}
+                  className={cn(
+                    "w-1 flex-1 rounded-sm",
+                    line.level === "ERROR" || line.level === "FATAL"
+                      ? "bg-[#ff5b2e]"
+                      : line.level === "WARN"
+                        ? "bg-[#f0b429]"
+                        : line.level === "DEBUG"
+                          ? "bg-[#8b93a7]"
+                          : "bg-[#2b4cff]",
+                  )}
+                  style={{ height: levelBarHeight(line.level) }}
+                />
+              ))}
+            </div>
             <div className="space-y-2">
               {volume.map((row) => (
                 <div key={row.level} className="grid grid-cols-[5rem_1fr_4rem] items-center gap-3 text-sm">
@@ -326,36 +479,53 @@ function LogsExplorer() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0e1116]" aria-label="Logs panel">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#f4f1ea]/50">4. Panel · Logs</p>
-                <p className="font-mono text-xs text-[#f4f1ea]/80">
-                  {dump?.namespace || "—"}/{dump?.pod || "waiting"} · {visible.length}/{parsed.length} lines
-                </p>
-              </div>
-              <StatusPill tone={streamState === "live" ? "success" : "warning"}>
-                {streamState === "live" ? "LIVE" : streamState === "loading" ? "loading" : dump?.error || "unavailable"}
-              </StatusPill>
-            </div>
-            <pre className="max-h-[36rem] overflow-auto p-4 font-mono text-[11px] leading-relaxed">
-              {visible.length === 0 ? (
-                <span className="text-[#8b93a7]">
-                  {streamState === "loading"
-                    ? "Loading kubectl logs from Finspot-dev…"
-                    : streamState === "live"
-                      ? "Filter returned 0 lines."
-                      : "No live stream. Stage-1 cannot reach Finspot-dev from this host, or kubectl logs is empty. Seed Logstash dumps are not substituted."}
-                </span>
-              ) : (
-                visible.map((line) => (
-                  <span key={line.id} className={cn("block whitespace-pre-wrap", lineTone(line.level))}>
-                    {line.raw}
-                  </span>
-                ))
-              )}
-            </pre>
-          </section>
+          <LogsPanel
+            autoscroll={autoscroll}
+            columns={columns}
+            collapseRepeats={collapseRepeats}
+            dumpLabel={`${dump?.namespace || "—"}/${dump?.pod || "waiting"}`}
+            empty={
+              streamState === "loading"
+                ? "Loading kubectl logs from Finspot-dev…"
+                : streamState === "live"
+                  ? "Filter returned 0 lines."
+                  : "No live stream. Stage-1 cannot reach Finspot-dev from this host, or kubectl logs is empty. Seed Logstash dumps are not substituted."
+            }
+            limit={limit}
+            onOpen={openLine}
+            onToggleAutoscroll={toggleAutoscroll}
+            onToggleCollapse={() => setCollapseRepeats((current) => !current)}
+            onToggleColumn={toggleColumn}
+            orderedCount={ordered.length}
+            panelMode={panelMode}
+            parsedCount={parsed.length}
+            selectedId={selectedLineId}
+            setLimit={setLimit}
+            setPanelMode={setPanelMode}
+            setSort={setSort}
+            shown={shown}
+            sort={sort}
+            streamState={streamState}
+            streamDetail={streamState === "live" ? "LIVE" : streamState === "loading" ? "loading" : dump?.error || "unavailable"}
+            visibleCount={visible.length}
+          />
+          <LogLineDialog
+            copied={copied}
+            line={selected}
+            missing={Boolean(selectedLineId) && !selected}
+            onClose={closeLine}
+            onCopy={async (raw) => {
+              try {
+                await navigator.clipboard.writeText(raw);
+                setCopied(true);
+              } catch {
+                setCopied(false);
+              }
+            }}
+            onStep={stepLine}
+            open={Boolean(selectedLineId)}
+            position={selectedIndex >= 0 ? `${selectedIndex + 1} / ${ordered.length}` : ""}
+          />
         </>
       ) : (
         <>
@@ -726,5 +896,328 @@ function LogsExplorer() {
         </>
       )}
     </div>
+  );
+}
+
+function LogsPanel({
+  autoscroll,
+  columns,
+  collapseRepeats,
+  dumpLabel,
+  empty,
+  limit,
+  onOpen,
+  onToggleAutoscroll,
+  onToggleCollapse,
+  onToggleColumn,
+  orderedCount,
+  panelMode,
+  parsedCount,
+  selectedId,
+  setLimit,
+  setPanelMode,
+  setSort,
+  shown,
+  sort,
+  streamDetail,
+  streamState,
+  visibleCount,
+}: {
+  autoscroll: boolean;
+  columns: Record<LogColumnKey, boolean>;
+  collapseRepeats: boolean;
+  dumpLabel: string;
+  empty: string;
+  limit: number;
+  onOpen: (id: string) => void;
+  onToggleAutoscroll: () => void;
+  onToggleCollapse: () => void;
+  onToggleColumn: (key: LogColumnKey) => void;
+  orderedCount: number;
+  panelMode: "table" | "raw";
+  parsedCount: number;
+  selectedId: string | undefined;
+  setLimit: (value: number | ((current: number) => number)) => void;
+  setPanelMode: (mode: "table" | "raw") => void;
+  setSort: (sort: LogSortKey) => void;
+  shown: LogRow[];
+  sort: LogSortKey;
+  streamDetail: string;
+  streamState: "loading" | "live" | "offline";
+  visibleCount: number;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrolledRef = useRef(false);
+  const stickingRef = useRef(false);
+
+  useEffect(() => {
+    scrolledRef.current = false;
+  }, [sort, panelMode, collapseRepeats]);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node || !autoscroll) return;
+    stickingRef.current = true;
+    node.scrollTop = sort === "newest" ? 0 : node.scrollHeight;
+    const id = window.setTimeout(() => {
+      stickingRef.current = false;
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [autoscroll, shown, sort]);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel || autoscroll || shown.length >= orderedCount) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && scrolledRef.current) {
+          setLimit((current) => current + PAGE_SIZE);
+        }
+      },
+      { root, rootMargin: "200px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [autoscroll, orderedCount, setLimit, shown.length]);
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0e1116]" aria-label="Logs panel">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-[#f4f1ea]/50">4. Panel · Logs</p>
+          <p className="font-mono text-xs text-[#f4f1ea]/80">
+            {dumpLabel} · {shown.length}/{visibleCount} shown · {parsedCount} in tail
+            {selectedId ? " · poll paused" : ""}
+          </p>
+        </div>
+        <StatusPill tone={streamState === "live" ? "success" : "warning"}>{streamDetail}</StatusPill>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2">
+        <div className="flex rounded-lg border border-white/15 p-0.5" role="group" aria-label="Panel format">
+          {(["table", "raw"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={panelMode === mode}
+              onClick={() => setPanelMode(mode)}
+              className={cn(
+                "rounded-md px-2.5 py-1 font-mono text-[11px] uppercase",
+                panelMode === mode ? "bg-[#f4f1ea] text-brand-ink" : "text-[#f4f1ea]/70",
+              )}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+        <label className="font-mono text-[11px] text-[#f4f1ea]/70">
+          Sort{" "}
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as LogSortKey)}
+            className="rounded-md border border-white/15 bg-transparent px-2 py-1"
+          >
+            <option value="oldest">oldest</option>
+            <option value="newest">newest</option>
+            <option value="level">level</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          aria-pressed={collapseRepeats}
+          onClick={onToggleCollapse}
+          className={cn(
+            "rounded-full border px-2.5 py-1 font-mono text-[11px]",
+            collapseRepeats ? "border-[#f4f1ea] text-[#f4f1ea]" : "border-white/15 text-[#f4f1ea]/60",
+          )}
+        >
+          Collapse repeats
+        </button>
+        <button
+          type="button"
+          aria-pressed={autoscroll}
+          onClick={onToggleAutoscroll}
+          className={cn(
+            "rounded-full border px-2.5 py-1 font-mono text-[11px]",
+            autoscroll ? "border-brand-coral text-brand-coral" : "border-white/15 text-[#f4f1ea]/60",
+          )}
+        >
+          {autoscroll ? "Follow tail" : "Follow off"}
+        </button>
+        <details className="relative">
+          <summary className="cursor-pointer list-none rounded-full border border-white/15 px-2.5 py-1 font-mono text-[11px] text-[#f4f1ea]/70">
+            Columns
+          </summary>
+          <div className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-white/15 bg-[#141820] p-2 shadow-lg">
+            {LOG_EXPLORER_COLUMNS.map((column) => (
+              <label key={column.key} className="flex items-center gap-2 py-1 font-mono text-[11px] text-[#f4f1ea]">
+                <input
+                  type="checkbox"
+                  checked={columns[column.key]}
+                  onChange={() => onToggleColumn(column.key)}
+                />
+                {column.label}
+              </label>
+            ))}
+          </div>
+        </details>
+      </div>
+      <div
+        ref={scrollRef}
+        className="max-h-[36rem] overflow-auto"
+        onScroll={(event) => {
+          const node = event.currentTarget;
+          if (node.scrollTop > 24) scrolledRef.current = true;
+          if (stickingRef.current) return;
+          const atLiveEdge =
+            sort === "newest"
+              ? node.scrollTop < 24
+              : node.scrollHeight - node.scrollTop - node.clientHeight < 24;
+          if (autoscroll && !atLiveEdge) onToggleAutoscroll();
+        }}
+      >
+        {shown.length === 0 ? (
+          <p className="p-4 font-mono text-[11px] text-[#8b93a7]">{empty}</p>
+        ) : panelMode === "raw" ? (
+          <pre className="p-4 font-mono text-[11px] leading-relaxed">
+            {shown.map((line) => (
+              <button
+                key={line.id}
+                type="button"
+                onClick={() => onOpen(line.id)}
+                className={cn(
+                  "block w-full whitespace-pre-wrap text-left hover:bg-white/5",
+                  lineTone(line.level),
+                  selectedId === line.id && "bg-white/10",
+                )}
+              >
+                {line.repeat > 1 ? `×${line.repeat} ` : ""}
+                {line.raw}
+              </button>
+            ))}
+          </pre>
+        ) : (
+          <table className="w-full min-w-[42rem] text-left font-mono text-[11px]">
+            <thead className="sticky top-0 bg-[#141820] text-[10px] uppercase tracking-[0.12em] text-[#f4f1ea]/55">
+              <tr>
+                {LOG_EXPLORER_COLUMNS.filter((column) => columns[column.key]).map((column) => (
+                  <th key={column.key} className="px-3 py-2 font-medium">
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((line) => (
+                <tr
+                  key={line.id}
+                  tabIndex={0}
+                  className={cn("cursor-pointer border-t border-white/5 hover:bg-white/5", selectedId === line.id && "bg-white/10")}
+                  onClick={() => onOpen(line.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onOpen(line.id);
+                    }
+                  }}
+                >
+                  {columns.time && <td className="whitespace-nowrap px-3 py-1.5 text-[#f4f1ea]/70">{line.timestamp || "—"}</td>}
+                  {columns.level && (
+                    <td className="px-3 py-1.5">
+                      <span className={lineTone(line.level)}>{line.level}</span>
+                    </td>
+                  )}
+                  {columns.logger && <td className="max-w-[14rem] truncate px-3 py-1.5 text-[#d7d2c8]">{line.logger || "—"}</td>}
+                  {columns.pipeline && <td className="px-3 py-1.5 text-[#f4f1ea]/70">{line.pipeline || "—"}</td>}
+                  {columns.message && (
+                    <td className={cn("px-3 py-1.5", lineTone(line.level))}>
+                      {line.repeat > 1 && (
+                        <span className="mr-2 rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-[#f4f1ea]">×{line.repeat}</span>
+                      )}
+                      {line.message || line.raw}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div ref={sentinelRef} className="h-8" />
+      </div>
+      {!autoscroll && shown.length < orderedCount && (
+        <div className="border-t border-white/10 px-4 py-2">
+          <Button type="button" variant="outline" className="h-8 border-white/20 text-[#f4f1ea]" onClick={() => setLimit(limit + PAGE_SIZE)}>
+            Load {Math.min(PAGE_SIZE, orderedCount - shown.length)} more
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function LogLineDialog({
+  copied,
+  line,
+  missing,
+  onClose,
+  onCopy,
+  onStep,
+  open,
+  position,
+}: {
+  copied: boolean;
+  line: LogRow | undefined;
+  missing: boolean;
+  onClose: () => void;
+  onCopy: (raw: string) => void;
+  onStep: (delta: number) => void;
+  open: boolean;
+  position: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-h-[85vh] max-w-3xl overflow-auto border-white/15 bg-[#0e1116] text-[#f4f1ea]">
+        <DialogHeader>
+          <DialogTitle className="flex flex-wrap items-center gap-2 font-mono text-base">
+            {line ? <StatusPill tone={levelPillTone(line.level)}>{line.level}</StatusPill> : <span>Log line</span>}
+            <span className="text-[#f4f1ea]/60">{position || "not in this tail"}</span>
+          </DialogTitle>
+          <DialogDescription className="text-[#f4f1ea]/60">
+            {line?.timestamp || "No timestamp on this line."}
+            {line?.logger ? ` · ${line.logger}` : ""}
+            {line?.pipeline ? ` · ${line.pipeline}` : ""}
+            {line && line.repeat > 1 ? ` · repeated ×${line.repeat}` : ""}
+            {" · poll paused while this line is open"}
+          </DialogDescription>
+        </DialogHeader>
+        {missing || !line ? (
+          <p className="text-sm text-[#f4f1ea]/70">That line is not in the current filtered tail.</p>
+        ) : (
+          <div className="space-y-3">
+            <pre className="whitespace-pre-wrap rounded-xl border border-white/10 bg-black/30 p-3 font-mono text-xs leading-relaxed">
+              {line.message || line.raw}
+            </pre>
+            <pre className="whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-3 font-mono text-[11px] text-[#f4f1ea]/75">
+              {line.raw}
+            </pre>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className="border-white/20" disabled={!line} onClick={() => line && onStep(-1)}>
+            <ChevronLeft className="size-4" aria-hidden="true" />
+            Previous
+          </Button>
+          <Button type="button" variant="outline" className="border-white/20" disabled={!line} onClick={() => line && onStep(1)}>
+            Next
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </Button>
+          <Button type="button" variant="outline" className="border-white/20" disabled={!line} onClick={() => line && onCopy(line.raw)}>
+            <Copy className="size-4" aria-hidden="true" />
+            {copied ? "Copied" : "Copy raw"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

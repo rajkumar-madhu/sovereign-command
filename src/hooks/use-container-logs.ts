@@ -7,6 +7,7 @@ export function useContainerLogs(
   tenantId: string,
   selected?: { namespace?: string; pod?: string },
   enabled = true,
+  paused = false,
 ): ContainerLogDump | null {
   const [dump, setDump] = useState<ContainerLogDump | null>(null);
   const namespace = selected?.namespace ?? "";
@@ -26,14 +27,26 @@ export function useContainerLogs(
       if (!cancelled) setDump(next);
     };
     void load();
-    const id = window.setInterval(() => {
+    if (paused) {
+      return () => {
+        cancelled = true;
+      };
+    }
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
       void load();
-    }, POLL_MS);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    const id = window.setInterval(tick, POLL_MS);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [tenantId, namespace, pod, enabled]);
+  }, [tenantId, namespace, pod, enabled, paused]);
 
   return dump;
 }
