@@ -41,6 +41,14 @@ describe("rewriteStage1Path", () => {
     ).toBeNull();
   });
 
+  it("allows OpenClaw posture for the session tenant only", () => {
+    expect(rewriteStage1Path("/stage1-api/openclaw/posture", "?tenantId=tn-nordic")).toBe(
+      "/openclaw/posture?tenantId=tn-nordic",
+    );
+    expect(rewriteStage1Path("/stage1-api/openclaw/posture", "?tenantId=tn-nordic&command=rm")).toBeNull();
+    expect(scopedStage1Path("/openclaw/posture?tenantId=tn-other", "tn-nordic")).toBeNull();
+  });
+
   it("rejects exec, secrets, and foreign hosts", () => {
     expect(rewriteStage1Path("/stage1-api/cluster/snapshot", "?tenantId=finspot-dev&extra=1")).toBeNull();
     expect(rewriteStage1Path("/stage1-api/run", "")).toBeNull();

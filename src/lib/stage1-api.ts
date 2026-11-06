@@ -508,6 +508,77 @@ export interface LiveSovereignControl {
   snapshot?: null;
 }
 
+export interface LiveOpenClawCase {
+  id: string;
+  action: string;
+  decision: "ALLOW" | "REQUIRE_APPROVAL" | "DENY";
+  reason: string;
+  placement: "gateway-host" | "sandbox" | "node" | "blocked";
+  toolAvailable: boolean;
+  elevatedApplied: boolean;
+  wouldExecute: false;
+}
+
+export interface LiveOpenClawPosture {
+  remediator: "held";
+  wouldExecute: false;
+  stage1Hold: true;
+  tenantId: string;
+  cases: LiveOpenClawCase[];
+}
+
+const OPENCLAW_DECISIONS = new Set(["ALLOW", "REQUIRE_APPROVAL", "DENY"]);
+const OPENCLAW_PLACEMENTS = new Set(["gateway-host", "sandbox", "node", "blocked"]);
+
+function isLiveOpenClawCase(value: unknown): value is LiveOpenClawCase {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.id === "string" &&
+    typeof row.action === "string" &&
+    typeof row.decision === "string" &&
+    OPENCLAW_DECISIONS.has(row.decision) &&
+    typeof row.reason === "string" &&
+    typeof row.placement === "string" &&
+    OPENCLAW_PLACEMENTS.has(row.placement) &&
+    typeof row.toolAvailable === "boolean" &&
+    typeof row.elevatedApplied === "boolean" &&
+    row.wouldExecute === false
+  );
+}
+
+/** Accept only a held, non-executing OpenClaw posture payload. */
+export function parseLiveOpenClawPosture(body: unknown): LiveOpenClawPosture | null {
+  if (!body || typeof body !== "object") return null;
+  const payload = body as Record<string, unknown>;
+  if (payload.remediator !== "held" || payload.wouldExecute !== false || payload.stage1Hold !== true) {
+    return null;
+  }
+  if (typeof payload.tenantId !== "string" || !Array.isArray(payload.cases)) return null;
+  if (!payload.cases.every(isLiveOpenClawCase)) return null;
+  return {
+    remediator: "held",
+    wouldExecute: false,
+    stage1Hold: true,
+    tenantId: payload.tenantId,
+    cases: payload.cases,
+  };
+}
+
+export async function fetchLiveOpenClawPosture(tenantId: string): Promise<LiveOpenClawPosture | null> {
+  const base = stage1ApiUrl();
+  if (!base || !tenantId.trim()) return null;
+  try {
+    const res = await fetch(`${base}/openclaw/posture?tenantId=${encodeURIComponent(tenantId)}`, {
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return null;
+    return parseLiveOpenClawPosture(await res.json());
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchLiveSovereignControl(tenantId: string): Promise<LiveSovereignControl | null> {
   const base = stage1ApiUrl();
   if (!base || !tenantId.trim()) return null;

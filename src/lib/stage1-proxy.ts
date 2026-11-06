@@ -10,6 +10,7 @@ const ALLOWED_PATHS = new Set([
   "/cluster/logs",
   "/cluster/metrics",
   "/executions/exec-clb-01",
+  "/openclaw/posture",
 ]);
 
 const LOG_PARAMS = new Set(["tenantId", "namespace", "pod", "backend", "window", "q"]);
@@ -21,7 +22,7 @@ function paramsAllowed(pathname: string, searchParams: URLSearchParams): boolean
   if (pathname === "/health" || pathname === "/executions/exec-clb-01") {
     return keys.length === 0;
   }
-  if (pathname === "/cluster/snapshot") {
+  if (pathname === "/cluster/snapshot" || pathname === "/openclaw/posture") {
     return keys.every((k) => SNAPSHOT_PARAMS.has(k)) && searchParams.has("tenantId");
   }
   if (pathname === "/cluster/logs") {
