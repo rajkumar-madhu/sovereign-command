@@ -18,16 +18,15 @@ function applyTheme(theme: ThemeMode) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>("light");
+  // Systems console defaults to dark — cream/light paper reads as marketing, not ops.
+  const [theme, setThemeState] = useState<ThemeMode>("dark");
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     const preferred =
       stored === "dark" || stored === "light"
         ? stored
-        : window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
+        : "dark";
     setThemeState(preferred);
     applyTheme(preferred);
   }, []);
